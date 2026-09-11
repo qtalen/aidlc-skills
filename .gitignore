@@ -222,3 +222,6 @@ node_modules/
 
 # aidlc-workflows Chinese translation (generated)
 aidlc-workflows-cn/
+
+opencode/
+opencode-cn/
