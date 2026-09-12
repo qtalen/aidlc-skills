@@ -1,3 +1,31 @@
+---
+slug: units-generation
+phase: inception
+execution: CONDITIONAL
+condition: Executes when the system needs decomposition into multiple units of work or services; skipped for single straightforward implementations
+gate: approve-continue
+produces:
+  - inception/plans/unit-of-work-plan.md
+  - inception/application-design/unit-of-work.md
+  - inception/application-design/unit-of-work-dependency.md
+  - inception/application-design/unit-of-work-story-map.md
+consumes:
+  - artifact: inception/requirements/requirements.md
+    required: true
+  - artifact: inception/application-design/components.md
+    required: false
+  - artifact: inception/application-design/component-methods.md
+    required: false
+  - artifact: inception/application-design/services.md
+    required: false
+  - artifact: inception/application-design/component-dependency.md
+    required: false
+requires_stage:
+  - workflow-planning
+  - application-design
+  - requirements-analysis
+---
+
 # Units Generation - Detailed Steps
 
 ## Overview

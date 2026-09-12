@@ -1,3 +1,25 @@
+---
+slug: user-stories
+phase: inception
+execution: CONDITIONAL
+condition: Executes for user-facing features, workflow changes, or complex business requirements; skipped only for pure internal refactoring, simple bug fixes, or documentation-only changes
+gate: approve-continue
+produces:
+  - inception/plans/user-stories-assessment.md
+  - inception/plans/story-generation-plan.md
+  - inception/user-stories/stories.md
+  - inception/user-stories/personas.md
+  - inception/user-stories/*-questions.md
+consumes:
+  - artifact: inception/requirements/requirements.md
+    required: true
+  - artifact: inception/reverse-engineering/*
+    required: false
+    conditional_on: brownfield
+requires_stage:
+  - requirements-analysis
+---
+
 # User Stories - Detailed Steps
 
 ## Purpose

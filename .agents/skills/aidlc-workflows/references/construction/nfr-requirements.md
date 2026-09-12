@@ -1,3 +1,27 @@
+---
+slug: nfr-requirements
+phase: construction
+execution: CONDITIONAL
+condition: Executes when performance, security, or scalability requirements exist or tech stack selection is required; skipped when no NFR requirements and tech stack already determined
+gate: two-option
+produces:
+  - construction/plans/{unit-name}-nfr-requirements-plan.md
+  - construction/{unit-name}/nfr-requirements/nfr-requirements.md
+  - construction/{unit-name}/nfr-requirements/tech-stack-decisions.md
+consumes:
+  - artifact: inception/requirements/requirements.md
+    required: true
+  - artifact: inception/application-design/unit-of-work.md
+    required: true
+  - artifact: construction/{unit-name}/functional-design/*
+    required: false
+requires_stage:
+  - functional-design
+  - requirements-analysis
+  - units-generation
+for_each: unit-of-work
+---
+
 # NFR Requirements
 
 ## Prerequisites

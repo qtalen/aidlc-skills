@@ -1,3 +1,28 @@
+---
+slug: code-generation
+phase: construction
+execution: ALWAYS
+condition: Always executes for each unit — generates code, tests, and artifacts through an approved two-part plan
+gate: two-option
+produces:
+  - construction/plans/{unit-name}-code-generation-plan.md
+  - construction/{unit-name}/code/*
+consumes:
+  - artifact: inception/application-design/unit-of-work.md
+    required: true
+  - artifact: construction/{unit-name}/functional-design/*
+    required: false
+  - artifact: construction/{unit-name}/nfr-design/*
+    required: false
+  - artifact: construction/{unit-name}/infrastructure-design/*
+    required: false
+requires_stage:
+  - infrastructure-design
+  - units-generation
+for_each: unit-of-work
+workspace_writes: true
+---
+
 # Code Generation - Detailed Steps
 
 ## Overview

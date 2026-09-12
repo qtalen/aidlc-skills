@@ -1,3 +1,29 @@
+---
+slug: application-design
+phase: inception
+execution: CONDITIONAL
+condition: Executes when new components/services or component methods and business rules need definition; skipped for changes within existing component boundaries or pure implementation changes
+gate: approve-continue
+produces:
+  - inception/plans/application-design-plan.md
+  - inception/application-design/components.md
+  - inception/application-design/component-methods.md
+  - inception/application-design/services.md
+  - inception/application-design/component-dependency.md
+  - inception/application-design/application-design.md
+consumes:
+  - artifact: inception/requirements/requirements.md
+    required: true
+  - artifact: inception/user-stories/stories.md
+    required: false
+  - artifact: inception/reverse-engineering/*
+    required: false
+    conditional_on: brownfield
+requires_stage:
+  - workflow-planning
+  - requirements-analysis
+---
+
 # Application Design - Detailed Steps
 
 ## Purpose

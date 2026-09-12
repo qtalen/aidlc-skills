@@ -1,3 +1,21 @@
+---
+slug: nfr-design
+phase: construction
+execution: CONDITIONAL
+condition: Executes when NFR Requirements was executed and NFR patterns need to be incorporated; skipped when no NFR requirements exist
+gate: two-option
+produces:
+  - construction/plans/{unit-name}-nfr-design-plan.md
+  - construction/{unit-name}/nfr-design/nfr-design-patterns.md
+  - construction/{unit-name}/nfr-design/logical-components.md
+consumes:
+  - artifact: construction/{unit-name}/nfr-requirements/*
+    required: true
+requires_stage:
+  - nfr-requirements
+for_each: unit-of-work
+---
+
 # NFR Design
 
 ## Prerequisites

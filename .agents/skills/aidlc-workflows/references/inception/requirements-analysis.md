@@ -1,3 +1,22 @@
+---
+slug: requirements-analysis
+phase: inception
+execution: ALWAYS
+condition: Always executes with adaptive depth — every request needs its intent and requirements assessed; depth (minimal/standard/comprehensive) scales with clarity, complexity, and risk
+gate: approve-continue
+produces:
+  - inception/requirements/requirements.md
+  - inception/requirements/requirement-verification-questions.md
+consumes:
+  - artifact: inception/reverse-engineering/*
+    required: true
+    conditional_on: brownfield
+requires_stage:
+  - workspace-detection
+  - reverse-engineering
+depth: adaptive
+---
+
 # Requirements Analysis (Adaptive)
 
 **Assume the role** of a product owner

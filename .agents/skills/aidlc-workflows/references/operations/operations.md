@@ -1,3 +1,15 @@
+---
+slug: operations
+phase: operations
+execution: CONDITIONAL
+condition: Placeholder for future deployment and monitoring workflows — the workflow currently ends after Build and Test
+gate: none
+produces: []
+consumes: []
+requires_stage:
+  - build-and-test
+---
+
 # Operations
 
 **Purpose**: Placeholder for future operational phases (deployment, monitoring, maintenance)

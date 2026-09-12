@@ -1,3 +1,27 @@
+---
+slug: infrastructure-design
+phase: construction
+execution: CONDITIONAL
+condition: Executes when infrastructure services need mapping, deployment architecture, or cloud resource specification; skipped when no infrastructure changes or infrastructure already defined
+gate: two-option
+produces:
+  - construction/plans/{unit-name}-infrastructure-design-plan.md
+  - construction/{unit-name}/infrastructure-design/infrastructure-design.md
+  - construction/{unit-name}/infrastructure-design/deployment-architecture.md
+  - construction/shared-infrastructure.md
+consumes:
+  - artifact: inception/application-design/unit-of-work.md
+    required: true
+  - artifact: construction/{unit-name}/functional-design/*
+    required: false
+  - artifact: construction/{unit-name}/nfr-design/*
+    required: false
+requires_stage:
+  - nfr-design
+  - units-generation
+for_each: unit-of-work
+---
+
 # Infrastructure Design
 
 ## Prerequisites

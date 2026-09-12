@@ -1,3 +1,16 @@
+---
+slug: workspace-detection
+phase: inception
+execution: ALWAYS
+condition: Always executes — detects existing workflow state and codebase, resumes prior work or classifies greenfield/brownfield
+gate: none
+produces:
+  - aidlc-state.md
+  - audit.md
+consumes: []
+requires_stage: []
+---
+
 # Workspace Detection
 
 **Purpose**: Determine workspace state and check for existing AI-DLC projects

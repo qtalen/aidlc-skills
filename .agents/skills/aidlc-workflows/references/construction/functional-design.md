@@ -1,3 +1,28 @@
+---
+slug: functional-design
+phase: construction
+execution: CONDITIONAL
+condition: Executes when the unit has new data models, complex business logic, or business rules needing detailed design; skipped for simple logic changes
+gate: two-option
+produces:
+  - construction/plans/{unit-name}-functional-design-plan.md
+  - construction/{unit-name}/functional-design/business-logic-model.md
+  - construction/{unit-name}/functional-design/business-rules.md
+  - construction/{unit-name}/functional-design/domain-entities.md
+  - construction/{unit-name}/functional-design/frontend-components.md
+consumes:
+  - artifact: inception/requirements/requirements.md
+    required: true
+  - artifact: inception/application-design/unit-of-work.md
+    required: true
+  - artifact: inception/application-design/*
+    required: false
+requires_stage:
+  - units-generation
+  - requirements-analysis
+for_each: unit-of-work
+---
+
 # Functional Design
 
 ## Purpose

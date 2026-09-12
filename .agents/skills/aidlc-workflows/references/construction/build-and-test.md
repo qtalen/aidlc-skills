@@ -1,3 +1,25 @@
+---
+slug: build-and-test
+phase: construction
+execution: ALWAYS
+condition: Always executes after all units complete — generates comprehensive build and test instructions for all units
+gate: approve-continue
+produces:
+  - construction/build-and-test/build-instructions.md
+  - construction/build-and-test/unit-test-instructions.md
+  - construction/build-and-test/integration-test-instructions.md
+  - construction/build-and-test/performance-test-instructions.md
+  - construction/build-and-test/contract-test-instructions.md
+  - construction/build-and-test/security-test-instructions.md
+  - construction/build-and-test/e2e-test-instructions.md
+  - construction/build-and-test/build-and-test-summary.md
+consumes:
+  - artifact: construction/{unit-name}/code/*
+    required: false
+requires_stage:
+  - code-generation
+---
+
 # Build and Test
 
 **Purpose**: Build all units and execute comprehensive testing strategy

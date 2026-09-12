@@ -1,3 +1,16 @@
+---
+slug: reverse-engineering
+phase: inception
+execution: CONDITIONAL
+condition: Executes when existing codebase detected and no prior reverse-engineering artifacts exist; skipped for greenfield or when artifacts already exist
+gate: approve-continue
+produces:
+  - inception/reverse-engineering/*
+consumes: []
+requires_stage:
+  - workspace-detection
+---
+
 # Reverse Engineering
 
 **Purpose**: Analyze existing codebase and generate comprehensive design artifacts
