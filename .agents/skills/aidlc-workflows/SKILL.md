@@ -18,7 +18,7 @@ The AI model intelligently assesses what stages are needed based on:
 3. Complexity and scope of change
 4. Risk and impact assessment
 
-**Workflow scopes**: During Requirements Analysis, a named scope (classic/bugfix/refactor/security-patch/infra/express) is selected with the user and recorded in `aidlc-docs/aidlc-state.md`. The scope pre-prunes conditional stages (see `references/common/stage-contract.md` §6). If the active scope marks a stage as SKIP, do NOT execute it or re-litigate its inclusion — the per-stage assessment in this file applies only to stages in the plan; the user may still add stages back explicitly at the Workflow Planning gate. If no scope is recorded (e.g. a session started before scopes existed), treat the plan as `classic`.
+**Workflow scopes**: During Requirements Analysis, a named scope (classic/bugfix/refactor/security-patch/infra/express) is selected and recorded in `aidlc-docs/aidlc-state.md`. Scope selection is **de-emphasized for end users**: when the match is unambiguous the scope is auto-selected without a gate; only genuine ambiguity triggers a chat question with minimal candidates (see `references/inception/requirements-analysis.md` Step 2.5). The scope pre-prunes conditional stages (see `references/common/stage-contract.md` §6). If the active scope marks a stage as SKIP, do NOT execute it or re-litigate its inclusion — the per-stage assessment in this file applies only to stages in the plan; the user may still add stages back explicitly at the Workflow Planning gate. If no scope is recorded (e.g. a session started before scopes existed), treat the plan as `classic`.
 
 ## MANDATORY: Rule Details Loading
 

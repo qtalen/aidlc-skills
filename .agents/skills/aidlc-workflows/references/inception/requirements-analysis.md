@@ -97,9 +97,12 @@ would never use. The scope catalog below is generated from the scope registry
 
 1. **Explicit user choice always wins** — if the user named a scope (e.g. "this is a bugfix"), use it.
 2. Otherwise, match the raw request and the Step 2 intent analysis against the scope **keywords** (word-boundary matching, so "debug" does not trigger `bug`). **Priority rule**: keywords only apply when the task itself is a fix / patch / cleanup / infrastructure / lightweight run — if the request is about *building a new feature*, recommend `classic` even when words like `deploy`, `security`, or `express` appear in it (e.g. "build a REST API with Express" is a feature, not an express-scope task).
-3. If nothing matches, recommend `classic` (the default — full adaptive v1.0 behavior).
-4. **Confirm with the user before proceeding**: present the recommended scope, its default depth, and a one-line summary of what it skips. The user may pick a different scope or adjust the depth. If the user asks why stages are skipped, load `../common/scopes/<name>.md` for the rationale. This confirmation is a **gate-style choice presented in chat** (same spec as an approval gate — it is exempt from the "all questions go to question files" rule, because the answer determines which questions Step 6 will need).
-5. Record the decision in `aidlc-docs/aidlc-state.md` under `## Project Information` and log the scope confirmation (chosen scope, depth, who chose it) in `aidlc-docs/audit.md`:
+3. If nothing matches, select `classic` (the default — full adaptive v1.0 behavior).
+4. **De-emphasize scope for end users — auto-select whenever the match is clear:**
+   - **Unambiguous → auto-select, NO gate.** When determination is confident (explicit user naming, or a unique keyword match with no priority-rule conflict), adopt the scope directly, record it per item 5, and mention it in one line in a subsequent message (e.g. "已按 bugfix 流程处理"). Do NOT present an approval gate, do NOT explain the scope concept, and do NOT offer heavier scopes (e.g. `classic`) "just in case" — if the recommended scope clearly fits, it is the only one that applies.
+   - **Genuinely ambiguous → minimal candidates only.** Ask in chat with as few candidates as possible — only the genuinely plausible scopes (typically 1–2). Never present the full catalog as a menu, and never include a scope you already know is a poor fit. Frame it as a plain either/or question, not a concept lecture. (This chat choice is exempt from the "all questions go to question files" rule, because the answer determines which questions Step 6 will need.)
+   - **Safety net**: the Workflow Planning gate always presents the resulting stage plan and allows adding stages back — an auto-selected scope can be corrected there without ceremony.
+5. Record the decision in `aidlc-docs/aidlc-state.md` under `## Project Information` and log the scope selection (chosen scope, depth, and whether it was auto-selected or user-chosen) in `aidlc-docs/audit.md`:
 
 ```markdown
 - **Scope**: [scope name]
