@@ -20,11 +20,19 @@ requires_stage:
   - requirements-analysis
   - units-generation
 for_each: unit-of-work
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: SKIP
+  security-patch: EXECUTE
+  infra: EXECUTE
+  express: SKIP
 ---
 
 # NFR Requirements
 
 ## Prerequisites
+- Units Generation must be complete, **or** the execution plan has no Units Generation stage — in that case this stage runs exactly once for the whole task as an implicit single unit (see `workflow-planning.md` Step 3.0), using `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts as its inputs in place of unit artifacts
 - Functional Design must be complete for the unit
 - Unit functional design artifacts must be available
 - Execution plan must indicate NFR Requirements stage should execute

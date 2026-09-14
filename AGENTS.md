@@ -30,7 +30,8 @@
   ```cmd
   python .agents\skills\aidlc-workflows\scripts\generate.py
   ```
-- 提交前用 `--check` 验证无漂移（非零退出 = 有未同步的生成物）。
+- 提交前用 `--check` 验证无漂移（非零退出 = 有未同步的生成物）。CI 兜底：`.github/workflows/contract-check.yml` 在 push/PR 时自动跑 `--check`。
+- 生成器有测试套件 `scripts/tests/`（stdlib unittest）：`python -m unittest discover -s .agents\skills\aidlc-workflows\scripts\tests`，改生成器后必跑。
 - 验收标准：二次运行幂等；标记外内容零改动。
 - 所有脚本（含作者期工具）一律放技能目录的 `scripts/` 下（Agent Skills 规范）。
 
@@ -43,15 +44,14 @@
 ### 4. 编辑纪律
 
 - 修改阶段规则：正文可直接改；frontmatter 改动后必须跑生成器。
-- 新增阶段 = 新建一个带 frontmatter 的阶段文件 + 跑生成器（无需改其他文件）。
+- 新增阶段 = 新建一个带 frontmatter 的阶段文件 + 跑生成器（无需改其他文件）。注意 `scopes:` 必须为 `references/common/scopes/` 中注册的每个 scope 显式填值（漏填生成器报错并列出清单）；新增 scope = registry 加文件 + 所有阶段补一列 + 跑生成器。
 - `opencode/`、`opencode-cn/`、`aidlc-workflows-cn/` 只读。
 - 技能文件（SKILL.md、references/）用**英文**撰写；`docs/` 下的工作文档用**中文**。
 
 ## 路线图速览（详见 docs/integration-plan.md）
 
-- **Phase 0/1 ✅ 已完成**：阶段契约化 + 生成器（本文件 §核心架构约定即其成果）
-- **Phase 2（下一阶段）**：scope 裁剪矩阵（frontmatter 填 `scopes:`，转置生成 EXECUTE/SKIP 矩阵，强化 Workflow Planning）
-- **Phase 3**：轻量编排引擎（消费同一契约；定位与技术栈届时再定，决策 D6/D7）
+- **Phase 0/1/2 ✅ 已完成**：阶段契约化 + 生成器（本文件 §核心架构约定即其成果）；scope 裁剪矩阵（`references/common/scopes/` 6 个 scope：classic[默认]/bugfix/refactor/security-patch/infra/express；阶段 frontmatter 的 `scopes:` 映射转置生成矩阵；Requirements Analysis 选 scope，Workflow Planning 微调）
+- **Phase 3（下一阶段）**：轻量编排引擎（消费同一契约；定位与技术栈届时再定，决策 D6/D7）
 - **Phase 4+ backlog**：persona 体系、reviewer 契约、五层记忆、学习仪式、门仪式精细化、传感器自检清单
 
 ## 环境

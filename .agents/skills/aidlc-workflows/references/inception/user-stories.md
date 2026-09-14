@@ -18,6 +18,13 @@ consumes:
     conditional_on: brownfield
 requires_stage:
   - requirements-analysis
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: SKIP
+  security-patch: SKIP
+  infra: SKIP
+  express: SKIP
 ---
 
 # User Stories - Detailed Steps

@@ -9,6 +9,13 @@ produces:
   - audit.md
 consumes: []
 requires_stage: []
+scopes:
+  classic: EXECUTE
+  bugfix: EXECUTE
+  refactor: EXECUTE
+  security-patch: EXECUTE
+  infra: EXECUTE
+  express: EXECUTE
 ---
 
 # Workspace Detection

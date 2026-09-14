@@ -8,6 +8,13 @@ produces: []
 consumes: []
 requires_stage:
   - build-and-test
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: SKIP
+  security-patch: SKIP
+  infra: SKIP
+  express: SKIP
 ---
 
 # Operations

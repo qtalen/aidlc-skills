@@ -21,6 +21,17 @@
 - ❌ "The Requirements Assessment phase" (should be "stage")
 - ❌ "The CONSTRUCTION stage" (should be "phase")
 
+### Scope
+
+**Scope**: An overloaded term with two distinct meanings - disambiguate by context:
+- (a) **Workflow scope**: A named plan-pruning profile (classic/bugfix/refactor/security-patch/infra/express) selected during Requirements Analysis (Step 2.5). It supplies the baseline EXECUTE/SKIP/CONDITIONAL plan and the default depth.
+- (b) **Change footprint**: How broadly a change reaches (single file, component, multiple components, or system-wide). A depth-assessment factor, not a workflow profile.
+
+**Usage Examples**:
+- ✅ "The bugfix scope skips Application Design" (workflow scope)
+- ✅ "The change footprint spans multiple components" (change footprint)
+- ❌ "Let's use a component-level scope" (ambiguous - say "the change footprint is component-level")
+
 ## Three-Phase Lifecycle
 
 ### INCEPTION PHASE

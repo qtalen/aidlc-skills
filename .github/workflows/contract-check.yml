@@ -1,0 +1,14 @@
+name: contract-check
+
+on: [push, pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Verify generated sections are in sync with stage frontmatter
+        run: python .agents/skills/aidlc-workflows/scripts/generate.py --check

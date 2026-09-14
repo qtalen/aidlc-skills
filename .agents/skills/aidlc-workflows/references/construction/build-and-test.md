@@ -15,9 +15,16 @@ produces:
   - construction/build-and-test/build-and-test-summary.md
 consumes:
   - artifact: construction/{unit-name}/code/*
-    required: false
+    required: true
 requires_stage:
   - code-generation
+scopes:
+  classic: EXECUTE
+  bugfix: EXECUTE
+  refactor: EXECUTE
+  security-patch: EXECUTE
+  infra: EXECUTE
+  express: EXECUTE
 ---
 
 # Build and Test

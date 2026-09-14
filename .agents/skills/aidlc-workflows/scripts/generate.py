@@ -76,12 +76,18 @@ REQUIRED_KEYS = (
     "produces",
     "consumes",
     "requires_stage",
+    "scopes",
 )
 CONSUME_KEYS = frozenset(("artifact", "required", "conditional_on"))
 EXECUTION_VALUES = ("ALWAYS", "CONDITIONAL")
 GATE_VALUES = ("none", "approve-continue", "two-option")
 DEPTH_VALUES = ("adaptive", "minimal", "standard", "comprehensive")
 CONDITIONAL_ON_VALUES = ("brownfield", "greenfield")
+SCOPE_VALUE_VALUES = ("EXECUTE", "SKIP", "CONDITIONAL")
+SCOPE_DEPTH_VALUES = ("minimal", "standard", "comprehensive")
+SCOPE_ALLOWED_KEYS = frozenset(
+    ("name", "depth", "keywords", "description", "default")
+)
 KEBAB_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 # Artifact entries that must never appear in the generated session-continuity
@@ -114,10 +120,14 @@ MARKERS = {
     "references/common/session-continuity.md": [
         "artifact-loading",
     ],
+    "references/inception/requirements-analysis.md": [
+        "scope-catalog",
+    ],
     "references/inception/workflow-planning.md": [
         "execution-plan-mermaid",
         "execution-plan-stages",
         "state-template-stages",
+        "scope-matrix",
     ],
     "references/extensions/workflow/autonomous-mode/autonomous-mode.md": [
         "stage-names",
@@ -143,7 +153,17 @@ def _strip_inline_comment(value):
 
 
 def _parse_scalar(raw):
-    value = _strip_inline_comment(raw.strip())
+    value = raw.strip()
+    # A scalar that opens with a quote is taken up to the matching closing
+    # quote: everything inside is preserved verbatim (a '#' inside the quotes
+    # is data, not a comment), and any trailing text after the close is an
+    # inline comment and is dropped. Only unquoted scalars are subject to
+    # inline-comment truncation below.
+    if value[:1] in ("'", '"'):
+        end = value.find(value[0], 1)
+        if end != -1:
+            return value[1:end]
+    value = _strip_inline_comment(value)
     if value == "":
         return ""
     if value in ("true", "false"):
@@ -188,6 +208,25 @@ def _parse_block(block, path):
             items.append(_parse_scalar(body))
             j += 1
     return items
+
+
+def _parse_map_block(block, path):
+    """Parse an indented block map (``key: value`` lines, e.g. ``scopes``)."""
+    result = {}
+    for line in block:
+        stripped = line.strip()
+        if stripped == "" or stripped.startswith("#"):
+            continue
+        m = re.match(r"^([A-Za-z_][A-Za-z0-9_-]*)\s*:(.*)$", stripped)
+        if not m:
+            raise HardError(
+                "%s: cannot parse mapping field %r" % (path, line)
+            )
+        key = m.group(1)
+        if key in result:
+            raise HardError("%s: duplicate mapping key %r" % (path, key))
+        result[key] = _parse_scalar(m.group(2))
+    return result
 
 
 def _parse_frontmatter(text, path):
@@ -236,7 +275,14 @@ def _parse_frontmatter(text, path):
             ):
                 block.append(fm_lines[i])
                 i += 1
-            mapping[key] = _parse_block(block, path) if block else []
+            if not block:
+                mapping[key] = []
+            else:
+                first = block[0].strip()
+                if first == "-" or first.startswith("- "):
+                    mapping[key] = _parse_block(block, path)
+                else:
+                    mapping[key] = _parse_map_block(block, path)
         elif rest == "[]":
             mapping[key] = []
             i += 1
@@ -252,6 +298,12 @@ def _parse_frontmatter(text, path):
 
 
 class Stage(object):
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+
+class Scope(object):
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -329,7 +381,7 @@ def _derive_name(body, path):
     return title
 
 
-def build_stage(path, stem, dir_phase, text):
+def build_stage(path, stem, dir_phase, text, scope_names):
     display_path = _rel(path)
     mapping, body = _parse_frontmatter(text, display_path)
 
@@ -404,11 +456,39 @@ def build_stage(path, stem, dir_phase, text):
             % (display_path, " | ".join(DEPTH_VALUES))
         )
 
-    scopes = _as_str_list(mapping.get("scopes", []), display_path, "scopes")
-    if scopes:
+    scopes = mapping["scopes"]
+    if not isinstance(scopes, dict):
         raise HardError(
-            "%s: scopes is reserved and must be absent or empty" % display_path
+            "%s: scopes must be a mapping of scope name -> %s"
+            % (display_path, " | ".join(SCOPE_VALUE_VALUES))
         )
+    missing = [name for name in scope_names if name not in scopes]
+    extra = [name for name in scopes if name not in scope_names]
+    if missing or extra:
+        parts = []
+        if missing:
+            parts.append("missing scope(s): %s" % ", ".join(sorted(missing)))
+        if extra:
+            parts.append("unknown scope(s): %s" % ", ".join(sorted(extra)))
+        raise HardError(
+            "%s: scopes key set must equal the registered scopes (%s)"
+            % (display_path, "; ".join(parts))
+        )
+    for scope_name, value in scopes.items():
+        if value not in SCOPE_VALUE_VALUES:
+            raise HardError(
+                "%s: scopes.%s must be one of %s"
+                % (display_path, scope_name, " | ".join(SCOPE_VALUE_VALUES))
+            )
+    if execution == "ALWAYS":
+        offenders = [
+            name for name in scope_names if scopes.get(name) != "EXECUTE"
+        ]
+        if offenders:
+            raise HardError(
+                "%s: ALWAYS stage must be EXECUTE in every scope "
+                "(non-EXECUTE in: %s)" % (display_path, ", ".join(offenders))
+            )
 
     return Stage(
         path=path,
@@ -428,7 +508,7 @@ def build_stage(path, stem, dir_phase, text):
     )
 
 
-def load_stages():
+def load_stages(scope_names):
     stages = []
     for phase in PHASE_ORDER:
         directory = os.path.join(SKILL_ROOT, "references", phase)
@@ -441,10 +521,104 @@ def load_stages():
             if not os.path.isfile(path):
                 continue
             text = _read_text(path)
-            stages.append(build_stage(path, filename[:-3], phase, text))
+            stages.append(
+                build_stage(path, filename[:-3], phase, text, scope_names)
+            )
     if not stages:
         raise HardError("no stage files found under references/<phase>/")
     return stages
+
+
+def load_scopes():
+    """Load and validate the scope registry under references/common/scopes/."""
+    directory = os.path.join(SKILL_ROOT, "references", "common", "scopes")
+    if not os.path.isdir(directory):
+        raise HardError(
+            "scope registry directory not found: references/common/scopes/"
+        )
+    scopes = []
+    for filename in sorted(os.listdir(directory)):
+        if not filename.endswith(".md"):
+            continue
+        path = os.path.join(directory, filename)
+        if not os.path.isfile(path):
+            continue
+        display_path = _rel(path)
+        mapping, _body = _parse_frontmatter(_read_text(path), display_path)
+        stem = filename[:-3]
+
+        unknown = [key for key in mapping if key not in SCOPE_ALLOWED_KEYS]
+        if unknown:
+            raise HardError(
+                "%s: unknown scope frontmatter key(s): %s"
+                % (display_path, ", ".join(sorted(unknown)))
+            )
+        for key in ("name", "depth", "keywords", "description"):
+            if key not in mapping:
+                raise HardError(
+                    "%s: missing required scope key %r" % (display_path, key)
+                )
+
+        name = mapping["name"]
+        if not isinstance(name, str) or not KEBAB_RE.match(name):
+            raise HardError(
+                "%s: name must be a kebab-case string (got %r)"
+                % (display_path, name)
+            )
+        if name != stem:
+            raise HardError(
+                "%s: name %r must equal filename stem %r"
+                % (display_path, name, stem)
+            )
+
+        depth = mapping["depth"]
+        if depth not in SCOPE_DEPTH_VALUES:
+            raise HardError(
+                "%s: depth must be one of %s"
+                % (display_path, " | ".join(SCOPE_DEPTH_VALUES))
+            )
+
+        keywords = _as_str_list(mapping["keywords"], display_path, "keywords")
+        description = mapping["description"]
+        if not isinstance(description, str) or description.strip() == "":
+            raise HardError(
+                "%s: description must be a non-empty string" % display_path
+            )
+
+        default = mapping.get("default", False)
+        if not isinstance(default, bool):
+            raise HardError("%s: default must be a boolean" % display_path)
+
+        scopes.append(
+            Scope(
+                path=path,
+                name=name,
+                depth=depth,
+                keywords=keywords,
+                description=description,
+                default=default,
+            )
+        )
+
+    if not scopes:
+        raise HardError("no scope files found under references/common/scopes/")
+
+    defaults = [scope for scope in scopes if scope.default]
+    if len(defaults) > 1:
+        raise HardError(
+            "more than one scope declares default: true (%s)"
+            % ", ".join(scope.name for scope in defaults)
+        )
+    if not defaults:
+        raise HardError(
+            "no scope declares default: true (exactly one is required)"
+        )
+    return scopes
+
+
+def compute_scope_order(scopes):
+    """Default scope first, then alphabetical by name (used by both tables)."""
+    return sorted(scopes, key=lambda scope: (not scope.default, scope.name))
 
 
 def _validate_references(stages):
@@ -523,7 +697,7 @@ def _artifact_matches(consume, produce):
     return False
 
 
-def compute_warnings(stages):
+def compute_warnings(stages, scope_names):
     warnings = []
     for stage in stages:
         for consume in stage.consumes:
@@ -565,6 +739,40 @@ def compute_warnings(stages):
                 )
             else:
                 seen[produced] = stage.slug
+
+    # Rule 16 (advisory): a required, unconditional consume whose every
+    # producer stage is SKIP under a scope in which the consumer still runs
+    # leaves the consumer without its input. Per-unit stages are exempt (the
+    # implicit single-unit convention covers them), as are consumes guarded by
+    # a brownfield/greenfield condition.
+    for scope_name in scope_names:
+        for stage in stages:
+            if stage.scopes.get(scope_name) == "SKIP":
+                continue
+            if stage.for_each:
+                continue
+            for consume in stage.consumes:
+                if not consume["required"]:
+                    continue
+                if consume["conditional_on"] is not None:
+                    continue
+                producers = [
+                    other
+                    for other in stages
+                    if any(
+                        _artifact_matches(consume["artifact"], produced)
+                        for produced in other.produces
+                    )
+                ]
+                if producers and all(
+                    producer.scopes.get(scope_name) == "SKIP"
+                    for producer in producers
+                ):
+                    warnings.append(
+                        "scope %r: stage %r requires %r but all producer "
+                        "stages are SKIP in this scope"
+                        % (scope_name, stage.slug, consume["artifact"])
+                    )
     return warnings
 
 
@@ -577,7 +785,7 @@ def _node_id(slug):
     return "".join(part.capitalize() for part in slug.split("-"))
 
 
-def build_render_map(ordered):
+def build_render_map(ordered, scope_order):
     def ps(phase):
         return [stage for stage in ordered if stage.phase == phase]
 
@@ -867,6 +1075,43 @@ def build_render_map(ordered):
                 lines.append("- [ ] %s%s" % (stage.name, suffix))
         return "\n".join(lines)
 
+    def render_scope_catalog():
+        lines = [
+            "| Scope | Depth | Keywords | Description |",
+            "|---|---|---|---|",
+        ]
+        for scope in scope_order:
+            label = (
+                "**%s** (default)" % scope.name if scope.default else scope.name
+            )
+            if scope.keywords:
+                keywords = ", ".join("`%s`" % kw for kw in scope.keywords)
+            else:
+                keywords = "\u2014"
+            lines.append(
+                "| %s | %s | %s | %s |"
+                % (label, scope.depth, keywords, scope.description)
+            )
+        return "\n".join(lines)
+
+    def render_scope_matrix():
+        scope_names = [scope.name for scope in scope_order]
+        lines = [
+            "| Phase | Stage | %s |" % " | ".join(scope_names),
+            "|---|---|%s" % ("---|" * len(scope_names)),
+        ]
+        for stage in ordered:
+            meta = PHASE_META[stage.phase]
+            phase_cell = "%s %s" % (meta["emoji"], stage.phase.capitalize())
+            cells = [
+                stage.scopes.get(scope_name, "") for scope_name in scope_names
+            ]
+            lines.append(
+                "| %s | %s | %s |"
+                % (phase_cell, stage.name, " | ".join(cells))
+            )
+        return "\n".join(lines)
+
     render_map = {
         "stage-list-inception": lambda: render_stage_list("inception"),
         "stage-list-construction": render_stage_list_construction,
@@ -884,6 +1129,8 @@ def build_render_map(ordered):
         "execution-plan-stages": render_execution_plan_stages,
         "state-template-stages": render_state_template_stages,
         "stage-names": render_stage_names,
+        "scope-catalog": render_scope_catalog,
+        "scope-matrix": render_scope_matrix,
     }
     return render_map
 
@@ -932,14 +1179,17 @@ def _replace_section(text, key, rendered):
 
 
 def regenerate(check):
-    stages = load_stages()
+    scopes = load_scopes()
+    scope_order = compute_scope_order(scopes)
+    scope_names = [scope.name for scope in scope_order]
+    stages = load_stages(scope_names)
     _validate_references(stages)
     by_slug = {stage.slug: stage for stage in stages}
     _detect_cycles(stages, by_slug)
 
     ordered = compute_display_order(stages)
-    warnings = compute_warnings(stages)
-    render_map = build_render_map(ordered)
+    warnings = compute_warnings(stages, scope_names)
+    render_map = build_render_map(ordered, scope_order)
 
     drifted = []
     changed_files = {}

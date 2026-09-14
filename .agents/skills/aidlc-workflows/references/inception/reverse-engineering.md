@@ -9,6 +9,13 @@ produces:
 consumes: []
 requires_stage:
   - workspace-detection
+scopes:
+  classic: CONDITIONAL
+  bugfix: CONDITIONAL
+  refactor: CONDITIONAL
+  security-patch: CONDITIONAL
+  infra: SKIP
+  express: CONDITIONAL
 ---
 
 # Reverse Engineering

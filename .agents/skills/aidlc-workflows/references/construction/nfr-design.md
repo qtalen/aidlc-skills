@@ -14,6 +14,13 @@ consumes:
 requires_stage:
   - nfr-requirements
 for_each: unit-of-work
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: SKIP
+  security-patch: SKIP
+  infra: EXECUTE
+  express: SKIP
 ---
 
 # NFR Design

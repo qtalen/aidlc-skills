@@ -24,6 +24,13 @@ requires_stage:
   - workflow-planning
   - application-design
   - requirements-analysis
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: SKIP
+  security-patch: SKIP
+  infra: SKIP
+  express: SKIP
 ---
 
 # Units Generation - Detailed Steps

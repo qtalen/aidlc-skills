@@ -133,7 +133,7 @@ Phase 0/1（本次执行）  阶段契约化：frontmatter 唯一事实源（借
                        + 作者期生成脚本（scripts/，消除 8 处重复清单）
                        → 运行时仍是纯 Markdown 技能，零依赖
 
-Phase 2                scope 裁剪矩阵（frontmatter 加 scopes: 字段，
+Phase 2（✅ 已完成）   scope 裁剪矩阵（frontmatter 加 scopes: 字段，
                        转置生成矩阵表；强化 Workflow Planning：
                        从"逐阶段临时判断"升级为"先选 scope 再微调"）
 
@@ -173,6 +173,8 @@ Phase 4+（backlog）    persona 体系、reviewer 契约、五层记忆、§13 
 > 遗留说明（有意为之的规范化，非 bug）：生成清单中的措辞做了归一（如 `CONDITIONAL - Brownfield only` → `CONDITIONAL`，完整条件在阶段文件 `condition` 字段）；workflow-planning 模板不再预置 `(COMPLETED)` 勾选状态；process-overview 流程图因 requires_stage DAG 补全而边更密。executor 实现时对规格做的三个裁决（记录在案）：inline 标记用原位替换；`depth` 缺失视为未声明（不默认 adaptive 标注）；相位副标题按各渲染场景分别取词。
 
 > 本阶段完成后：扩展痛点解决；运行时仍是纯 Markdown 技能；AI 行为应与改造前一致。
+>
+> 审查修复（Phase 0/1 审查，与 Phase 2 审查同修）：🟡 修 execution-plan 命名（workflow-changes.md Type 5，此前声称已修实际未落地，见上方更正）；新增 `.github/workflows/contract-check.yml` CI 兜底（--check 漂移检测）；契约 `depth` 字段语义对齐实现（缺失=未声明，仅显式 adaptive 渲染标注）；depth-levels.md 的 Application Design 产物示例对齐 SSOT（component-diagram.md 系历史残留，已更正为真实产物清单）；解析器 `_strip_inline_comment` 静默截断 bug 修复（引号内 " #" 不再被截）+ 新增 `scripts/tests/` 20 个 unittest（解析边界/校验/幂等/漂移检测）；B5 数据精度三处（WP 补 consumes questions 文件、B&T 的 code 产物 required→true、契约 §4 补 audit.md 归因说明）。遗留 backlog：`--check` 重复 key 僵尸区与 key 前缀误配两个逃逸场景、保留键报错信息优化、中缀 glob 约定、Operations 的 CONDITIONAL 语义（Phase 4+ 评估 NEVER 值）、welcome ASCII 截断保护；Phase 3 设计提示：execution-plan.md 无消费者、condition 为散文、第三选项在正文（引擎落地时收口）；D7 决策参考：v2.0 compile-to-JSON 模式（运行时只读编译产物，把解析器风险关在作者期）。
 
 ### 4.1 步骤
 
@@ -219,16 +221,23 @@ Phase 4+（backlog）    persona 体系、reviewer 契约、五层记忆、§13 
 ### 4.3 补充说明
 
 - 生成脚本虽在技能目录内（`scripts/`），但属作者期工具；技能分发时它是惰性文件，不影响 harness 无关性。
-- 顺手修复已知文档不一致（§2.3 的 execution-plan 命名问题），OWASP TODO 单独处理。
+- ~~顺手修复已知文档不一致（§2.3 的 execution-plan 命名问题）~~——**更正（Phase 0/1 审查发现）**：该修复当时未实际落地，`workflow-changes.md` Type 5 仍指向 `workflow-planning.md`；已在审查修复批次中真正修复（改为 `execution-plan.md` + `aidlc-state.md` 的 Depth 行）。OWASP TODO 单独处理。
 
 ---
 
-## 5. Phase 2 预告：scope 裁剪矩阵
+## 5. Phase 2：scope 裁剪矩阵
 
-- 给阶段 frontmatter 填充 `scopes:` 字段；定义分叉自己的 scope 集（参考 v2.0 的 11 个：`opencode/.aidlc/scopes/*.md`，按 v1.0 的 14 阶段集裁剪）
-- 生成脚本转置出 scope 矩阵表（EXECUTE/SKIP），注入 Workflow Planning 规则
-- Workflow Planning 升级：先按任务特征选 scope（关键词/显式指定），再做单阶段微调（沿用 v1.0 workflow-changes.md 的增删机制）
-- 参考：v2.0 scope frontmatter 字段 `depth/keywords/skeleton/review_cap/testStrategy`（见 `stage-protocol.md:842-875`）
+> **状态：✅ 已完成（2026-09-12）**。交付物：`references/common/scopes/` 6 个 scope 定义（classic[默认]/bugfix/refactor/security-patch/infra/express，v2.0 对齐命名）；14 个阶段 frontmatter 填充 `scopes:` 映射；stage-contract.md §6（scope registry 规范、成员语义、选择与 depth 绑定）+ §7 校验规则 9-12；generate.py 新增 scope registry 解析、完整性校验与两个渲染器（`scope-catalog` 注入 Requirements Analysis、`scope-matrix` 注入 Workflow Planning）；RA 新增 Step 2.5（关键词启发式推荐 + 用户确认，显式指定优先）；WP 新增 Step 3.0（scope 基线 + 单阶段微调），计划/状态模板记录 Scope/Depth。
+>
+> 关键决策（本轮确认）：精简 6 个 scope——`poc`/`mvp`/`workshop` 依赖 Operations 补齐后才有区分度，届时再引入；`enterprise` 用 depth 表达；命名对齐 v2.0 以便 Operations 补齐后各 scope 只需"扩行"（如 bugfix 追加 deployment 阶段），定义本身不改。运行时上下文纪律：AI 只看生成的矩阵/目录表（~35 行），scope 文件本体按需加载（仅被选中的那个）。
+>
+> 有意分歧（记录在案）：`infra` scope 保留 code-generation EXECUTE（v2.0 跳过它用独立 ci-pipeline 阶段，我们的 CG 负责写 IaC）；矩阵列序 = default 优先 + 字母序（classic, bugfix, express, infra, refactor, security-patch）。
+>
+> 审查修复（reviewer 全面审查后）：🔴 隐式单单元约定——scope 跳过 units-generation 时 per-unit 阶段对全任务执行一次（WP Step 3.0 约定 + CG/FD/NFR-req/infra-design 前提条件化 + 生成器 advisory 规则 16 防回归）；🟡 SKILL.md 加 scope 总则（scope SKIP 的阶段不得重新评估）、RA Step 2.5 明确确认为门式聊天选择（豁免问题文件规则）+ 新功能请求优先 classic 的关键词优先级规则 + audit 显式记录、depth-levels.md 更新两层选择描述（"Scope"因子改名 "Change footprint" 消歧）、契约 default 字段语义对齐生成器（恰好一个）；🔵 workflow-changes.md 新增 Type 9（re-scope）、terminology.md 加 scope 消歧词条、session-continuity 恢复时读取活跃 Scope（无记录按 classic）。遗留 backlog：infra 在 brownfield 下 RE=SKIP 的代价提示、解析器 `_strip_inline_comment` 对含 " # " 引号字符串的边界 bug、scope depth enum 是否加 `adaptive`（Phase 3 再评估）。
+
+- ~~给阶段 frontmatter 填充 `scopes:` 字段~~ ✅
+- ~~生成脚本转置出 scope 矩阵表（EXECUTE/SKIP），注入 Workflow Planning 规则~~ ✅
+- ~~Workflow Planning 升级：先按任务特征选 scope（关键词/显式指定），再做单阶段微调~~ ✅
 
 ## 6. Phase 3 预告：轻量编排引擎
 

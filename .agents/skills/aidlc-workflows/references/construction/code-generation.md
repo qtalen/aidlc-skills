@@ -21,6 +21,13 @@ requires_stage:
   - units-generation
 for_each: unit-of-work
 workspace_writes: true
+scopes:
+  classic: EXECUTE
+  bugfix: EXECUTE
+  refactor: EXECUTE
+  security-patch: EXECUTE
+  infra: EXECUTE
+  express: EXECUTE
 ---
 
 # Code Generation - Detailed Steps
@@ -33,7 +40,7 @@ This stage generates code for each unit of work through two integrated parts:
 **Note**: For brownfield projects, "generate" means modify existing files when appropriate, not create duplicates.
 
 ## Prerequisites
-- Unit Design Generation must be complete for the unit
+- Unit Design Generation must be complete for the unit, **or** the execution plan has no Units Generation stage — in that case this stage runs exactly once for the whole task as an implicit single unit (see `workflow-planning.md` Step 3.0), using `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts as its inputs in place of unit artifacts
 - NFR Implementation (if executed) must be complete for the unit
 - All unit design artifacts must be available
 - Unit is ready for code generation

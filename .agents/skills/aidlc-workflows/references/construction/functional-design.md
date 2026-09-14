@@ -21,6 +21,13 @@ requires_stage:
   - units-generation
   - requirements-analysis
 for_each: unit-of-work
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: EXECUTE
+  security-patch: SKIP
+  infra: SKIP
+  express: SKIP
 ---
 
 # Functional Design
@@ -37,7 +44,7 @@ Functional Design focuses on:
 **Note**: This builds upon high-level component design from Application Design (INCEPTION phase)
 
 ## Prerequisites
-- Units Generation must be complete
+- Units Generation must be complete, **or** the execution plan has no Units Generation stage — in that case this stage runs exactly once for the whole task as an implicit single unit (see `workflow-planning.md` Step 3.0), using `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts as its inputs in place of unit artifacts
 - Unit of work artifacts must be available
 - Application Design recommended (provides high-level component structure)
 - Execution plan must indicate Functional Design stage should execute
@@ -48,8 +55,8 @@ Design detailed business logic for the unit, technology-agnostic and focused pur
 ## Steps to Execute
 
 ### Step 1: Analyze Unit Context
-- Read unit definition from `aidlc-docs/inception/application-design/unit-of-work.md`
-- Read assigned stories from `aidlc-docs/inception/application-design/unit-of-work-story-map.md`
+- Read unit definition from `aidlc-docs/inception/application-design/unit-of-work.md` — **if the execution plan has no Units Generation stage, this stage runs exactly once for the whole task as an implicit single unit (see `workflow-planning.md` Step 3.0); in that case read `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts instead**
+- Read assigned stories from `aidlc-docs/inception/application-design/unit-of-work-story-map.md` — **skip when the execution plan has no Units Generation stage (no unit story map exists)**
 - Understand unit responsibilities and boundaries
 
 ### Step 2: Create Functional Design Plan

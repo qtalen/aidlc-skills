@@ -111,7 +111,7 @@ Users may request changes to the execution plan or stage execution during the wo
 
 **Handling**:
 1. **Confirm Request**: "You want to change Requirements Analysis from Standard to Comprehensive depth. This will be more thorough but take longer. Confirm?"
-2. **Update Execution Plan**: Change depth level in `workflow-planning.md`
+2. **Update Execution Plan**: Change depth level in `aidlc-docs/inception/plans/execution-plan.md` (and the `Depth` line in `aidlc-docs/aidlc-state.md`)
 3. **Adjust Approach**: Follow comprehensive depth guidelines for the stage
 4. **Update Estimates**: Inform user of new timeline estimate
 5. **Log Change**: Document depth change and reason
@@ -193,6 +193,27 @@ Users may request changes to the execution plan or stage execution during the wo
 - Affects all downstream stages for those units
 - May affect other units if dependencies change
 - Timeline impact depends on how many units affected
+
+---
+
+### 9. Changing Workflow Scope
+
+**Scenario**: User wants to switch to a different scope, re-basing the plan for the remaining stages
+
+**Example**: "This turned out to be a small bug fix - switch us to the bugfix scope"
+
+**Handling**:
+1. **Confirm Request**: "You want to change the workflow scope from classic to bugfix. This re-bases the EXECUTE/SKIP/CONDITIONAL plan for remaining stages and updates the default depth. Completed stages are unaffected. Confirm?"
+2. **Update State**: Set `- **Scope**: ...` (and the resulting default `- **Depth**: ...`) under `## Project Information` in `aidlc-state.md`
+3. **Re-base Remaining Stages**: Apply the new scope's matrix column to every stage that has not yet executed, marking each as EXECUTE, SKIP, or CONDITIONAL
+4. **Preserve Completed Work**: Leave already-executed stages and their artifacts untouched
+5. **Log Change**: Document the scope change and reason in `audit.md`
+
+**Considerations**:
+- Only remaining stages are re-based; completed stages are never rolled back
+- Previously skipped stages stay skippable unless the new scope marks them EXECUTE or CONDITIONAL
+- The new scope's depth becomes the workflow default but can still be overridden per stage
+- A narrower scope may drop artifacts that later stages depend on; warn before confirming
 
 ---
 
