@@ -106,10 +106,15 @@ Every NEW entry appended to `aidlc-docs/audit.md` MUST include these two lines i
 Applies to ALL entry types, including automated `[No user input]` entries.
 
 ### AUD-02: Value Resolution from Git Configuration
-Resolve dynamically at write time, never hardcoded:
+Resolve dynamically, never hardcoded:
 1. Run `git config user.name` and `git config user.email` in the workspace repository (local config takes precedence automatically)
 2. Unresolvable (no git / not a repo / key unset) → write `unknown`, never block the workflow
-3. Re-resolve on each audit write (no cross-session caching)
+3. Resolve ONCE per session at workflow start (or session resumption) and cache in memory for all subsequent audit writes in that session; re-resolve during the session ONLY if the initial resolution failed. NEVER cache across sessions
+
+### Timestamp Acquisition
+- The harness environment provides only the current date, not a clock — obtain the full ISO 8601 timestamp (YYYY-MM-DDTHH:MM:SSZ) from the system clock (e.g. a `python -c` one-liner on Windows cmd)
+- ONE timestamp acquisition per interaction suffices: multiple audit entries written in the same interaction MAY share it
+- Batch the acquisition with the AUD-02 git config resolution in a single command at workflow start
 
 ### AUD-03: Historical Entries Untouched
 Applies only to entries created after adoption; existing entries MUST NOT be retroactively edited (aligns with DOC-04).
