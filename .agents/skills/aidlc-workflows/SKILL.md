@@ -27,6 +27,7 @@ The AI model intelligently assesses what stages are needed based on:
 All rule detail file references below (e.g., `references/common/process-overview.md`, `references/inception/workspace-detection.md`) are relative to this skill's directory.
 
 **Common Rules**: ALWAYS load common rules at workflow start:
+- Load `references/common/engine-contract.md` for runtime engine invocation, directives, transition semantics, state ownership, and integrity
 - Load `references/common/process-overview.md` for workflow overview
 - Load `references/common/session-continuity.md` for session resumption guidance
 - Load `references/common/content-validation.md` for content validation requirements
@@ -77,6 +78,32 @@ All rule detail file references below (e.g., `references/common/process-overview
 - [Answer]: tag usage
 - Answer validation and ambiguity resolution
 
+## MANDATORY: Engine Bootstrap
+
+**CRITICAL**: Before acting on ANY software development request, run the runtime engine's status probe. The engine (`<skill>/scripts/engine.py`, where `<skill>` is this skill's actual directory path) is a **required runtime dependency** — the workflow MUST NOT start without it.
+
+**Probe sequence** (run from the workspace root):
+1. `python <skill>/scripts/engine.py status`
+2. If step 1 fails because the `python` command is unavailable, retry with `python3 <skill>/scripts/engine.py status`
+
+**HARD STOP on failure**: if BOTH commands fail (no Python 3.8+ interpreter), STOP immediately. Ask no workflow questions and produce no artifacts. Tell the user the workflow cannot start and present both installation paths:
+- **Official installer**: https://www.python.org/downloads/ — install Python 3.8 or newer (on Windows, check "Add Python to PATH")
+- **Platform package manager**: Windows `winget install Python.Python.3` · macOS `brew install python` · Debian/Ubuntu `sudo apt install python3`
+
+Only after the probe succeeds may the workflow proceed.
+
+**Interpret the status JSON** (the single JSON object on stdout):
+
+| `state` / `integrity` | Action |
+|---|---|
+| `none` | New workflow: display the welcome message (next section) → run Workspace Detection → `engine.py init` creates `aidlc-state.md` deterministically |
+| `active` | Resume the session per `references/common/session-continuity.md`; the status JSON is the sole source of truth for recovery |
+| `completed` | The workflow is already complete; confirm with the user before starting anything new |
+| `legacy` | A pre-engine state file exists (no `ENGINE-STATE` region): do NOT silently adopt or overwrite it — follow the legacy handling in `references/common/engine-contract.md` |
+| any state, `integrity: violated` | The engine-owned region drifted: follow the integrity flow in `engine-contract.md` (present the drift, get explicit confirmation, `rebase`) |
+
+The full runtime contract — invocation, directives, transition semantics, state ownership, integrity — is `references/common/engine-contract.md`.
+
 ## MANDATORY: Custom Welcome Message
 
 **CRITICAL**: When starting ANY software development request, you MUST display the welcome message.
@@ -84,8 +111,29 @@ All rule detail file references below (e.g., `references/common/process-overview
 **How to Display Welcome Message**:
 1. Load the welcome message from `references/common/welcome-message.md`
 2. Display the complete message to the user
-3. This should only be done ONCE at the start of a new workflow
+3. This should only be done ONCE at the start of a NEW workflow — i.e. after the bootstrap probe reports `state: none` (see Engine Bootstrap)
 4. Do NOT load this file in subsequent interactions to save context space
+
+## MANDATORY: Orchestration Loop
+
+**CRITICAL**: Cross-stage progression is owned by the engine, never by the model's memory. After the bootstrap probe, every stage-to-stage advance follows this loop:
+
+1. Run `engine.py next` (prefer `python`, fall back to `python3`).
+2. Act on the single directive returned, by its `kind`:
+   - **`run-stage`**: load `stage_file` (relative to this skill's directory) and execute that stage's rules.
+   - **`done`**: the workflow is complete — present the closing summary and stop.
+   - **`error`**: present `message` and `hint` to the user verbatim, then stop.
+3. Write the stage outcome through the engine's only transition entry point:
+   - No gate, stage finished → `report --stage <slug> --result completed`
+   - Gated stage, user approved → `report --stage <slug> --result approved`
+   - Gated stage, user requested changes → `report --stage <slug> --result rejected`
+   - Stage revised and re-submitted → `report --stage <slug> --result revised`
+   - CONDITIONAL stage the model judged not applicable → `report --stage <slug> --result skipped --reason "<why>"`
+4. Repeat from step 1 until the directive is `done`.
+
+- The model MUST NOT decide "the next stage" from memory, from the stage blocks in this file, or from any plan prose. Only `next` routes.
+- `next_stage` inside a `run-stage` directive is a prediction ("the stage that would follow if this one completed") for presentation only — never use it to route.
+- Directive consumption rules (including "ignore unknown fields") are normative in `references/common/engine-contract.md`.
 
 ---
 
@@ -113,14 +161,13 @@ All rule detail file references below (e.g., `references/common/process-overview
 1. **MANDATORY**: Log initial user request in audit.md with complete raw input
 2. Load all steps from `references/inception/workspace-detection.md`
 3. Execute workspace detection:
-   - Check for existing aidlc-state.md (resume if found)
+   - Confirm start/resume state from the engine status probe (see Engine Bootstrap)
    - Scan workspace for existing code
    - Determine if brownfield or greenfield
    - Check for existing reverse engineering artifacts
-4. Determine next phase: Reverse Engineering (if brownfield and no artifacts) OR Requirements Analysis
-5. **MANDATORY**: Log findings in audit.md
-6. Present completion message to user (see workspace-detection.md for message formats)
-7. Automatically proceed to next phase
+4. **MANDATORY**: Log findings in audit.md
+5. Present completion message to user (see workspace-detection.md for message formats)
+6. On completion, report via the engine (see Orchestration Loop): `completed` for this stage.
 
 ## Reverse Engineering (CONDITIONAL - Brownfield Only)
 
@@ -148,6 +195,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 
 4. **Wait for Explicit Approval**: Present detailed completion message (see reverse-engineering.md for message format) - DO NOT PROCEED until user confirms
 5. **MANDATORY**: Log user's response in audit.md with complete raw input
+6. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
 
 ## Requirements Analysis (ALWAYS EXECUTE - Adaptive Depth)
 
@@ -169,6 +217,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 4. Execute at appropriate depth (minimal/standard/comprehensive)
 5. **Wait for Explicit Approval**: Follow approval format from requirements-analysis.md detailed steps - DO NOT PROCEED until user confirms
 6. **MANDATORY**: Log user's response in audit.md with complete raw input
+7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle.
 
 ## User Stories (CONDITIONAL)
 
@@ -238,6 +287,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 8. **PART 2 - Generation**: Execute approved plan to generate stories and personas
 9. **Wait for Explicit Approval**: Follow approval format from user-stories.md detailed steps - DO NOT PROCEED until user confirms
 10. **MANDATORY**: Log user's response in audit.md with complete raw input
+11. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
 
 ## Workflow Planning (ALWAYS EXECUTE)
 
@@ -257,6 +307,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 6. **MANDATORY**: Validate all content before file creation per content-validation.md rules
 7. **Wait for Explicit Approval**: Present recommendations using language from workflow-planning.md Step 9, emphasizing user control to override recommendations - DO NOT PROCEED until user confirms
 8. **MANDATORY**: Log user's response in audit.md with complete raw input
+9. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle.
 
 ## Application Design (CONDITIONAL)
 
@@ -278,6 +329,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 4. Execute at appropriate depth (minimal/standard/comprehensive)
 5. **Wait for Explicit Approval**: Present detailed completion message (see application-design.md for message format) - DO NOT PROCEED until user confirms
 6. **MANDATORY**: Log user's response in audit.md with complete raw input
+7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
 
 ## Units Generation (CONDITIONAL)
 
@@ -298,6 +350,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 4. Execute at appropriate depth (minimal/standard/comprehensive)
 5. **Wait for Explicit Approval**: Present detailed completion message (see units-generation.md for message format) - DO NOT PROCEED until user confirms
 6. **MANDATORY**: Log user's response in audit.md with complete raw input
+7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
 
 ---
 
@@ -326,6 +379,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 
 **For each unit of work, execute the following stages in sequence:**
 
+> **Per-unit reporting rule**: the engine emits each per-unit stage ONCE for the whole unit loop (one state slot per stage). Run the stage's gate per unit, but call `report` exactly once — after the LAST unit's gate outcome. Reporting `approved` after an early unit would mark the stage done and strand the remaining units.
 ### Functional Design (CONDITIONAL, per-unit)
 
 **Execute IF**:
@@ -344,6 +398,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 4. **MANDATORY**: Present standardized 2-option completion message as defined in functional-design.md - DO NOT use emergent 3-option behavior
 5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
 6. **MANDATORY**: Log user's response in audit.md with complete raw input
+7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
 
 ### NFR Requirements (CONDITIONAL, per-unit)
 
@@ -364,6 +419,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 4. **MANDATORY**: Present standardized 2-option completion message as defined in nfr-requirements.md - DO NOT use emergent behavior
 5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
 6. **MANDATORY**: Log user's response in audit.md with complete raw input
+7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
 
 ### NFR Design (CONDITIONAL, per-unit)
 
@@ -382,6 +438,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 4. **MANDATORY**: Present standardized 2-option completion message as defined in nfr-design.md - DO NOT use emergent behavior
 5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
 6. **MANDATORY**: Log user's response in audit.md with complete raw input
+7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
 
 ### Infrastructure Design (CONDITIONAL, per-unit)
 
@@ -401,6 +458,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 4. **MANDATORY**: Present standardized 2-option completion message as defined in infrastructure-design.md - DO NOT use emergent behavior
 5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
 6. **MANDATORY**: Log user's response in audit.md with complete raw input
+7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
 
 ### Code Generation (ALWAYS EXECUTE, per-unit)
 
@@ -418,6 +476,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 5. **MANDATORY**: Present standardized 2-option completion message as defined in code-generation.md - DO NOT use emergent behavior
 6. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
 7. **MANDATORY**: Log user's response in audit.md with complete raw input
+8. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle.
 
 ---
 
@@ -432,8 +491,9 @@ All rule detail file references below (e.g., `references/common/process-overview
    - Performance test instructions (if applicable)
    - Additional test instructions as needed (contract tests, security tests, e2e tests)
 4. Create instruction files in build-and-test/ subdirectory: build-instructions.md, unit-test-instructions.md, integration-test-instructions.md, performance-test-instructions.md, build-and-test-summary.md
-5. **Wait for Explicit Approval**: Ask: "**Build and test instructions complete. Ready to proceed to Operations stage?**" - DO NOT PROCEED until user confirms
+5. **Wait for Explicit Approval**: Ask: "**Build and test instructions complete. Approve to record this stage?**" - DO NOT PROCEED until user confirms
 6. **MANDATORY**: Log user's response in audit.md with complete raw input
+7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle.
 
 ---
 
@@ -463,12 +523,15 @@ The Operations stage will eventually include:
 
 **Current State**: All build and test activities are handled in the CONSTRUCTION phase.
 
+**Engine behavior**: Operations is a CONDITIONAL placeholder that does not execute in practice. The model reports `skipped --reason` for it, after which the engine emits the `done` directive — the workflow ends after Build and Test. There is no further stage to navigate to manually.
+
 ## Key Principles
 
 - **Adaptive Execution**: Only execute stages that add value
 - **Transparent Planning**: Always show execution plan before starting
 - **User Control**: User can request stage inclusion/exclusion
-- **Progress Tracking**: Update aidlc-state.md with executed and skipped stages
+- **Progress Tracking**: Stage progress is engine-owned. The engine exclusively maintains the ENGINE-STATE region of `aidlc-state.md` (stage checkboxes, Current Status, State Digest) through `report`/`jump`. The model MUST NOT hand-edit that region.
+- **State Ownership**: The model maintains only the model-owned regions of `aidlc-state.md` (Project Information, Workspace State, Code Location Rules, Extension Configuration, Autonomous Mode, Execution Plan Summary — incl. the Scope/Depth/Stages lines the engine reads for routing) per template. The full ownership matrix is in `references/common/engine-contract.md`.
 - **Complete Audit Trail**: Log ALL user inputs and AI responses in audit.md with timestamps
   - **CRITICAL**: Capture user's COMPLETE RAW INPUT exactly as provided
   - **CRITICAL**: Never summarize or paraphrase user input in audit log
@@ -486,9 +549,9 @@ The Operations stage will eventually include:
 4. **NO EXCEPTIONS**: Every plan step completion MUST be tracked with checkbox updates
 
 ### Two-Level Checkbox Tracking System
-- **Plan-Level**: Track detailed execution progress within each stage
-- **Stage-Level**: Track overall workflow progress in aidlc-state.md
-- **Update immediately**: All progress updates in SAME interaction where work is completed
+- **Plan-Level**: Track detailed execution progress within each stage. Plan files live in `aidlc-docs/` and remain model-owned — update their checkboxes immediately in the same interaction where the work is completed.
+- **Stage-Level**: Overall workflow progress lives in the engine-owned region of `aidlc-state.md`. It is maintained exclusively by the engine through `report`/`jump` (see Orchestration Loop) — the model MUST NOT hand-edit it.
+- **Update immediately**: All plan-level checkbox updates happen in the SAME interaction where the work is completed.
 
 ## Prompts Logging Requirements
 - **MANDATORY**: Log EVERY user input (prompts, questions, responses) with timestamp in audit.md

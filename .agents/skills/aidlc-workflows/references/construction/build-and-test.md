@@ -319,7 +319,7 @@ Create `aidlc-docs/construction/build-and-test/build-and-test-summary.md`:
 - **Ready for Operations**: [Yes/No]
 
 ## Next Steps
-[If all pass]: Ready to proceed to Operations phase for deployment planning
+[If all pass]: Build and test verified; the engine's `next` directive decides what follows (Operations applies only in scopes/plans that include it)
 [If failures]: Address failing tests and rebuild
 ```
 
@@ -327,9 +327,7 @@ Create `aidlc-docs/construction/build-and-test/build-and-test-summary.md`:
 
 ## Step 8: Update State Tracking
 
-Update `aidlc-docs/aidlc-state.md`:
-- Mark Build and Test stage as complete
-- Update current status
+Stage progress is engine-owned. After the user approves at the gate (Step 9), run `python <skill>/scripts/engine.py report --stage build-and-test --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned.
 
 ---
 
@@ -362,7 +360,7 @@ Present completion message in this structure:
 > **You may:**
 >
 > 🔧 **Request Changes** - Ask for modifications to the build and test instructions based on your review
-> ✅ **Approve & Continue** - Approve build and test results and proceed to **Operations**
+> ✅ **Approve & Continue** - Approve build and test results and continue (the engine routes what follows)
 
 ---
 ```

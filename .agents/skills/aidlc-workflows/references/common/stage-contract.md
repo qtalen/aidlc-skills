@@ -12,10 +12,14 @@
 > `<!-- BEGIN GENERATED: <key> -->` / `<!-- END GENERATED -->` markers — never
 > hand-edit them.
 >
-> **Runtime neutrality**: Frontmatter is inert metadata at runtime. The skill
-> remains pure Markdown; any harness loads it unchanged. The contract is designed
-> *engine-ready*: a future orchestration engine (see `docs/integration-plan.md`
-> Phase 3) consumes these same files with zero modification.
+> **Runtime neutrality**: Frontmatter remains the **single source of truth** for
+> the stage inventory. Beyond authoring, the skill has exactly one runtime
+> dependency: the orchestration engine (`scripts/engine.py`, Python 3.8+
+> standard library), a required runtime component. The engine reads only the
+> author-time compiled artifact `scripts/data/stage-graph.json` and **never
+> parses frontmatter** at runtime. The contract defined here stays
+> engine-agnostic: any harness that can load the skill and run a shell is
+> supported.
 
 ---
 
@@ -212,9 +216,9 @@ Advisory warnings (exit zero, printed):
 
 | Consumer | When | What it reads |
 |---|---|---|
-| `scripts/generate.py` | Author-time (skill maintenance) | All fields + the scope registry; regenerates every `GENERATED` section (including the scope catalog and scope matrix); validates §7 |
+| `scripts/generate.py` | Author-time (skill maintenance) | All fields + the scope registry; regenerates every `GENERATED` section (including the scope catalog and scope matrix), compiles `scripts/data/stage-graph.json`; validates §7 |
 | The model (runtime) | Workflow execution | Reads frontmatter inline with the stage body; `condition`/`gate` inform stage behavior; the **generated** scope catalog/matrix (not raw frontmatter) drive scope selection and plan pruning |
-| Future engine (Phase 3) | Runtime | Routing/state fields (`scopes` included); **zero changes to these files** |
+| Orchestration engine (`scripts/engine.py`) | Runtime | The compiled `scripts/data/stage-graph.json` (author-time artifact); **zero changes to these files** |
 
 ---
 
@@ -227,9 +231,7 @@ Advisory warnings (exit zero, printed):
 slug: requirements-analysis
 phase: inception
 execution: ALWAYS
-condition: Always executes with adaptive depth — every request needs its intent
-  and requirements assessed; depth (minimal/standard/comprehensive) scales with
-  clarity, complexity, and risk
+condition: Always executes with adaptive depth — every request needs its intent and requirements assessed; depth (minimal/standard/comprehensive) scales with clarity, complexity, and risk
 gate: approve-continue
 produces:
   - inception/requirements/requirements.md

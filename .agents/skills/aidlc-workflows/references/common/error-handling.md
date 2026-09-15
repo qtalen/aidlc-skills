@@ -42,8 +42,8 @@
 
 **Error**: Existing `aidlc-state.md` is corrupted
 - **Cause**: Manual editing, incomplete previous run
-- **Solution**: Ask user if they want to start fresh or attempt recovery
-- **Recovery**: Create backup, start new state file
+- **Solution**: Detect the problem with `python <skill>/scripts/engine.py status` (fall back to `python3`). If `integrity` is `violated` (State Digest drift), HALT and present the drift facts with the last recorded audit transition entry. Ask the user whether to re-baseline (after confirmation, `engine.py rebase`) or start fresh (`engine.py jump --fresh`).
+- **Recovery**: Never hand-edit the engine-owned state region; all recovery goes through the engine
 
 **Error**: Cannot determine required stages
 - **Cause**: Insufficient information from user
@@ -184,16 +184,18 @@
 4. Verify all prior steps are actually complete
 5. Continue execution normally
 
-### Corrupted State File
+### State File Corruption / Integrity Violation
 
-**Scenario**: `aidlc-state.md` is corrupted or inconsistent
+**Scenario**: `aidlc-state.md` is corrupted, inconsistent, or its engine-owned region drifted from the State Digest
 
 **Recovery Steps**:
-1. Create backup: `aidlc-state.md.backup`
-2. Ask user which stage they're actually on
-3. Regenerate state file from scratch
-4. Mark completed stages based on existing artifacts
-5. Resume from current stage
+1. Probe the state with `python <skill>/scripts/engine.py status` (fall back to `python3`). The status JSON reports `integrity` and the recorded transitions.
+2. If `integrity` is `violated`: HALT. Present the drift facts and the last recorded audit transition entry to the user — do NOT proceed with normal work.
+3. After explicit human confirmation, re-baseline with `python <skill>/scripts/engine.py rebase` (the engine recomputes the digest and appends a `STATE_REBASELINED` audit entry).
+4. If the user instead wants to abandon the current state, start fresh with `engine.py jump --fresh`.
+5. Resume via `engine.py status` + `engine.py next`.
+
+**Hard rule**: the model MUST NOT edit the `<!-- BEGIN ENGINE-STATE -->` / `<!-- END ENGINE-STATE -->` region as any part of recovery — that region is engine-owned and is never a manual repair surface.
 
 ### Missing Artifacts
 
@@ -213,7 +215,7 @@
 **Recovery Steps**:
 1. Confirm user wants to restart (data will be lost)
 2. Archive existing artifacts: `{artifact}.backup`
-3. Reset stage status in `aidlc-state.md`
+3. Execute the restart through the engine: `python <skill>/scripts/engine.py jump --stage <slug>` (a redo resets the target stage and every stage after it; never hand-edit the stage status)
 4. Clear stage checkboxes in plan files
 5. Re-execute stage from beginning
 
@@ -224,7 +226,7 @@
 **Recovery Steps**:
 1. Confirm user understands implications
 2. Document skip reason in `audit.md`
-3. Mark stage as "SKIPPED" in `aidlc-state.md`
+3. Record the formal skip through the engine: `python <skill>/scripts/engine.py report --stage <slug> --result skipped --reason "<reason>"` (only for a CONDITIONAL or planned-SKIP stage; never hand-edit the stage checkboxes)
 4. Proceed to next stage
 5. Note: May cause issues in later stages if dependencies missing
 
@@ -260,6 +262,7 @@
 3. Identify what to preserve
 4. Get user confirmation
 5. Create new execution plan
+6. Reset through the engine: `python <skill>/scripts/engine.py jump --fresh` (archives `aidlc-docs/` and resets state) — never rebuild the state file by hand
 
 ## Session Resumption Errors
 
@@ -284,29 +287,29 @@
 
 ### Inconsistent State During Resumption
 
-**Error**: aidlc-state.md shows stage complete but artifacts don't exist
-- **Cause**: State file updated but artifact generation failed
+**Error**: aidlc-state.md shows a stage complete but its artifacts don't exist
+- **Cause**: State updated but artifact generation failed
 - **Solution**:
-  1. Mark stage as incomplete in aidlc-state.md
-  2. Re-execute the stage to generate artifacts
-  3. Verify artifacts exist before marking complete
-- **Recovery**: Reset stage status and re-execute
+  1. Confirm the recorded state with `engine.py status`, then rewind to the stage with `engine.py jump --stage <slug>` (this resets the target stage and everything after it — never hand-edit the checkboxes)
+  2. Re-execute the stage to generate the artifacts
+  3. Verify the artifacts exist, then complete the stage through `engine.py report`
+- **Recovery**: Rewind via `jump`, re-execute, and report through the engine
 
-**Error**: Artifacts exist but aidlc-state.md shows stage incomplete
-- **Cause**: Artifact generation succeeded but state update failed
+**Error**: Artifacts exist but aidlc-state.md shows a stage incomplete
+- **Cause**: Artifact generation succeeded but the state transition was not recorded
 - **Solution**:
-  1. Verify artifacts are complete and valid
-  2. Update aidlc-state.md to mark stage complete
+  1. Verify the artifacts are complete and valid
+  2. Record the transition through the engine: `python <skill>/scripts/engine.py report --stage <slug> --result approved` (or `--result completed` for a non-gate stage)
   3. Proceed to next stage
-- **Recovery**: Update state file to reflect actual completion
+- **Recovery**: Complete the stage through the engine — never hand-edit the state region
 
-**Error**: Multiple stages marked as "current" in aidlc-state.md
-- **Cause**: State file corruption, manual editing
+**Error**: The engine state is inconsistent (e.g. multiple stages appear current)
+- **Cause**: Corruption or manual editing of the engine-owned region
 - **Solution**:
-  1. Review artifacts to determine actual progress
-  2. Ask user which stage they're actually on
-  3. Correct aidlc-state.md to show single current stage
-- **Recovery**: Rebuild state file based on existing artifacts
+  1. Run `engine.py status`; if `integrity` is `violated`, HALT and present the drift plus the last audit transition entry to the user
+  2. Ask the user which stage they are actually on; after confirmation, `engine.py rebase` (or `engine.py jump --stage <slug>` to rewind)
+  3. Never correct the state by hand — the engine owns it
+- **Recovery**: Re-baseline through the engine based on the confirmed actual progress
 
 ### Context Loading Errors
 
@@ -328,7 +331,7 @@
 
 ### Resumption Best Practices
 
-1. **Always validate state**: Check aidlc-state.md matches actual artifacts
+1. **Always validate state**: Run `engine.py status` and check its `integrity` field; the engine-owned state region is never edited by hand
 2. **Load incrementally**: Load artifacts stage-by-stage, validate each
 3. **Fail fast**: Stop immediately if critical artifacts are missing
 4. **Communicate clearly**: Tell user exactly what's missing and why it's needed
@@ -367,7 +370,7 @@
 ## Prevention Best Practices
 
 1. **Validate Early**: Check inputs and dependencies before starting work
-2. **Checkpoint Often**: Update checkboxes immediately after completing steps
+2. **Checkpoint Often**: Update plan-file checkboxes immediately after completing steps
 3. **Communicate Clearly**: Explain what you're doing and why
 4. **Ask Questions**: Don't assume - clarify ambiguities immediately
 5. **Document Everything**: Log all decisions and changes in `audit.md`

@@ -4,6 +4,8 @@
 
 Users may request changes to the execution plan or stage execution during the workflow. This document provides guidance on handling these requests safely and effectively.
 
+**Convergence rule — judgment in conventions, execution in the engine**: which change type applies, its dependency impact, and whether a change is safe remain **model judgment** per the protocols below. Every *execution* of a change — moving the pointer, redoing or skipping a stage, reordering, re-basing the plan — runs through the runtime engine (`scripts/engine.py`; prefer `python`, fall back to `python3`). Never hand-edit the engine-owned region of `aidlc-state.md` or move the stage pointer manually.
+
 ---
 
 ## Types of Mid-Workflow Changes
@@ -17,10 +19,9 @@ Users may request changes to the execution plan or stage execution during the wo
 **Handling**:
 1. **Confirm Request**: "You want to add User Stories stage. This will create user stories and personas. Confirm?"
 2. **Check Dependencies**: Verify all prerequisite stages are complete
-3. **Update Execution Plan**: Add stage to `execution-plan.md` with rationale
-4. **Update State**: Mark stage as "PENDING" in `aidlc-state.md`
-5. **Execute Stage**: Follow normal stage execution process
-6. **Log Change**: Document in `audit.md` with timestamp and reason
+3. **Update Execution Plan Summary**: Add the stage **slug** to `- **Stages to Execute**: slug1, slug2` under `## Execution Plan Summary` in `aidlc-state.md` (model-owned region)
+4. **Execute the change through the engine**: `engine.py jump --stage <slug>` — never hand-edit stage checkboxes or move the pointer manually
+5. **Log Change**: Document in `audit.md` with timestamp and reason (the engine also appends its own transition entry)
 
 **Considerations**:
 - May need to update later stages that could benefit from new artifacts
@@ -39,8 +40,8 @@ Users may request changes to the execution plan or stage execution during the wo
 1. **Confirm Request**: "You want to skip NFR Design. This means no NFR patterns or logical components will be incorporated. Confirm?"
 2. **Warn About Impact**: Explain what will be missing and potential consequences
 3. **Get Explicit Confirmation**: User must explicitly confirm understanding of impact
-4. **Update Execution Plan**: Mark stage as "SKIPPED" with reason
-5. **Update State**: Mark stage as "SKIPPED" in `aidlc-state.md`
+4. **Update Execution Plan Summary**: Record the stage as `- **Stages to Skip**: slug (reason)` under `## Execution Plan Summary` in `aidlc-state.md` (model-owned region)
+5. **Execute the change through the engine**: route past the stage with `engine.py jump --stage <slug>` (intermediate uncompleted stages are marked `[S]`); a formal skip of a CONDITIONAL or planned-SKIP stage is recorded with `engine.py report --stage <slug> --result skipped --reason "<reason>"`. Never hand-edit stage checkboxes or move the pointer manually.
 6. **Adjust Later Stages**: Note that later stages may need manual setup
 7. **Log Change**: Document in `audit.md` with timestamp and reason
 
@@ -64,9 +65,7 @@ Users may request changes to the execution plan or stage execution during the wo
    - **Option B**: Complete restart (clean slate, more time)
 3. **If Restart Chosen**:
    - Archive existing artifacts: `{artifact}.backup.{timestamp}`
-   - Reset stage checkboxes in plan file
-   - Mark stage as "IN PROGRESS" in `aidlc-state.md`
-   - Clear stage completion status
+   - Execute the restart through the engine: `engine.py jump --stage <slug>` (a redo resets the target stage and everything after it)
    - Re-execute from beginning
 4. **Log Change**: Document reason for restart and what will change
 
@@ -89,9 +88,7 @@ Users may request changes to the execution plan or stage execution during the wo
 3. **Get Explicit Confirmation**: User must understand full impact
 4. **If Confirmed**:
    - Archive all affected artifacts
-   - Reset all affected stages in `aidlc-state.md`
-   - Clear checkboxes in all affected plan files
-   - Return to the stage to restart
+   - Execute the redo through the engine: `engine.py jump --stage <slug>` — this resets the target stage and every stage after it; never hand-edit state checkboxes or move the pointer manually
    - Re-execute from that point forward
 5. **Log Change**: Document full impact and reason for restart
 
@@ -111,7 +108,7 @@ Users may request changes to the execution plan or stage execution during the wo
 
 **Handling**:
 1. **Confirm Request**: "You want to change Requirements Analysis from Standard to Comprehensive depth. This will be more thorough but take longer. Confirm?"
-2. **Update Execution Plan**: Change depth level in `aidlc-docs/inception/plans/execution-plan.md` (and the `Depth` line in `aidlc-docs/aidlc-state.md`)
+2. **Update Execution Plan**: Change depth level in `aidlc-docs/inception/plans/execution-plan.md` and update the `- **Depth**:` line under `## Execution Plan Summary` in `aidlc-state.md` (a model-owned, engine-read line — the engine consumes ONLY the Execution Plan Summary copies for routing)
 3. **Adjust Approach**: Follow comprehensive depth guidelines for the stage
 4. **Update Estimates**: Inform user of new timeline estimate
 5. **Log Change**: Document depth change and reason
@@ -131,16 +128,16 @@ Users may request changes to the execution plan or stage execution during the wo
 
 **Handling**:
 1. **Complete Current Step**: Finish the current step in progress if possible
-2. **Update Checkboxes**: Mark all completed steps with [x]
-3. **Update State**: Ensure `aidlc-state.md` reflects current status
+2. **Record the Transition**: If a stage finished, write it through the engine (`engine.py report --stage <slug> --result completed|approved`); never hand-edit stage checkboxes
+3. **No Manual State Edits**: `aidlc-state.md` is already current — the engine wrote every transition as it happened
 4. **Log Pause**: Document pause point in `audit.md`
 5. **Provide Resume Instructions**: "When you return, I'll detect your existing project and offer to continue from: [current stage, current step]"
 
 **On Resume**:
-1. **Detect Existing Project**: Check for `aidlc-state.md`
+1. **Detect Existing Project**: Run `engine.py status` (the recovery data source)
 2. **Load Context**: Read all artifacts from completed stages
-3. **Show Status**: Display current stage and next step
-4. **Offer Options**: Continue where left off or review previous work
+3. **Show Status**: Display current stage and next step from the status JSON
+4. **Offer Options**: Continue (`next`), jump to another stage (`jump --stage`), or Start Fresh (`jump --fresh`)
 5. **Log Resume**: Document resume point in `audit.md`
 
 ---
@@ -204,8 +201,8 @@ Users may request changes to the execution plan or stage execution during the wo
 
 **Handling**:
 1. **Confirm Request**: "You want to change the workflow scope from classic to bugfix. This re-bases the EXECUTE/SKIP/CONDITIONAL plan for remaining stages and updates the default depth. Completed stages are unaffected. Confirm?"
-2. **Update State**: Set `- **Scope**: ...` (and the resulting default `- **Depth**: ...`) under `## Project Information` in `aidlc-state.md`
-3. **Re-base Remaining Stages**: Apply the new scope's matrix column to every stage that has not yet executed, marking each as EXECUTE, SKIP, or CONDITIONAL
+2. **Update State**: Set `- **Scope**: ...` (and the resulting default `- **Depth**: ...`) under `## Execution Plan Summary` in `aidlc-state.md` (the model-owned, engine-read lines — the engine consumes ONLY the Execution Plan Summary copies for routing; a copy under `## Project Information` is informational only)
+3. **Re-base Remaining Stages**: Rewrite the model-owned `## Execution Plan Summary` lines — `- **Stages to Execute**: slug1, slug2` and `- **Stages to Skip**: slug (reason)` — for the stages that have not yet executed (the engine consumes these overrides on `next`)
 4. **Preserve Completed Work**: Leave already-executed stages and their artifacts untouched
 5. **Log Change**: Document the scope change and reason in `audit.md`
 
@@ -230,7 +227,7 @@ Users may request changes to the execution plan or stage execution during the wo
 ### During Changes
 
 1. **Archive Existing Work**: Always backup before making destructive changes
-2. **Update All Tracking**: Keep `aidlc-state.md`, plan files, and `audit.md` in sync
+2. **Execute Through the Engine**: All stage/pointer changes go through `engine.py` (`report`, `jump`); never hand-edit the engine-owned state region or stage checkboxes
 3. **Communicate Progress**: Keep user informed about what's happening
 4. **Validate Changes**: Ensure changes are consistent across all artifacts
 5. **Test Continuity**: Verify workflow can continue smoothly after changes
@@ -261,11 +258,11 @@ User requests change
     |   └─ No: Go to next question
     |
     ├─ Is it adding a skipped stage?
-    |   ├─ Yes: Check prerequisites, add to plan, execute
+    |   ├─ Yes: Check prerequisites, add slug to Stages to Execute, jump
     |   └─ No: Go to next question
     |
     ├─ Is it skipping a planned stage?
-    |   ├─ Yes: Warn about impact, get confirmation, skip
+    |   ├─ Yes: Warn about impact, get confirmation, record in Stages to Skip, report skipped / jump
     |   └─ No: Go to next question
     |
     └─ Is it changing depth level?
@@ -300,7 +297,7 @@ User requests change
 2. **Explain Impact**: Users need to understand consequences before deciding
 3. **Offer Options**: Sometimes there are multiple ways to handle a change
 4. **Archive First**: Always backup before making destructive changes
-5. **Update Everything**: Keep all tracking files in sync
+5. **Update Everything Through the Engine**: State transitions go through `engine.py`; model-owned plan lines are updated directly — never hand-edit the engine-owned region
 6. **Log Thoroughly**: Document all changes for audit trail
 7. **Validate After**: Ensure workflow can continue smoothly
 8. **Be Flexible**: Workflow should adapt to user needs, not force rigid process

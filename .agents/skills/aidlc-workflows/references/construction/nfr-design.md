@@ -117,4 +117,5 @@ Incorporate NFR requirements into unit design using patterns and logical compone
 ### Step 9: Record Approval and Update Progress
 - Log approval in audit.md with timestamp
 - Record the user's approval response with timestamp
-- Mark NFR Design stage complete in aidlc-state.md
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage nfr-design --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
+- **Per-unit note**: this stage is emitted once by the engine for the whole unit loop. Run the gate per unit as defined above, but call `report` exactly once — after the LAST unit's gate outcome. If a later unit is rejected, do not call `report` again; the stage stays current until all units pass.

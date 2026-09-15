@@ -102,12 +102,14 @@ would never use. The scope catalog below is generated from the scope registry
    - **Unambiguous → auto-select, NO gate.** When determination is confident (explicit user naming, or a unique keyword match with no priority-rule conflict), adopt the scope directly, record it per item 5, and mention it in one line in a subsequent message (e.g. "已按 bugfix 流程处理"). Do NOT present an approval gate, do NOT explain the scope concept, and do NOT offer heavier scopes (e.g. `classic`) "just in case" — if the recommended scope clearly fits, it is the only one that applies.
    - **Genuinely ambiguous → minimal candidates only.** Ask in chat with as few candidates as possible — only the genuinely plausible scopes (typically 1–2). Never present the full catalog as a menu, and never include a scope you already know is a poor fit. Frame it as a plain either/or question, not a concept lecture. (This chat choice is exempt from the "all questions go to question files" rule, because the answer determines which questions Step 6 will need.)
    - **Safety net**: the Workflow Planning gate always presents the resulting stage plan and allows adding stages back — an auto-selected scope can be corrected there without ceremony.
-5. Record the decision in `aidlc-docs/aidlc-state.md` under `## Project Information` and log the scope selection (chosen scope, depth, and whether it was auto-selected or user-chosen) in `aidlc-docs/audit.md`:
+5. Record the decision in `aidlc-docs/aidlc-state.md` — fill the `- **Scope**:` and `- **Depth**:` placeholder lines under `## Execution Plan Summary` (the engine reads these lines for routing):
 
 ```markdown
 - **Scope**: [scope name]
 - **Depth**: [minimal/standard/comprehensive] (scope default, or user override)
 ```
+
+   Also log the scope selection (chosen scope, depth, and whether it was auto-selected or user-chosen) in `aidlc-docs/audit.md`. Do NOT hand-edit the `<!-- BEGIN/END ENGINE-STATE -->` region. Workflow Planning will additionally write the `- **Stages to Execute**:` / `- **Stages to Skip**:` lines in the same section after its gate is approved.
 
 **Effect**: stages marked `SKIP` by the selected scope are excluded from the plan from this point on (e.g. a `bugfix` scope never offers User Stories); `CONDITIONAL` stages still self-select from context. Workflow Planning presents the resulting plan for approval and still allows per-stage fine-tuning.
 
@@ -199,15 +201,7 @@ Present the question file to the user and STOP.
 
 ### Step 8: Update State Tracking
 
-Update `aidlc-docs/aidlc-state.md`:
-
-```markdown
-## Stage Progress
-### 🔵 INCEPTION PHASE
-- [x] Workspace Detection
-- [x] Reverse Engineering (if applicable)
-- [x] Requirements Analysis
-```
+Stage progress is engine-owned. Do not hand-write a `## Stage Progress` section or edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md`; this stage's transition is recorded through the engine after approval (Step 9).
 
 ### Step 9: Log and Proceed
    - Log approval prompt with timestamp in `aidlc-docs/audit.md`
@@ -249,4 +243,4 @@ Update `aidlc-docs/aidlc-state.md`:
 
    - Wait for explicit user approval before proceeding
    - Record approval response with timestamp
-   - Update Requirements Analysis stage complete in aidlc-state.md
+   - After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage requirements-analysis --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of aidlc-state.md — they are engine-owned.

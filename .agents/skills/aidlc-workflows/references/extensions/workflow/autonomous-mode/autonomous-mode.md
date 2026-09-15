@@ -46,7 +46,7 @@ On detecting an **Activate** intent, execute ALL of the following in the SAME in
    - **Option B**: 用户手动选择答案并写入文档，然后继续往下进行 / The user manually selects answers via the question tool, answers are written into the question file, then the workflow continues
    - Do NOT add an explicit "Other" option — the tool's built-in custom input covers it. A custom (Other) answer takes effect as the question-handling mode; record the verbatim custom text in state and audit.md.
    - If the `question` tool is unavailable or errors out, ask via a question file per `../../../common/question-format-guide.md` (fallback per QT-04) and note the fallback in audit.md.
-3. **Auto-approve pending gate**: If a stage approval gate is currently waiting for user confirmation, treat that stage's documents as approved — mark the stage complete in aidlc-state.md, log `Auto-approved (Autonomous Mode)` in audit.md, and proceed to the next stage automatically.
+3. **Auto-approve pending gate**: If a stage approval gate is currently waiting for user confirmation, treat that stage's documents as approved — record the transition with the engine (`engine.py report --stage <slug> --result approved`, never a hand-edit of the stage checkboxes), log `Auto-approved (Autonomous Mode)` in audit.md, and proceed to the next stage automatically.
 4. **Persist state**: Create or update the `## Autonomous Mode` section in aidlc-state.md per AM-08 (Enabled: Yes, Question Handling: `auto-recommended` or `manual` or the verbatim custom text, Review Stages: None).
 5. **Announce**: Briefly confirm activation to the user: autonomous mode is on, the chosen question-handling mode, and that stage documents are treated as approved unless listed as review stages.
 6. **Continue**: Resume workflow execution immediately under the new configuration.
@@ -57,7 +57,7 @@ While Autonomous Mode is active and the current stage is **NOT** in the Review S
 
 1. **Override APG-01~04**: The "Wait for Explicit Approval" / "DO NOT PROCEED until user confirms" steps in SKILL.md and all stage rule files are suspended for this stage. AM-03 takes precedence.
 2. Stage completion messages are still generated and presented **for information only** — the user can see what was produced, but the workflow does NOT wait.
-3. In the SAME interaction as the completion message: mark the stage complete in aidlc-state.md (suffix the status with `(autonomous)`), append an audit.md entry with `**AI Response**: "Auto-approved (Autonomous Mode)"`, and immediately begin the next stage.
+3. In the SAME interaction as the completion message: record the transition through the engine (`engine.py report --stage <slug> --result approved` for a gate stage, `--result completed` for a non-gate stage — never a hand-edit of the stage checkboxes), append an audit.md entry with `**AI Response**: "Auto-approved (Autonomous Mode)"`, and immediately begin the next stage.
 4. APG-05 still applies: completion message templates are never modified.
 5. All other completion obligations remain in force (plan checkbox updates, DOC-01 sweep, extension compliance summary, content validation) — auto-approval skips ONLY the wait, never the work.
 
@@ -100,7 +100,7 @@ Honor the user's verbatim custom instruction for how questions are handled. If t
 
 On detecting a **Pause** intent while Autonomous Mode is active:
 
-1. **Stop immediately**: Do not finish the current step, stage, or any in-progress generation — halt within the current interaction. If a step was interrupted mid-way, note the exact interruption point in aidlc-state.md so it can be resumed cleanly.
+1. **Stop immediately**: Do not finish the current step, stage, or any in-progress generation — halt within the current interaction. If a step was interrupted mid-way, note the exact interruption point in `audit.md` (never in the engine-owned state region) so it can be resumed cleanly.
 2. **Audit**: Log the pause trigger with complete raw input.
 3. **Offer adjustment menu**: Call the `question` tool with:
    - **Option A**: 重新选择 question 问题的处理方式 / Re-choose the question-handling mode (re-runs the AM-02 step 2 question)
@@ -117,6 +117,7 @@ On detecting a **Pause** intent while Autonomous Mode is active:
 3. The list applies by stage name — for per-unit construction stages, a listed stage is reviewed for EVERY unit.
 4. The list may be changed at any time via AM-05 (pause → Option B). Changes take effect from the next gate encountered; already auto-approved stages are not revisited.
 5. Question handling (AM-04) is independent of the review list: review stages still process question files per the configured mode.
+6. **Display name vs. slug**: Review Stages are configured by stage name for human readability, but the runtime engine and its state use **slugs**. The display name is derived from the stage H1 (parenthetical modifiers are stripped), so it can drift; the slug is the file stem (kebab-case) and is the machine identifier. Resolve every name↔slug mapping authoritatively from `scripts/data/stage-graph.json` (compiled from each stage file's `slug` frontmatter field) — never guess from the display name. Whenever an engine command is involved (`report`, `jump`), always pass the slug.
 
 ## AM-07: Deactivation
 
@@ -132,7 +133,7 @@ On detecting a **Deactivate** intent (or AM-05 menu Option C):
 
 **MANDATORY**: Maintain an `## Autonomous Mode` section in `aidlc-docs/aidlc-state.md`.
 
-When creating a new aidlc-state.md (Workspace Detection), include the section with defaults:
+`aidlc-state.md` itself is created by the engine (`engine.py init`, see workspace-detection.md); the model owns and maintains the `## Autonomous Mode` section within it. On a new project, add the section with these defaults:
 
 ```markdown
 ## Autonomous Mode

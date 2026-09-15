@@ -11,7 +11,7 @@
 - **v1.0**（`.agents/skills/aidlc-workflows/`）：纯 Markdown 技能形态（SKILL.md + references/ 规则文件），已停止维护。用户使用习惯好，但存在结构性扩展痛点。
 - **v2.0**（`opencode/`）：opencode 插件形态（`.aidlc/` 核心 + `.opencode/` 原生层 + `aidlc/` 数据树），版本 2.7.1，含 50+ 个 bun/TS 工具、17 个钩子、33 阶段、11 scope、14 agent。
 - **任务**：在 v1.0 上发展独立分叉（**不与原版 v1.0 整合**），吸收 v2.0 的先进理念。
-- **硬性约束**：保持 aidlc-workflows 作为技能形态的 **harness 无关性和可移植性**——运行期不引入任何引擎/运行时依赖，纯 Markdown 技能在任何 AI 编码工具中可用。
+- **硬性约束**：保持 aidlc-workflows 的 **harness 无关性**——任何能加载技能且能执行 shell 的 AI 编码工具可用，不绑定特定 harness 的钩子/插件机制。（**2026-09-14 修订**：Phase 3 起引入**单一运行时依赖 Python 3.8+**（编排引擎必选，D6 修订）；原"零运行时依赖、纯 Markdown"措辞废止，修订理由见 §9。）
 - **演进方式**：原地进化（`.agents/skills/aidlc-workflows/` 直接修改，git 分支保留历史），分阶段整合，每阶段可独立测试。
 
 ### 已确认的决策记录
@@ -23,9 +23,13 @@
 | D3 | persona/评审者体系 | 暂不引入，后置到 Phase 3+ |
 | D4 | 五层记忆/学习仪式 | 暂不引入，后置到 Phase 3+ |
 | D5 | 分叉落点 | 原地进化 `.agents/skills/aidlc-workflows/` |
-| D6 | 编排引擎定位 | 后置到 Phase 2，契约先行；引擎与技能的关系（可选增强层 vs 必选依赖）Phase 2 再定 |
-| D7 | 引擎技术栈 | 暂不决定（候选：Python / bun+TS）；契约设计与引擎语言无关 |
+| D6 | 编排引擎定位 | **必选运行时依赖**（2026-09-14 修订，取代原"可选增强层"立场）：单一依赖 Python 3.8+，无引擎 = HARD STOP 提示安装。修订理由见 §9 |
+| D7 | 引擎技术栈 | **Python 标准库**（2026-09-14 定）：与 generate.py 同栈，零第三方依赖；"契约设计与引擎语言无关"仍成立 |
 | D8 | 脚本目录约定 | **所有脚本（含作者期工具）放技能目录下的 `scripts/`**，遵循 Agent Skills 规范 |
+| D9 | 契约消费方式 | **compile-to-JSON**（2026-09-14）：作者期 generate.py 编译 `scripts/data/stage-graph.json`，引擎运行时只读 JSON，解析器风险关在作者期 |
+| D10 | 状态/审计归属 | **引擎原子写**（2026-09-14）：Markdown 状态 + 审计转移条目 + State Digest 完整性校验（检测非阻止，详见 §6.3-B8） |
+| D11 | 多 intent / compose | **不排期，仅记录**（2026-09-14）：一版本一产品意图，两件事 = 两个 git 版本；若重启须与 Team Construction 协同设计（§7） |
+| D12 | 引擎分发形态 | **随技能分发**（2026-09-14）：engine.py + stage-graph.json 在 `scripts/` 下随技能目录一起复制；用户侧前提仅"harness 能加载技能 + 能执行 python"，不依赖 AGENTS.md 等任何额外文件；裸项目 dogfood 为验收硬标准 |
 
 ---
 
@@ -129,21 +133,28 @@ v2.0 的根本理念（其文档原话）：**"判断归 LLM，精确归工具�
 ## 3. 总体路线：分层架构
 
 ```
-Phase 0/1（本次执行）  阶段契约化：frontmatter 唯一事实源（借用 v2.0 字段子集）
+Phase 0/1（✅ 已完成） 阶段契约化：frontmatter 唯一事实源（借用 v2.0 字段子集）
                        + 作者期生成脚本（scripts/，消除 8 处重复清单）
                        → 运行时仍是纯 Markdown 技能，零依赖
+                       （Phase 0/1 时点表述；Phase 3 起废止，见 §1 修订）
 
 Phase 2（✅ 已完成）   scope 裁剪矩阵（frontmatter 加 scopes: 字段，
                        转置生成矩阵表；强化 Workflow Planning：
                        从"逐阶段临时判断"升级为"先选 scope 再微调"）
 
-Phase 3                轻量编排引擎：消费 Phase 0 的契约（契约文件零改动），
-                       接管状态机/路由（next/report 理念）
-                       → 引擎定位与技术栈届时再定（D6/D7）
-                       → 立场：引擎是增强层；无引擎环境技能照常可用
+Phase 3（✅ 已完成）     轻量编排引擎："判断归 LLM，精确归工具，决定归人类"落地
+                       Python stdlib 必选引擎 + compile-to-JSON + next/report/
+                       status/jump + 状态完整性校验 + 单元清单结构化
+                       （交付物与实施期裁决见 §6 状态段）
 
-Phase 4+（backlog）    persona 体系、reviewer 契约、五层记忆、§13 学习仪式、
-                       声音/沉默规则强化、门仪式精细化、传感器自检清单
+Phase 4                Team Construction：unit-major 波次编排（硬地基）→
+                       claim/release + worktree 多会话团队（形态 A，harness 无关）→
+                       single 单阶段重跑（试验-收敛闭环）→
+                       swarm 进程内并行（形态 B，harness 相关，可再拆）
+
+Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona 体系、
+                       五层记忆 + §13 学习仪式、门仪式精细化、
+                       完成消息 5 段契约、声音/沉默规则
 ```
 
 **关键架构原则：地基按"未来要盖两栋楼"设计。**
@@ -152,7 +163,7 @@ Phase 4+（backlog）    persona 体系、reviewer 契约、五层记忆、§13 
 阶段文件 frontmatter（唯一事实源，engine-ready）
    ├─ Phase 0/1：scripts/generate.py 读它 → 生成 8 处人类可读清单
    ├─ Phase 2：scope 矩阵从 scopes: 字段转置生成
-   └─ Phase 3：引擎直接读它 → 运行时路由/状态
+   └─ Phase 3：编译为 scripts/data/stage-graph.json → 引擎只读 JSON 做运行时路由/状态
 ```
 
 三个阶段的后续工作都是**消费方的新增**，事实源本身永不动工——这就是"方案 A 不会返工"的原因。
@@ -239,33 +250,155 @@ Phase 4+（backlog）    persona 体系、reviewer 契约、五层记忆、§13 
 - ~~生成脚本转置出 scope 矩阵表（EXECUTE/SKIP），注入 Workflow Planning 规则~~ ✅
 - ~~Workflow Planning 升级：先按任务特征选 scope（关键词/显式指定），再做单阶段微调~~ ✅
 
-## 6. Phase 3 预告：轻量编排引擎
+## 6. Phase 3 实施方案：轻量编排引擎（✅ 已完成 2026-09-14）
 
-- 消费 Phase 0 契约，实现 `next/report` 式状态接管（参考 `opencode/.aidlc/tools/aidlc-orchestrate.ts`，仅 5 个子命令：next/continue/report/park/team-board——分叉可更简）
-- 届时决策：引擎与技能的关系（可选增强层 vs 必选依赖，D6）、技术栈（Python vs bun+TS，D7）
-- 设计立场（已确立）：无引擎环境下技能按约定自路由，照常可用；有引擎环境获得状态硬保证
-- 状态文件/审计从"模型维护"平滑过渡到"工具写入"，格式尽量延续
-- 注意 v2.0 的现实：硬强制来自钩子（hooks），无钩子的 harness 上引擎同样是"约定 + 工具辅助"——分叉不追求跨 harness 的强制力一致性
+> **状态：✅ 已完成（2026-09-14）**。交付物：`scripts/engine.py`（Python stdlib 必选运行时引擎，子命令 status/init/next/report/jump/jump --fresh/rebase，~1000 行）+ generate.py 编译渲染器（`scripts/data/stage-graph.json`，--check 覆盖漂移）+ `references/common/engine-contract.md`（B11 分区所有权矩阵 + directive 消费契约 + 转移语义矩阵 + 完整性/rebase 流程）+ SKILL.md 引擎化改写（Engine Bootstrap 启动探测 HARD STOP + Orchestration Loop 主循环 + 阶段块撤路由散文 + per-unit report 总注）+ 全部 references/ 手改 state 指令收口（D23，含清单外捕获的 reverse-engineering.md）+ error-handling.md 恢复协议重定向（halt→人工确认→rebase）+ WP Step 8 重写（Execution Plan Summary 结构化行，state-template-stages 生成区删除）+ 单元清单结构化（units-generation Step 19 写 `## Units` 模型辖区，state 引擎辖区预留 `## Unit Progress`）。测试：`scripts/tests/` 共 77 例（生成器 30 + 引擎 47）全绿、generate 二次运行幂等、--check 零漂移；裸项目 dogfood 通过（greenfield 全流程走通至 done、brownfield bugfix scope 裁剪、篡改触发 integrity-violated halt→rebase、中断恢复、backward jump、jump --fresh 归档）。
+>
+> 实施期裁决（记录在案）：①per-unit（for_each）阶段引擎单次发射、单元内循环归模型，`report` 在最后一个单元门批准后调用一次（5 个 construction 阶段文件均补 per-unit note）；②审计交叉核验在存在 STATE_REBASELINED 事件后豁免（否则 rebase 无法真正"重定基线"）；③`jump` 到计划外阶段返回 `note` 提示需补 Stages to Execute 行（路由纯化，jump 不绕过 scope/计划过滤）；④`--workspace` 参数位子命令之后（调用约定 `engine.py <subcommand> [--workspace <path>]`）；⑤CLI 错误一律 error JSON + 退出码 1（usage 错误同形）；⑥engine-contract.md 将 init/report/jump/rebase 的成功输出记为"通用 JSON 确认对象"（消费方忽略未知字段兜底）。
+>
+> **主题："判断归 LLM，精确归工具，决定归人类"落地。** 本节是 Phase 3 的权威清单（已全部实施，见上方状态段）。
+>
+> 技术摸底依据（2026-09-14 完成）：v2.0 侧 `aidlc-orchestrate.ts`（8.6k 行，next/continue/report/park/team-board 五子命令）+ `aidlc-state.ts`（6.8k 行）；选阶段算法 = 全图线性扫描 + scope 网格过滤 + state 覆盖 + checkbox 跳过（`aidlc-lib.ts:21852`）；v2.0 状态文件也是 Markdown。分叉侧现状：契约除 `condition` 外全机器可读；`execution-plan.md` 无程序化消费者（路由靠模型记忆）；状态/审计由模型在 20+ 处散文约定中手维护；`gate` 的下一阶段名散落在阶段正文。
+>
+> v2.0 体量中确认不引入的子系统（砍的都是"服务能力不在分叉范围内"，非"移植不了"，可随时按 §6.5 的扩展路径加回）：steering token 续传、team/swarm、per-unit 波次、single、Kiro 遗留、compose 多意图、ownership env 门、传感器/证据链、park。
 
-## 7. Phase 4+ backlog（优先级待排）
+### 6.1 决策汇总
 
-- persona 人格体系（轻量版：进入阶段时 inline 扮演；完整版：14 agent + 知识库）
-- reviewer 契约（输出格式、READY/NOT-READY、迭代上限）
-- 五层记忆（org→team→project→phase→stage）+ §13 学习仪式
+| # | 决策 | 结论 |
+|---|---|---|
+| D6（修订） | 引擎定位 | **必选运行时依赖**。启动探测失败（无 Python 3.8+）→ HARD STOP 提示安装，工作流不启动。原"可选增强层 + 双模镜像"立场废止（镜像成本会掐死演进：每个引擎功能要写两份文档） |
+| D7 | 技术栈 | **Python 标准库**（与 generate.py 同栈，3.8+，零第三方依赖） |
+| D9 | 契约消费 | **compile-to-JSON**：generate.py 编译 `scripts/data/stage-graph.json`；引擎只读 JSON，**永不解析 frontmatter，也永不解析 condition 散文** |
+| D10 | 状态/审计归属 | **引擎原子写** Markdown 状态 + 审计转移条目；State Digest（sha256）+ 审计交叉核验，漂移即 halt + 人类确认重定基线 |
+| D12 | 分发形态 | 引擎随技能分发（`scripts/` 下）；验收硬标准 = **裸项目**（只复制技能目录、无任何其他文件）dogfood 通过 |
+
+### 6.2 三归理念 ↔ 机制映射（实施自查表）
+
+| 理念 | 机制 | 诚实边界 |
+|---|---|---|
+| 精确归工具 | 引擎独占跨阶段路由、状态机、审计转移；compile-to-JSON 防漂移；完整性校验防手改 | — |
+| 判断归 LLM | condition 散文不进引擎：CONDITIONAL 阶段照常发射并标 `conditional: true`，模型判断不适用则 `report --result skipped --reason`；scope 推荐、深度自适应、需求澄清全留模型 | — |
+| 决定归人类 | 门内容/双选项/NO EMERGENT BEHAVIOR 不变；jump 是"改主意"的正规执行通道 | 无钩子环境下"模型伪造批准"工具层防不住（v2.0 在无钩子 harness 同局限）；靠提示词纪律 + 审计留痕 |
+
+### 6.3 实施清单
+
+**A. 契约编译层（generate.py 扩展）**
+
+1. 新增编译渲染器，产出 `scripts/data/stage-graph.json`：有序阶段数组（slug/name/phase/execution/gate/for_each/workspace_writes/produces/consumes/requires_stage/scopes）+ scope registry（name/default/depth/keywords）+ `state_version`
+2. `--check` 覆盖 JSON 漂移（frontmatter 改了未重编译 → 非零退出；现有 CI contract-check.yml 自动兜底，无需改）
+3. 修正 stage-contract.md 两处散文：worked example 的 condition 折行写法（与解析器单行能力对齐）；文首 Runtime neutrality 段（"pure Markdown" 表述在 Phase 3 后失效，改为"单一运行时依赖 Python 3.8+"口径，与 §1 修订一致）
+4. 契约 **frontmatter 字段集与取值约束**零改动（兑现 stage-contract §8 对 Phase 3 的承诺；A3 仅为散文修订，不触字段）
+
+**B. 引擎本体（`scripts/engine.py`，单文件纯 stdlib，预估 1000–1500 行）**
+
+5. 调用约定：`python <skill>/scripts/engine.py <subcommand> [--workspace <path>]`（workspace 默认取 CWD）；启动探测兼容 Windows `python` 与 Linux/macOS `python3`（探测序列两者都试）
+6. `status`（只读）：双重职责——启动探测（python 可用 + 引擎完好）+ 会话恢复数据源；输出 `{engine, state: none|active|completed, current_stage, scope, depth, last_completed, ...}` JSON
+7. `next`（纯只读路由）：线性扫描 + scope 过滤 + state 覆盖 + 勾选跳过；输出**单个** directive JSON（`run-stage` / `done` / `error`）；run-stage 含 stage/phase/gate/stage_file/produces/consumes/conditional/next_stage（**next_stage 是"假设本阶段 completed"的预测值，仅供呈现，不作为路由依据**）；error 字段契约 `{kind, code, message, hint}`（code 机器可读类别 / message 人类可读 / hint 补救提示）
+8. `report`（唯一转移写入口）：`--stage <slug> --result <r> [--reason]`；原子写状态 + 追加审计转移条目。**转移语义矩阵**（E26 的测试基准）：
+
+   | result | 勾选 | 指针 | 适用 |
+   |---|---|---|---|
+   | `completed` | `[x]` | 推进 | 非门阶段完成 |
+   | `approved` | `[x]` | 推进 | 门阶段用户批准后 |
+   | `rejected` | `[R]` | 停本阶段 | 门拒绝 |
+   | `revised` | `[?]` | 停本阶段 | 修订后再提交 |
+   | `skipped` | `[S]` | 推进 | 仅 CONDITIONAL 或计划 SKIP，须 `--reason` |
+
+9. `jump --stage <slug>`（**独立子命令、写操作**；`next` 保持纯只读）：方向解析 + 指针移动 + 中间阶段重标 + `STAGE_JUMPED` 审计。**与完整性校验是阴阳配套**：校验堵死歪路，jump 敞开正门；缺它则每次正常改主意都会以"完整性告警"呈现。附带 Start Fresh（归档 aidlc-docs + 状态重置，resume 菜单执行层闭环；可独立为 `jump --fresh`，实现时定）
+10. 状态完整性校验：写引擎辖区附 `State Digest`（sha256）；每次读先校验 + 审计交叉核验（勾选 vs 转移事件一致性）；漂移 → error directive + halt + 人类确认后重定基线。检测非阻止（无钩子收不走模型的 Write/Edit），威胁模型是"模型疏忽/偷懒"而非对抗。**digest 只覆盖引擎辖区**（见 B11），模型辖区不入摘要——其改动的合法来源是用户指令，由审计中的用户输入记录兜底
+11. **状态文件分区所有权矩阵（设计项，实施的首件产出）**：
+
+    | 状态文件的区 | 写入方 | digest 覆盖 |
+    |---|---|---|
+    | Stage Progress 勾选区、Current Status、State Digest、Unit Progress（预留） | **引擎独占** | ✅ |
+    | Project Information、Workspace State、Code Location Rules、Extension Configuration、Autonomous Mode、Execution Plan Summary（含 Scope/Depth 与计划覆盖行） | 模型按模板写 | ❌ |
+
+    WP 计划覆盖（Stages to Execute/Skip）由模型按结构化行格式写入 Execution Plan Summary，引擎读取消费（**收口"execution-plan.md 无消费者"**）；Scope/Depth 同理（模型写、引擎读，`next` 的 scope 过滤依赖它，为 load-bearing 通道）
+12. 状态文件确定性创建（取代 workspace-detection Step 4 内联模板）：含 `State Version: 1`、`Engine` 字段
+13. **单元清单结构化**：units-generation 把单元表（slug/名称/**依赖字段预留**/规模估计）以结构化形式落 state（模型辖区）；state schema 预留 `## Unit Progress` 区（引擎辖区，本阶段不启用，为 Phase 4 unit-major 留位）
+
+**C. SKILL.md 引擎化改写**
+
+14. 启动序列：跑 `engine.py status` 探测（`python`/`python3` 双命令名，见 B5）；失败 → HARD STOP + Python 3.8+ 安装提示
+15. forwarding loop 入主循环：`next → 按 directive.kind 行动 → report → 重复`；directive 消费契约（error 原样呈现即停；不伪造 report；放弃 directive 直接丢弃不 report；**消费方忽略未知字段**——向后兼容条款，写进契约）
+16. 阶段执行块瘦身：撤路由散文（"自动继续下一阶段"清单归引擎）；**保留** CONDITIONAL 的 Execute-IF/Skip-IF 判断散文与阶段内执行指引（判断归 LLM）
+17. 所有权纪律：MUST NOT 手改引擎辖区（B11 矩阵左列）；模型辖区各区按模板正常维护；用户原始输入记录仍归模型（模型是唯一可见源）
+
+**D. 关联规则文件同步**
+
+18. workspace-detection：状态创建步骤改为引擎执行
+19. workflow-planning：计划批准后由模型把覆盖决策按结构化行格式写入 state（引擎读取消费）
+20. session-continuity：恢复菜单数据源改为 `status` 输出（呈现层保留 Markdown）
+21. workflow-changes：收敛为"**判断在约定、执行在引擎**"——redo/跳步的执行一律走 jump，不再手工移指针
+22. autonomous-mode 扩展：Review Stages 按显示名匹配 → 补 slug 对齐说明（消命名耦合风险；生成器 `_derive_name` 会剥离括号，显示名可能随 H1 变化）
+23. **系统性收口**：grep 全 references/ 树中所有 `aidlc-state.md` 手写指令（12+ 处：全部 construction 阶段文件、application-design、user-stories、units-generation、requirements-analysis、workflow-conventions 扩展等），逐一改写为 report 调用或删除——否则模型同时收到"引擎独占写状态"与"Mark stage complete"两组矛盾指令，dogfood 必撞
+24. **error-handling.md 恢复协议整体重定向**（独立工作量）：备份重建/reset/标 SKIPPED/标 incomplete/修正 current stage 等手改 state 路径，统一改为"完整性 halt → 人工确认 → 引擎重定基线"新流程
+25. workflow-planning.md 的 `state-template-stages` GENERATED 生成区归宿：**删除**（含 generate.py MARKERS 注册清理）——引擎确定性创建 state 后，该"教模型手写 Stage Progress"的模板成为矛盾指令/死代码
+
+**E. 测试与验证**
+
+26. `scripts/tests/test_engine.py`（stdlib unittest）：路由（scope 过滤/覆盖/跳过/完成判定）、状态原子写、report 转移语义矩阵全分支（B8 表）、status 探测、摘要漂移 halt（含**模型辖区改动不触发 halt**的反例）、stage-graph.json 与 frontmatter 一致性
+27. 既有 20 个 generate.py 测试零回归 + 二次运行幂等
+28. **裸项目 dogfood（验收硬标准）**：只复制技能目录的新项目全工作流跑通；另测 brownfield、手改 state 触发 halt、中断恢复
+
+**F. 文档回填**
+
+29. integration-plan.md（本节定稿 + §7 排期 + §9 讨论记录）
+30. AGENTS.md §3 护栏修订 + 路线图速览
+31. README / README_cn：使用前提（Python 3.8+）与分发形态（自包含技能目录）
+
+### 6.4 范围护栏（本阶段明确不做）
+
+- steering token 续传、team/swarm、per-unit 引擎路由（per-unit 阶段 = 单次 run-stage 发射，单元内循环模型负责）、single、park、ownership env 门、多 intent
+- condition 结构化、gate 第三选项契约化（留正文）
+- 传感器、reviewer/persona/五层记忆（Phase 5+）
+
+### 6.5 防返工设计备忘（扩展性五支点）
+
+1. **compile-to-JSON 单数据源**：所有消费方从同一编译产物取数，新数据只编译一次
+2. **dispatch 子命令结构**：新动词 = 新 handler + 一个 case，无侵入
+3. **directive JSON 可扩展**：消费方忽略未知字段（向后兼容条款）
+4. **State Version 迁移机制**：状态格式演进不伤旧档案
+5. **契约 §5 预留命名空间**：reviewer/sensors/lead_agent 等字段语义已定义，启用 = 白名单放行
+
+**三档重跑语义边界（勿混淆）**：redo（workflow-changes 决策协议 → jump 执行，回拨主指针）/ jump（移动指针的路由行为）/ single（脱钩主线、绝不动主指针、独立审计对，Phase 4）。
+
+**error directive 是统一逃生舱**：任何新失败模式走"呈现并停止"，不发明新协议。
+
+## 7. 后续 Phase 排期（2026-09-14 重排）
+
+### Phase 4：Team Construction
+
+**硬依赖链（顺序不可乱）**：单元清单结构化（Phase 3 ✓ 已排）→ unit-major → claim → merge。Team Construction 的每一步都以 unit-major 为前提：没有引擎感知单元就没有可认领的对象，没有 claim 锁多会话就是状态文件互踩。
+
+1. **unit-major 波次编排**（地基，本身即可交付价值）：`report --unit`、Unit Progress 区启用、单元级审批门节奏（per-stage / unit-end 两种，借鉴 v2.0 `unit_gate_rhythm`）、单元级恢复。stage-major 保留为默认节奏（单单元/小项目无感）
+2. **claim/release + git worktree**（形态 A：多会话团队，harness 无关）：N 个 AI 会话（或人机混合）各自打开同一仓库，claim 粒度 = unit；所有协调逻辑在引擎，harness 只需能跑 shell。状态文件多会话并发写锁是实现期重点（参考 v2.0 mkdir 锁，Python stdlib 有对应做法）
+3. **single 单阶段重跑**（~50–100 行）：`next/report --single`，独立审计对、绝不动主指针、stage_validity 警告不阻塞。用户场景：team 并行试验多个算法变体 → 选定其一单独重跑（试验-收敛闭环）
+4. **swarm 进程内并行**（形态 B：harness 相关，依赖 subagent 能力，工作量最大，可再拆为独立子相位）
+
+### Phase 5+：reviewer 及其他（逐项独立可交付，纯增量无返工，路径见 §6.5）
+
+- reviewer 状态机（启用契约 §5 预留字段 reviewer/review_artifact/reviewer_max_iterations；READY/NOT-READY 回路由 report 分支承接）
+- 传感器自检清单 → report 时阻塞校验（required-sections / upstream-coverage / traceability / claim-sources）
+- persona 体系（轻量版 inline 扮演先行；完整版 14 agent + 知识库另议）
+- 五层记忆（org→team→project→phase→stage）+ §13 学习仪式（引擎承担确定性去重写入）
 - 门仪式精细化（HARD STOP、revision 逃生舱、non-matching reply 处理）
-- 完成消息 5 段契约、声音/沉默规则
-- 传感器自检清单化（required-sections / upstream-coverage / traceability / claim-sources）
-- PRE-GENERATION SUMMARY STOP 强化
+- 完成消息 5 段契约、声音/沉默规则、PRE-GENERATION SUMMARY STOP 强化
+
+### 不排期（仅记录）
+
+- **多 intent / compose**（D11）：一个版本就是一个产品意图；当前版本做到一半去做不相干的另一件事，应该是两个 git 版本的事。**重启前提**：与 Team Construction 协同设计——claim 注册表天然按 intent 隔离（v2.0 为 `claim/<intent-id8>/<unit>`）；`aidlc-docs/` 路径假设需加 intent 维度，属目录结构级重构，是所有后置项中侵入最深的
 
 ---
 
 ## 8. 关键参考文件索引
 
 ### v1.0 分叉（工作对象）
-- `.agents/skills/aidlc-workflows/SKILL.md` — 主入口（546 行）
+- `.agents/skills/aidlc-workflows/SKILL.md` — 主入口（620 行）
 - `.agents/skills/aidlc-workflows/references/common/` — 12 个通用规则
 - `.agents/skills/aidlc-workflows/references/{inception,construction,operations}/` — 14 个阶段规则
 - `.agents/skills/aidlc-workflows/references/extensions/` — 6 个扩展（opt-in 机制）
+- `.agents/skills/aidlc-workflows/scripts/` — generate.py（作者期生成器）；engine.py + data/stage-graph.json（Phase 3 交付的运行时引擎与编译产物）
 
 ### v2.0（理念来源，只读参考）
 - `opencode/AIDLC-PLUGIN.md` — v2.0 全量技术文档（最权威的导览）
@@ -299,3 +432,28 @@ Phase 4+（backlog）    persona 体系、reviewer 契约、五层记忆、§13 
   2. **触发信号**：M1 用户措辞含"上线/正式/生产/企业级/合规/付费/用户数据"（强）；M2 需求涉及敏感面（认证/支付/个人数据/外部集成）而 Security Baseline=No（强）；M3 迭代 ≥3 轮且从未重估（弱，仅提示）；M4 棕地代码规模增长（弱，仅提示）。强信号→必须重估；弱信号→完成消息里一句话提示。
   3. **关键不对称**：scope 可自动选定（选错可零成本纠正、不引入约束）；扩展**绝不自动开启**（开启即引入阻塞性约束，静默开启会让用户莫名被门拦）——重估只能"问"，且只问信号指向的 1-2 个扩展，一句话说清后果。
 - **搁置原因（用户决定）**：Operations 阶段尚未补全，扩展配置的处理与 Operations 内容（部署/监控/生产就绪）强相关，待 Operations 补全后一并设计。届时回填本节为正式方案。
+
+### 2026-09-14（其二）：Phase 3 方案定稿（D6 重大修订）
+
+**过程**：先完成双侧技术摸底（v2.0 编排工具 8.6k 行 orchestrate + 6.8k 行 state 的机制拆解；分叉侧状态/路由/契约/解析器现状盘点），随后逐条审议了"相对 v2.0 砍掉清单"（steering 续传、team/swarm、per-unit 波次、single、Kiro 遗留、compose 多意图、ownership env 门、传感器/证据链、jump/resume 机器、park）——确认砍的都是"**它服务的能力不在分叉范围内**"，没有一项是"移植不了"，全部可按 §6.5 的扩展路径加回。**注**：其中 jump/resume 机器经裁剪后保留子集入 Phase 3（jump 独立子命令 + status 恢复探针），被砍的是 v2.0 的完整机制（aidlc-jump.ts 的 resolve/execute 分层、resume 菜单引擎内路由等）。
+
+**关键决策与理由**：
+
+- **D6 修订（引擎必选）**：用户定调——引入引擎的动机就是践行"判断归 LLM，精确归工具，决定归人类"；原"可选增强层"立场隐含的双模镜像成本（每个引擎功能都要写一份 Markdown 约定镜像）会掐死后续演进。分叉对 v2.0 的差异化定位随之明确为"**同等理念、更轻的可移植性**"（Python 3.8+ vs bun + opencode 钩子体系），而非"零依赖"。§1 硬约束同步修订。
+- **三归理念可行性结论**：精确归工具 ✅（引擎接管路由/状态/审计）；判断归 LLM ✅（condition 散文永不进引擎，v2.0 同此分工）；决定归人类 ⚠️ 诚实边界——无钩子环境防不住模型伪造批准（v2.0 同局限），靠提示词纪律 + 审计留痕。
+- **状态完整性校验入 Phase 3**：引擎必选使"只有引擎能写状态"从空强制变为可检测（State Digest + 审计交叉核验 + halt + 人工重定基线）。检测非阻止，威胁模型是模型疏忽而非对抗。
+- **jump 入 Phase 3**：完整性校验堵死歪路后，jump 是"改主意"的正规执行通道，二者阴阳配套；拆开交付会让每次正常需求变更都以"完整性告警"形态呈现（体验裂缝）。
+- **Team Construction 死结消解**：引擎必选使 claim 锁可行（原死结：引擎可选则锁不可靠）；拆为形态 A（多会话团队，harness 无关，优先）与形态 B（swarm 进程内并行，harness 相关，殿后）；unit-major 是其硬地基（claim 粒度 = unit）。
+- **single 入 Phase 4**：用户场景——team 并行试验多算法变体后选定其一单独重跑（试验-收敛闭环）。
+- **多 intent / compose 不排期**（D11）：用户原话"一个版本就应该是一个产品意图……那应该是两个 git 版本的事"。
+- **分发自包含确认**：技能目录内对 AGENTS.md 零引用（已查证）；用户侧前提仅两条——harness 能加载技能 + 能执行 python。裸项目 dogfood 列为验收硬标准。
+
+**审查修订（2026-09-14 其三，reviewer 审查后落地）**：🔴 D 组补系统性收口项（12+ 处手改 state 指令逐一改写，原清单仅覆盖 5 个文件）+ error-handling.md 恢复协议整体重定向为独立项；🔴 补状态文件分区所有权矩阵（B11：引擎辖区 digest 覆盖 / 模型辖区不入摘要）与 scope/计划覆盖的模型写-引擎读通道（原 report 无 payload 通道的空白改为混合所有权解法，report 不引入结构化参数）。🟡 jump 改独立子命令（保持 next 纯只读）；next_stage 标注为预测值；补 `--workspace` 调用约定与 python/python3 双命令名探测；补 report 转移语义矩阵（B8 表，E26 测试基准）；§9 砍单注明 jump/resume 裁剪口径；§3 路线图 Phase 0/1 行加历史时点标注；"契约零改动"限定为字段集零改动（A3 散文修订含 Runtime neutrality 段）；WP 的 state-template-stages 生成区定为删除（D25）。🔵 SKILL.md 行数勘误（556）；AGENTS.md §1 字段清单补 scopes；引擎体量预估上调至 1000–1500 行；error directive 字段契约（code/message/hint）写入 B7。清单总数 26 → 31。
+
+### 2026-09-14（其四）：Phase 3 实施完成
+
+按 §6 清单全部 31 项落地。分工：4 个 executor 并行（generate.py 编译层 + WP Step 8 重写 / 四规则文件引擎化 / state 指令收口 + error-handling 重定向 / SKILL.md + engine-contract.md），引擎本体（engine.py + test_engine.py）由主智能体亲自实现。实施期裁决记入 §6 状态段（①per-unit report 粒度、②rebase 后交叉核验豁免、③jump 不绕过路由过滤、④--workspace 位置、⑤错误 JSON 形态、⑥确认对象契约）。验收：77 个 unittest 全绿（生成器 30 + 引擎 47）、generate 幂等且 --check 零漂移、裸项目 dogfood 通过（greenfield 全流程 + brownfield scope 裁剪 + 篡改 halt/rebase + 中断恢复 + jump + --fresh）。Ex2b 发现并收口的清单外文件：reverse-engineering.md。遗留 backlog（Phase 4+ 评估）：scope depth enum 是否加 `adaptive`；welcome ASCII 截断保护；--check 重复 key 僵尸区逃逸场景；Operations 的 CONDITIONAL 语义。
+
+**审查修复（2026-09-14 其五，reviewer 全面审查后落地）**：🔴 workflow-changes.md Type 5/9 把引擎消费的 Scope/Depth 通道错指到 `## Project Information`（引擎只读 `## Execution Plan Summary`）——改为指向正确位置并明示"engine consumes ONLY the Execution Plan Summary copies"；RA Step 2.5 同步改为直接填 Execution Plan Summary 的 Scope/Depth 占位行。🟡 argparse 用法错误与未捕获异常绕过"一律 error JSON"契约——新增 `_JsonArgumentParser`（error → JSON + exit 1）与 main() Exception 兜底（code: internal）；SKILL.md per-unit 阶段块缺"report 恰好一次"护栏——Per-Unit Loop 节加总注；workspace-detection Step 3/6 残留路由散文——Step 3 重构为纯 brownfield/RE 适用性判断、Step 6 改为 report completed + 引擎路由。🔵 B&T 完成消息的 Operations 预测改中性措辞；engine-contract §6 补 Skip>Execute 优先级与节标题严格性说明；死代码清理（EV_FRESH 投入 --fresh 归档审计使用、generate.py `regenerate(check)` 死参删除）；补 4 个测试（CRLF 摘要稳定性、argparse JSON、jump→已完成阶段、未知 scope 名），引擎测试 43→47。
+
+**复审修复（2026-09-14 其六，二轮 reviewer 复审后落地）**：🔴-1 同源残留两处清除——SKILL.md State Ownership 条与 §6.3 B11 矩阵行的"Scope/Depth 属 Project Information"旧口径（改指 Execution Plan Summary）。卫生项：删除仓库根 dogfood 遗留垃圾目录（cmd 变量未展开产物）；AGENTS.md 测试数 73→77、§8 SKILL.md 行数 556→620 勘误。改进项落地：RA Step 2.5 代码块归属消歧（state 填写格式与 audit 记录分开表述）；5 个 construction per-unit note 的 "approval" 统一为 "gate outcome"（覆盖 skipped 收尾）；engine-contract 规则 4 措辞精确化（仅该行回落，Skip 行仍生效）；workspace-detection Step 5 完成消息的下一阶段预测改"Decided by the engine"；engine-contract §10 error 样例补尾注对齐实际输出；test_jump_fresh_archives 补 WORKFLOW_FRESH 断言。

@@ -119,8 +119,7 @@ This stage generates code for each unit of work through two integrated parts:
 - [ ] Mark the approval status clearly
 
 ## Step 9: Update Progress
-- [ ] Mark Code Generation Part 1 (Planning) complete in `aidlc-state.md`
-- [ ] Update the "Current Status" section
+- [ ] Track Part 1 (Planning) progress in the plan file — the Stage Progress / Current Status sections of `aidlc-state.md` are engine-owned; never hand-edit them
 - [ ] Prepare for transition to Code Generation
 
 ---
@@ -148,7 +147,7 @@ This stage generates code for each unit of work through two integrated parts:
 ## Step 12: Update Progress
 - [ ] Mark the completed step as [x] in the unit code generation plan
 - [ ] Mark associated unit stories as [x] when their generation is finished
-- [ ] Update `aidlc-docs/aidlc-state.md` current status
+- [ ] Do not hand-edit `aidlc-docs/aidlc-state.md` — its progress sections are engine-owned
 - [ ] **Brownfield only**: Verify no duplicate files created (e.g., no `ClassName_modified.java` alongside `ClassName.java`)
 - [ ] Save all generated artifacts
 
@@ -197,7 +196,8 @@ This stage generates code for each unit of work through two integrated parts:
 ## Step 16: Record Approval and Update Progress
 - Log approval in audit.md with timestamp
 - Record the user's approval response with timestamp
-- Mark Code Generation stage as complete for this unit in aidlc-state.md
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage code-generation --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
+- **Per-unit note**: this stage is emitted once by the engine for the whole unit loop. Run the gate per unit as defined above, but call `report` exactly once — after the LAST unit's gate outcome. If a later unit is rejected, do not call `report` again; the stage stays current until all units pass.
 
 ---
 

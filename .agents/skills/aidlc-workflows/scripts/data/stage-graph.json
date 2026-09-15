@@ -1,0 +1,611 @@
+{
+  "state_version": 1,
+  "stages": [
+    {
+      "slug": "workspace-detection",
+      "name": "Workspace Detection",
+      "phase": "inception",
+      "execution": "ALWAYS",
+      "gate": "none",
+      "for_each": false,
+      "workspace_writes": false,
+      "produces": [
+        "aidlc-state.md",
+        "audit.md"
+      ],
+      "consumes": [],
+      "requires_stage": [],
+      "scopes": {
+        "classic": "EXECUTE",
+        "bugfix": "EXECUTE",
+        "express": "EXECUTE",
+        "infra": "EXECUTE",
+        "refactor": "EXECUTE",
+        "security-patch": "EXECUTE"
+      }
+    },
+    {
+      "slug": "reverse-engineering",
+      "name": "Reverse Engineering",
+      "phase": "inception",
+      "execution": "CONDITIONAL",
+      "gate": "approve-continue",
+      "for_each": false,
+      "workspace_writes": false,
+      "produces": [
+        "inception/reverse-engineering/*"
+      ],
+      "consumes": [],
+      "requires_stage": [
+        "workspace-detection"
+      ],
+      "scopes": {
+        "classic": "CONDITIONAL",
+        "bugfix": "CONDITIONAL",
+        "express": "CONDITIONAL",
+        "infra": "SKIP",
+        "refactor": "CONDITIONAL",
+        "security-patch": "CONDITIONAL"
+      }
+    },
+    {
+      "slug": "requirements-analysis",
+      "name": "Requirements Analysis",
+      "phase": "inception",
+      "execution": "ALWAYS",
+      "gate": "approve-continue",
+      "for_each": false,
+      "workspace_writes": false,
+      "produces": [
+        "inception/requirements/requirements.md",
+        "inception/requirements/requirement-verification-questions.md"
+      ],
+      "consumes": [
+        {
+          "artifact": "inception/reverse-engineering/*",
+          "required": true,
+          "conditional_on": "brownfield"
+        }
+      ],
+      "requires_stage": [
+        "workspace-detection",
+        "reverse-engineering"
+      ],
+      "scopes": {
+        "classic": "EXECUTE",
+        "bugfix": "EXECUTE",
+        "express": "EXECUTE",
+        "infra": "EXECUTE",
+        "refactor": "EXECUTE",
+        "security-patch": "EXECUTE"
+      }
+    },
+    {
+      "slug": "user-stories",
+      "name": "User Stories",
+      "phase": "inception",
+      "execution": "CONDITIONAL",
+      "gate": "approve-continue",
+      "for_each": false,
+      "workspace_writes": false,
+      "produces": [
+        "inception/plans/user-stories-assessment.md",
+        "inception/plans/story-generation-plan.md",
+        "inception/user-stories/stories.md",
+        "inception/user-stories/personas.md",
+        "inception/user-stories/*-questions.md"
+      ],
+      "consumes": [
+        {
+          "artifact": "inception/requirements/requirements.md",
+          "required": true,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/reverse-engineering/*",
+          "required": false,
+          "conditional_on": "brownfield"
+        }
+      ],
+      "requires_stage": [
+        "requirements-analysis"
+      ],
+      "scopes": {
+        "classic": "CONDITIONAL",
+        "bugfix": "SKIP",
+        "express": "SKIP",
+        "infra": "SKIP",
+        "refactor": "SKIP",
+        "security-patch": "SKIP"
+      }
+    },
+    {
+      "slug": "workflow-planning",
+      "name": "Workflow Planning",
+      "phase": "inception",
+      "execution": "ALWAYS",
+      "gate": "approve-continue",
+      "for_each": false,
+      "workspace_writes": false,
+      "produces": [
+        "inception/plans/execution-plan.md"
+      ],
+      "consumes": [
+        {
+          "artifact": "inception/requirements/requirements.md",
+          "required": true,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/requirements/requirement-verification-questions.md",
+          "required": false,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/user-stories/stories.md",
+          "required": false,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/user-stories/personas.md",
+          "required": false,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/reverse-engineering/*",
+          "required": false,
+          "conditional_on": "brownfield"
+        }
+      ],
+      "requires_stage": [
+        "requirements-analysis",
+        "user-stories"
+      ],
+      "scopes": {
+        "classic": "EXECUTE",
+        "bugfix": "EXECUTE",
+        "express": "EXECUTE",
+        "infra": "EXECUTE",
+        "refactor": "EXECUTE",
+        "security-patch": "EXECUTE"
+      }
+    },
+    {
+      "slug": "application-design",
+      "name": "Application Design",
+      "phase": "inception",
+      "execution": "CONDITIONAL",
+      "gate": "approve-continue",
+      "for_each": false,
+      "workspace_writes": false,
+      "produces": [
+        "inception/plans/application-design-plan.md",
+        "inception/application-design/components.md",
+        "inception/application-design/component-methods.md",
+        "inception/application-design/services.md",
+        "inception/application-design/component-dependency.md",
+        "inception/application-design/application-design.md"
+      ],
+      "consumes": [
+        {
+          "artifact": "inception/requirements/requirements.md",
+          "required": true,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/user-stories/stories.md",
+          "required": false,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/reverse-engineering/*",
+          "required": false,
+          "conditional_on": "brownfield"
+        }
+      ],
+      "requires_stage": [
+        "workflow-planning",
+        "requirements-analysis"
+      ],
+      "scopes": {
+        "classic": "CONDITIONAL",
+        "bugfix": "SKIP",
+        "express": "SKIP",
+        "infra": "SKIP",
+        "refactor": "SKIP",
+        "security-patch": "SKIP"
+      }
+    },
+    {
+      "slug": "units-generation",
+      "name": "Units Generation",
+      "phase": "inception",
+      "execution": "CONDITIONAL",
+      "gate": "approve-continue",
+      "for_each": false,
+      "workspace_writes": false,
+      "produces": [
+        "inception/plans/unit-of-work-plan.md",
+        "inception/application-design/unit-of-work.md",
+        "inception/application-design/unit-of-work-dependency.md",
+        "inception/application-design/unit-of-work-story-map.md"
+      ],
+      "consumes": [
+        {
+          "artifact": "inception/requirements/requirements.md",
+          "required": true,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/application-design/components.md",
+          "required": false,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/application-design/component-methods.md",
+          "required": false,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/application-design/services.md",
+          "required": false,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/application-design/component-dependency.md",
+          "required": false,
+          "conditional_on": null
+        }
+      ],
+      "requires_stage": [
+        "workflow-planning",
+        "application-design",
+        "requirements-analysis"
+      ],
+      "scopes": {
+        "classic": "CONDITIONAL",
+        "bugfix": "SKIP",
+        "express": "SKIP",
+        "infra": "SKIP",
+        "refactor": "SKIP",
+        "security-patch": "SKIP"
+      }
+    },
+    {
+      "slug": "functional-design",
+      "name": "Functional Design",
+      "phase": "construction",
+      "execution": "CONDITIONAL",
+      "gate": "two-option",
+      "for_each": true,
+      "workspace_writes": false,
+      "produces": [
+        "construction/plans/{unit-name}-functional-design-plan.md",
+        "construction/{unit-name}/functional-design/business-logic-model.md",
+        "construction/{unit-name}/functional-design/business-rules.md",
+        "construction/{unit-name}/functional-design/domain-entities.md",
+        "construction/{unit-name}/functional-design/frontend-components.md"
+      ],
+      "consumes": [
+        {
+          "artifact": "inception/requirements/requirements.md",
+          "required": true,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/application-design/unit-of-work.md",
+          "required": true,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/application-design/*",
+          "required": false,
+          "conditional_on": null
+        }
+      ],
+      "requires_stage": [
+        "units-generation",
+        "requirements-analysis"
+      ],
+      "scopes": {
+        "classic": "CONDITIONAL",
+        "bugfix": "SKIP",
+        "express": "SKIP",
+        "infra": "SKIP",
+        "refactor": "EXECUTE",
+        "security-patch": "SKIP"
+      }
+    },
+    {
+      "slug": "nfr-requirements",
+      "name": "NFR Requirements",
+      "phase": "construction",
+      "execution": "CONDITIONAL",
+      "gate": "two-option",
+      "for_each": true,
+      "workspace_writes": false,
+      "produces": [
+        "construction/plans/{unit-name}-nfr-requirements-plan.md",
+        "construction/{unit-name}/nfr-requirements/nfr-requirements.md",
+        "construction/{unit-name}/nfr-requirements/tech-stack-decisions.md"
+      ],
+      "consumes": [
+        {
+          "artifact": "inception/requirements/requirements.md",
+          "required": true,
+          "conditional_on": null
+        },
+        {
+          "artifact": "inception/application-design/unit-of-work.md",
+          "required": true,
+          "conditional_on": null
+        },
+        {
+          "artifact": "construction/{unit-name}/functional-design/*",
+          "required": false,
+          "conditional_on": null
+        }
+      ],
+      "requires_stage": [
+        "functional-design",
+        "requirements-analysis",
+        "units-generation"
+      ],
+      "scopes": {
+        "classic": "CONDITIONAL",
+        "bugfix": "SKIP",
+        "express": "SKIP",
+        "infra": "EXECUTE",
+        "refactor": "SKIP",
+        "security-patch": "EXECUTE"
+      }
+    },
+    {
+      "slug": "nfr-design",
+      "name": "NFR Design",
+      "phase": "construction",
+      "execution": "CONDITIONAL",
+      "gate": "two-option",
+      "for_each": true,
+      "workspace_writes": false,
+      "produces": [
+        "construction/plans/{unit-name}-nfr-design-plan.md",
+        "construction/{unit-name}/nfr-design/nfr-design-patterns.md",
+        "construction/{unit-name}/nfr-design/logical-components.md"
+      ],
+      "consumes": [
+        {
+          "artifact": "construction/{unit-name}/nfr-requirements/*",
+          "required": true,
+          "conditional_on": null
+        }
+      ],
+      "requires_stage": [
+        "nfr-requirements"
+      ],
+      "scopes": {
+        "classic": "CONDITIONAL",
+        "bugfix": "SKIP",
+        "express": "SKIP",
+        "infra": "EXECUTE",
+        "refactor": "SKIP",
+        "security-patch": "SKIP"
+      }
+    },
+    {
+      "slug": "infrastructure-design",
+      "name": "Infrastructure Design",
+      "phase": "construction",
+      "execution": "CONDITIONAL",
+      "gate": "two-option",
+      "for_each": true,
+      "workspace_writes": false,
+      "produces": [
+        "construction/plans/{unit-name}-infrastructure-design-plan.md",
+        "construction/{unit-name}/infrastructure-design/infrastructure-design.md",
+        "construction/{unit-name}/infrastructure-design/deployment-architecture.md",
+        "construction/shared-infrastructure.md"
+      ],
+      "consumes": [
+        {
+          "artifact": "inception/application-design/unit-of-work.md",
+          "required": true,
+          "conditional_on": null
+        },
+        {
+          "artifact": "construction/{unit-name}/functional-design/*",
+          "required": false,
+          "conditional_on": null
+        },
+        {
+          "artifact": "construction/{unit-name}/nfr-design/*",
+          "required": false,
+          "conditional_on": null
+        }
+      ],
+      "requires_stage": [
+        "nfr-design",
+        "units-generation"
+      ],
+      "scopes": {
+        "classic": "CONDITIONAL",
+        "bugfix": "SKIP",
+        "express": "SKIP",
+        "infra": "EXECUTE",
+        "refactor": "SKIP",
+        "security-patch": "SKIP"
+      }
+    },
+    {
+      "slug": "code-generation",
+      "name": "Code Generation",
+      "phase": "construction",
+      "execution": "ALWAYS",
+      "gate": "two-option",
+      "for_each": true,
+      "workspace_writes": true,
+      "produces": [
+        "construction/plans/{unit-name}-code-generation-plan.md",
+        "construction/{unit-name}/code/*"
+      ],
+      "consumes": [
+        {
+          "artifact": "inception/application-design/unit-of-work.md",
+          "required": true,
+          "conditional_on": null
+        },
+        {
+          "artifact": "construction/{unit-name}/functional-design/*",
+          "required": false,
+          "conditional_on": null
+        },
+        {
+          "artifact": "construction/{unit-name}/nfr-design/*",
+          "required": false,
+          "conditional_on": null
+        },
+        {
+          "artifact": "construction/{unit-name}/infrastructure-design/*",
+          "required": false,
+          "conditional_on": null
+        }
+      ],
+      "requires_stage": [
+        "infrastructure-design",
+        "units-generation"
+      ],
+      "scopes": {
+        "classic": "EXECUTE",
+        "bugfix": "EXECUTE",
+        "express": "EXECUTE",
+        "infra": "EXECUTE",
+        "refactor": "EXECUTE",
+        "security-patch": "EXECUTE"
+      }
+    },
+    {
+      "slug": "build-and-test",
+      "name": "Build and Test",
+      "phase": "construction",
+      "execution": "ALWAYS",
+      "gate": "approve-continue",
+      "for_each": false,
+      "workspace_writes": false,
+      "produces": [
+        "construction/build-and-test/build-instructions.md",
+        "construction/build-and-test/unit-test-instructions.md",
+        "construction/build-and-test/integration-test-instructions.md",
+        "construction/build-and-test/performance-test-instructions.md",
+        "construction/build-and-test/contract-test-instructions.md",
+        "construction/build-and-test/security-test-instructions.md",
+        "construction/build-and-test/e2e-test-instructions.md",
+        "construction/build-and-test/build-and-test-summary.md"
+      ],
+      "consumes": [
+        {
+          "artifact": "construction/{unit-name}/code/*",
+          "required": true,
+          "conditional_on": null
+        }
+      ],
+      "requires_stage": [
+        "code-generation"
+      ],
+      "scopes": {
+        "classic": "EXECUTE",
+        "bugfix": "EXECUTE",
+        "express": "EXECUTE",
+        "infra": "EXECUTE",
+        "refactor": "EXECUTE",
+        "security-patch": "EXECUTE"
+      }
+    },
+    {
+      "slug": "operations",
+      "name": "Operations",
+      "phase": "operations",
+      "execution": "CONDITIONAL",
+      "gate": "none",
+      "for_each": false,
+      "workspace_writes": false,
+      "produces": [],
+      "consumes": [],
+      "requires_stage": [
+        "build-and-test"
+      ],
+      "scopes": {
+        "classic": "CONDITIONAL",
+        "bugfix": "SKIP",
+        "express": "SKIP",
+        "infra": "SKIP",
+        "refactor": "SKIP",
+        "security-patch": "SKIP"
+      }
+    }
+  ],
+  "scopes": [
+    {
+      "name": "classic",
+      "depth": "standard",
+      "keywords": [],
+      "description": "Full lifecycle with adaptive stage self-selection \u2014 the implicit default",
+      "default": true
+    },
+    {
+      "name": "bugfix",
+      "depth": "minimal",
+      "keywords": [
+        "fix",
+        "bug",
+        "broken"
+      ],
+      "description": "Fix a specific bug in an existing codebase",
+      "default": false
+    },
+    {
+      "name": "express",
+      "depth": "minimal",
+      "keywords": [
+        "express",
+        "lightweight",
+        "quick"
+      ],
+      "description": "Lightest run: requirements to code with no design pass",
+      "default": false
+    },
+    {
+      "name": "infra",
+      "depth": "standard",
+      "keywords": [
+        "infrastructure",
+        "deploy",
+        "infra"
+      ],
+      "description": "Infrastructure and deployment-topology changes",
+      "default": false
+    },
+    {
+      "name": "refactor",
+      "depth": "minimal",
+      "keywords": [
+        "refactor",
+        "clean up",
+        "simplify"
+      ],
+      "description": "Clean up existing code without changing behavior",
+      "default": false
+    },
+    {
+      "name": "security-patch",
+      "depth": "minimal",
+      "keywords": [
+        "security",
+        "CVE",
+        "vulnerability",
+        "patch"
+      ],
+      "description": "Respond to a CVE or vulnerability fast",
+      "default": false
+    }
+  ]
+}

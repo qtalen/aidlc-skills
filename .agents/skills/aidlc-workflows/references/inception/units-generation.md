@@ -132,8 +132,7 @@ If the analysis in step 7 reveals ANY ambiguous answers, you MUST:
 - Include complete approval prompt text
 
 ## Step 11: Update Progress
-- Mark Units Generation Part 1 (Planning) complete in aidlc-state.md
-- Update the "Current Status" section
+- Track Part 1 (Planning) progress in the plan file — the Stage Progress / Current Status sections of `aidlc-state.md` are engine-owned; never hand-edit them
 - Prepare for transition to Units Generation Part 2 (Generation)
 
 ---
@@ -153,13 +152,13 @@ If the analysis in step 7 reveals ANY ambiguous answers, you MUST:
 
 ## Step 14: Update Progress
 - [ ] Mark the completed step as [x] in the unit of work plan
-- [ ] Update `aidlc-docs/aidlc-state.md` current status
+- [ ] Do not hand-edit `aidlc-docs/aidlc-state.md` — its progress sections are engine-owned
 - [ ] Save all generated artifacts
 
 ## Step 15: Continue or Complete
 - [ ] If more steps remain, return to Step 12
 - [ ] If all steps complete, verify units are ready for design stages
-- [ ] Mark Units Generation stage as complete
+- [ ] Do not hand-edit the state file — the stage completion is recorded through the engine after approval (Step 19)
 
 ## Step 16: Present Completion Message
 
@@ -190,8 +189,15 @@ If the analysis in step 7 reveals ANY ambiguous answers, you MUST:
 - Mark the approval status clearly
 
 ## Step 19: Update Progress
-- Mark Units Generation stage complete in `aidlc-docs/aidlc-state.md`
-- Update the "Current Status" section
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage units-generation --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned.
+- **Record the unit list in state** (model-owned region): append a `## Units` section to `aidlc-docs/aidlc-state.md` (anywhere OUTSIDE the `<!-- BEGIN/END ENGINE-STATE -->` markers) with one structured line per unit:
+
+  ```markdown
+  ## Units
+  - **Unit**: <unit-slug> | Name: <display name> | Depends-On: <unit-slugs or none> | Size: <S/M/L>
+  ```
+
+  The engine does not read this section in state version 1 — it is the structured foundation for unit-level orchestration (the engine-owned `## Unit Progress` region stays reserved until then). `Depends-On` is a reserved field: fill it when units have build order dependencies, otherwise write `none`.
 - Prepare for transition to CONSTRUCTION PHASE
 
 ---

@@ -332,7 +332,98 @@ class Rule16AdvisoryTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# 3. Integration tests (temp copies only; never touch the real skill files)
+# 3. Compile-to-JSON artifact (stage-graph.json)
+# ---------------------------------------------------------------------------
+
+
+class StageGraphTests(unittest.TestCase):
+    """The compiled graph must be deterministic and faithful to frontmatter."""
+
+    @classmethod
+    def setUpClass(cls):
+        scopes = generate.load_scopes()
+        scope_order = generate.compute_scope_order(scopes)
+        scope_names = [scope.name for scope in scope_order]
+        stages = generate.load_stages(scope_names)
+        ordered = generate.compute_display_order(stages)
+        cls.graph = generate.build_stage_graph(ordered, scope_order)
+        cls.ordered = ordered
+        cls.scope_names = scope_names
+
+    def test_state_version(self):
+        self.assertEqual(self.graph["state_version"], 1)
+
+    def test_stage_order_matches_display_order(self):
+        self.assertEqual(
+            [stage["slug"] for stage in self.graph["stages"]],
+            [stage.slug for stage in self.ordered],
+        )
+
+    def test_scope_order_default_first_then_alpha(self):
+        names = [scope["name"] for scope in self.graph["scopes"]]
+        self.assertEqual(names[0], "classic")
+        self.assertEqual(names, sorted(names, key=lambda n: (n != "classic", n)))
+
+    def test_stage_fields_match_frontmatter(self):
+        by_slug = {stage["slug"]: stage for stage in self.graph["stages"]}
+        stage = by_slug["requirements-analysis"]
+        self.assertEqual(stage["name"], "Requirements Analysis")
+        self.assertEqual(stage["phase"], "inception")
+        self.assertEqual(stage["execution"], "ALWAYS")
+        self.assertEqual(stage["gate"], "approve-continue")
+        self.assertIs(stage["for_each"], False)
+        self.assertIs(stage["workspace_writes"], False)
+        self.assertEqual(
+            stage["consumes"],
+            [
+                {
+                    "artifact": "inception/reverse-engineering/*",
+                    "required": True,
+                    "conditional_on": "brownfield",
+                }
+            ],
+        )
+        self.assertEqual(
+            sorted(stage["scopes"].keys()), sorted(self.scope_names)
+        )
+        self.assertEqual(stage["scopes"]["classic"], "EXECUTE")
+
+    def test_boolean_flags_are_real_booleans(self):
+        by_slug = {stage["slug"]: stage for stage in self.graph["stages"]}
+        self.assertIs(by_slug["code-generation"]["for_each"], True)
+        self.assertIs(by_slug["code-generation"]["workspace_writes"], True)
+        for stage in self.graph["stages"]:
+            self.assertIsInstance(stage["for_each"], bool)
+            self.assertIsInstance(stage["workspace_writes"], bool)
+
+    def test_consumes_shape_is_complete(self):
+        for stage in self.graph["stages"]:
+            for consume in stage["consumes"]:
+                self.assertEqual(
+                    set(consume.keys()),
+                    {"artifact", "required", "conditional_on"},
+                )
+
+    def test_scopes_registry_matches_scope_files(self):
+        scopes = generate.load_scopes()
+        by_name = {scope["name"]: scope for scope in self.graph["scopes"]}
+        for scope in scopes:
+            entry = by_name[scope.name]
+            self.assertEqual(entry["depth"], scope.depth)
+            self.assertEqual(entry["keywords"], list(scope.keywords))
+            self.assertEqual(entry["description"], scope.description)
+            self.assertEqual(entry["default"], bool(scope.default))
+
+    def test_serialization_is_deterministic(self):
+        scopes = generate.compute_scope_order(generate.load_scopes())
+        first = generate.render_stage_graph(self.ordered, scopes)
+        second = generate.render_stage_graph(self.ordered, scopes)
+        self.assertEqual(first, second)
+        self.assertTrue(first.endswith("\n"))
+
+
+# ---------------------------------------------------------------------------
+# 4. Integration tests (temp copies only; never touch the real skill files)
 # ---------------------------------------------------------------------------
 
 
@@ -379,6 +470,36 @@ class IntegrationTests(unittest.TestCase):
             result = _run_generate(dest, check=True)
             self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
             self.assertIn("DRIFT", result.stdout)
+
+    def test_stage_graph_bytes_stable_across_runs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = self._copy_skill(tmp)
+            graph_path = os.path.join(
+                dest, "scripts", "data", "stage-graph.json"
+            )
+            self.assertEqual(_run_generate(dest).returncode, 0)
+            with open(graph_path, "rb") as handle:
+                first = handle.read()
+            self.assertEqual(_run_generate(dest).returncode, 0)
+            with open(graph_path, "rb") as handle:
+                second = handle.read()
+            self.assertEqual(first, second)
+
+    def test_stage_graph_drift_detected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = self._copy_skill(tmp)
+            self.assertEqual(_run_generate(dest).returncode, 0)
+            graph_path = os.path.join(
+                dest, "scripts", "data", "stage-graph.json"
+            )
+            with open(graph_path, "r", encoding="utf-8", newline="") as handle:
+                text = handle.read()
+            self.assertIn('"state_version": 1', text)
+            with open(graph_path, "w", encoding="utf-8", newline="") as handle:
+                handle.write(text.replace('"state_version": 1', '"state_version": 99'))
+            result = _run_generate(dest, check=True)
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("DRIFT: stage-graph.json", result.stdout)
 
     def test_real_repo_check_is_clean(self):
         result = subprocess.run(

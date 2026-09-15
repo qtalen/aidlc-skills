@@ -4,7 +4,8 @@
 Scans the YAML frontmatter of every stage rule file under
 ``references/<phase>/*.md`` (the single source of truth), validates it against
 ``references/common/stage-contract.md``, and regenerates every
-``<!-- BEGIN GENERATED: <key> -->`` section across the skill.
+``<!-- BEGIN GENERATED: <key> -->`` section across the skill. It also compiles
+the stage graph to ``scripts/data/stage-graph.json`` for the runtime engine.
 
 Pure Python 3.8+ standard library. No third-party dependencies.
 
@@ -18,6 +19,7 @@ Exit codes:
     2  a hard validation error was found
 """
 
+import json
 import os
 import re
 import sys
@@ -126,7 +128,6 @@ MARKERS = {
     "references/inception/workflow-planning.md": [
         "execution-plan-mermaid",
         "execution-plan-stages",
-        "state-template-stages",
         "scope-matrix",
     ],
     "references/extensions/workflow/autonomous-mode/autonomous-mode.md": [
@@ -680,6 +681,64 @@ def compute_display_order(stages):
     return ordered
 
 
+def build_stage_graph(ordered, scope_order):
+    """Compile the current stage graph into a JSON-serialisable object.
+
+    This is the author-time compile product consumed verbatim by the runtime
+    orchestration engine (``scripts/engine.py``). The engine reads only this
+    artifact and **never** parses frontmatter, so every routing field the engine
+    needs must be carried here in full.
+    """
+    scope_names = [scope.name for scope in scope_order]
+    stages = []
+    for stage in ordered:
+        stages.append(
+            {
+                "slug": stage.slug,
+                "name": stage.name,
+                "phase": stage.phase,
+                "execution": stage.execution,
+                "gate": stage.gate,
+                "for_each": stage.for_each == "unit-of-work",
+                "workspace_writes": bool(stage.workspace_writes),
+                "produces": list(stage.produces),
+                "consumes": [
+                    {
+                        "artifact": consume["artifact"],
+                        "required": consume["required"],
+                        "conditional_on": consume["conditional_on"],
+                    }
+                    for consume in stage.consumes
+                ],
+                "requires_stage": list(stage.requires_stage),
+                "scopes": {name: stage.scopes.get(name) for name in scope_names},
+            }
+        )
+    scopes = [
+        {
+            "name": scope.name,
+            "depth": scope.depth,
+            "keywords": list(scope.keywords),
+            "description": scope.description,
+            "default": bool(scope.default),
+        }
+        for scope in scope_order
+    ]
+    return {"state_version": 1, "stages": stages, "scopes": scopes}
+
+
+def render_stage_graph(ordered, scope_order):
+    """Deterministic JSON text for the stage graph (fixed key order + newline)."""
+    return (
+        json.dumps(
+            build_stage_graph(ordered, scope_order),
+            indent=2,
+            sort_keys=False,
+        )
+        + "\n"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Advisory warnings
 # ---------------------------------------------------------------------------
@@ -1053,28 +1112,6 @@ def build_render_map(ordered, scope_order):
                     )
         return "\n".join(lines)
 
-    def render_state_template_stages():
-        lines = []
-        for index, phase in enumerate(PHASE_ORDER):
-            if index > 0:
-                lines.append("")
-            meta = PHASE_META[phase]
-            lines.append("### %s %s" % (meta["emoji"], meta["title"]))
-            for stage in ps(phase):
-                if stage.phase == "operations":
-                    lines.append("- [ ] %s - PLACEHOLDER" % stage.name)
-                    continue
-                if stage.for_each and stage.execution == "CONDITIONAL":
-                    suffix = " (per-unit, if applicable)"
-                elif stage.for_each:
-                    suffix = " (per-unit)"
-                elif stage.execution == "CONDITIONAL":
-                    suffix = " (if applicable)"
-                else:
-                    suffix = ""
-                lines.append("- [ ] %s%s" % (stage.name, suffix))
-        return "\n".join(lines)
-
     def render_scope_catalog():
         lines = [
             "| Scope | Depth | Keywords | Description |",
@@ -1127,7 +1164,6 @@ def build_render_map(ordered, scope_order):
         "artifact-loading": render_artifact_loading,
         "execution-plan-mermaid": lambda: render_mermaid(True),
         "execution-plan-stages": render_execution_plan_stages,
-        "state-template-stages": render_state_template_stages,
         "stage-names": render_stage_names,
         "scope-catalog": render_scope_catalog,
         "scope-matrix": render_scope_matrix,
@@ -1178,7 +1214,7 @@ def _replace_section(text, key, rendered):
     return text[: match_begin.end()] + new_between + text[match_end.start():]
 
 
-def regenerate(check):
+def regenerate():
     scopes = load_scopes()
     scope_order = compute_scope_order(scopes)
     scope_names = [scope.name for scope in scope_order]
@@ -1218,6 +1254,24 @@ def regenerate(check):
             new_text = replaced
         if new_text != text:
             changed_files[relpath] = new_text
+
+    # Compile-to-JSON artifact (read by the runtime engine, never the
+    # frontmatter). Drift is folded into the same counter as marker drift.
+    # Comparison is newline-insensitive so a CRLF checkout does not read as
+    # drift; the emitted newline style follows the file already on disk.
+    graph_relpath = os.path.join("scripts", "data", "stage-graph.json")
+    graph_path = os.path.join(SKILL_ROOT, graph_relpath)
+    graph_text = render_stage_graph(ordered, scope_order)
+    graph_existing = _read_text(graph_path) if os.path.isfile(graph_path) else None
+    graph_existing_normalized = (
+        graph_existing.replace("\r\n", "\n") if graph_existing is not None else None
+    )
+    if graph_existing_normalized != graph_text:
+        drifted.append("stage-graph.json")
+        if graph_existing is not None and "\r\n" in graph_existing:
+            changed_files[graph_relpath] = graph_text.replace("\n", "\r\n")
+        else:
+            changed_files[graph_relpath] = graph_text
     return warnings, drifted, changed_files
 
 
@@ -1229,7 +1283,7 @@ def regenerate(check):
 def main(argv):
     check = "--check" in argv[1:]
     try:
-        warnings, drifted, changed_files = regenerate(check)
+        warnings, drifted, changed_files = regenerate()
     except HardError as exc:
         sys.stderr.write("ERROR: %s\n" % exc)
         return 2
@@ -1249,7 +1303,11 @@ def main(argv):
         return 0
 
     for relpath, text in changed_files.items():
-        _write_text(os.path.join(SKILL_ROOT, relpath), text)
+        path = os.path.join(SKILL_ROOT, relpath)
+        parent = os.path.dirname(path)
+        if parent and not os.path.isdir(parent):
+            os.makedirs(parent)
+        _write_text(path, text)
     for key in drifted:
         sys.stdout.write("Regenerated: %s\n" % key)
     sys.stdout.write(

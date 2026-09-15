@@ -299,13 +299,7 @@ Create `aidlc-docs/inception/reverse-engineering/reverse-engineering-timestamp.m
 
 ## Step 11: Update State Tracking
 
-Update `aidlc-docs/aidlc-state.md`:
-
-```markdown
-## Reverse Engineering Status
-- [x] Reverse Engineering - Completed on [timestamp]
-- **Artifacts Location**: aidlc-docs/inception/reverse-engineering/
-```
+Stage progress is engine-owned. Do not hand-write a `## Reverse Engineering Status` section or edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md`. After the user approves at the gate (Step 13), run `python <skill>/scripts/engine.py report --stage reverse-engineering --result approved` (fall back to `python3` if `python` is unavailable).
 
 ## Step 12: Present Completion Message to User
 

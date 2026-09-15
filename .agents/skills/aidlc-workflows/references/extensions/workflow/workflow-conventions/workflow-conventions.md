@@ -74,16 +74,16 @@ At every approval gate, classify the user's reply into exactly one intent BEFORE
 
 ### APG-02: Approve-and-Hold Behavior
 On Approve-and-Hold, in the SAME interaction:
-1. Mark stage complete in `aidlc-docs/aidlc-state.md` as approved and awaiting continuation (e.g., "approved (hold) - awaiting continue to [Next Stage]")
+1. Record the stage transition with the engine: `python <skill>/scripts/engine.py report --stage <slug> --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned; the "awaiting continuation" hold is a behavior state, not a hand-written status
 2. Log approval in audit.md with complete raw input and intent "approve-hold"
 3. Do NOT begin any next-stage work (no artifacts, no plans, no execution)
 4. End the reply with an explicit continuation question naming the exact next stage
 
 ### APG-03: Approve-and-Continue Behavior
-On Approve-and-Continue: treat exactly as the standard "Approve & Continue" option — mark complete, log with intent "approve-continue", immediately proceed in the same interaction.
+On Approve-and-Continue: treat exactly as the standard "Approve & Continue" option — record the transition with the engine (`python <skill>/scripts/engine.py report --stage <slug> --result approved`), log with intent "approve-continue", immediately proceed in the same interaction.
 
 ### APG-04: Resume from Hold
-- A continuation signal at a held gate proceeds to the recorded next stage WITHOUT re-approval; update state and log resumption.
+- A continuation signal at a held gate proceeds to the recorded next stage WITHOUT re-approval (the approval transition was already recorded through the engine at hold time); log the resumption in `audit.md` — never hand-edit the engine-owned state region.
 - New instructions (e.g., change requests) at a held gate are handled while the gate stays held until an explicit continuation signal.
 
 **Verification**: resuming never re-asks approval; state file never shows a held gate after the next stage started; intervening requests don't lose the hold state.

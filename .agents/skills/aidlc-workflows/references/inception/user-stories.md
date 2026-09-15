@@ -269,7 +269,7 @@ If the analysis in step 9 reveals ANY ambiguous answers, you MUST:
 
 ## Step 17: Update Progress
 - [ ] Mark the completed step as [x] in the story generation plan
-- [ ] Update `aidlc-docs/aidlc-state.md` current status
+- [ ] Do not hand-edit `aidlc-docs/aidlc-state.md` — its progress sections are engine-owned
 - [ ] Save all generated artifacts
 
 ## Step 18: Continue or Complete Generation
@@ -326,8 +326,7 @@ If the analysis in step 9 reveals ANY ambiguous answers, you MUST:
 - Mark the approval status clearly
 
 ## Step 23: Update Progress
-- Mark User Stories stage complete in `aidlc-state.md`
-- Update the "Current Status" section
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage user-stories --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
 - Prepare for transition to next stage
 
 ---

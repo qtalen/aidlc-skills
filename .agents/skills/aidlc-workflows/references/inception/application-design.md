@@ -175,6 +175,5 @@ If the analysis in step 8 reveals ANY ambiguous answers, you MUST:
 - Mark the approval status clearly
 
 ### 15. Update Progress
-- Mark Application Design stage complete in `aidlc-docs/aidlc-state.md`
-- Update the "Current Status" section
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage application-design --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned.
 - Prepare for transition to next stage
