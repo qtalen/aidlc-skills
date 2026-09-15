@@ -59,7 +59,7 @@ C) Start Fresh (archive this project's aidlc-docs and reset state)
 7. **Show specific next steps** rather than generic descriptions
 8. **Log the continuity prompt** in audit.md with timestamp
 9. **Context Summary**: After loading artifacts, provide brief summary of what was loaded for user awareness
-10. **Asking questions**: ALWAYS ask clarification or user feedback questions by placing them in .md files. DO NOT place the multiple-choice questions in-line in the chat session.
+10. **Asking questions**: ALWAYS ask clarification or user feedback questions by placing them in .md files. DO NOT place the multiple-choice questions in-line in the chat session (sole exception: the scope-selection chat question in Requirements Analysis Step 2.5).
 
 ## Menu Execution (presentation → engine)
 

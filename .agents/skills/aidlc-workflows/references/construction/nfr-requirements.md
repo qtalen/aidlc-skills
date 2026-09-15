@@ -14,7 +14,7 @@ consumes:
   - artifact: inception/application-design/unit-of-work.md
     required: true
   - artifact: construction/{unit-name}/functional-design/*
-    required: false
+    required: true
 requires_stage:
   - functional-design
   - requirements-analysis
@@ -33,8 +33,7 @@ scopes:
 
 ## Prerequisites
 - Units Generation must be complete, **or** the execution plan has no Units Generation stage — in that case this stage runs exactly once for the whole task as an implicit single unit (see `workflow-planning.md` Step 3.0), using `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts as its inputs in place of unit artifacts
-- Functional Design must be complete for the unit
-- Unit functional design artifacts must be available
+- Functional Design must be complete for the unit and its artifacts available, **or** the execution plan has no Functional Design stage — in that case work from `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts instead
 - Execution plan must indicate NFR Requirements stage should execute
 
 ## Overview
@@ -43,7 +42,7 @@ Determine non-functional requirements for the unit and make tech stack choices.
 ## Steps to Execute
 
 ### Step 1: Analyze Functional Design
-- Read functional design artifacts from `aidlc-docs/construction/{unit-name}/functional-design/`
+- Read functional design artifacts from `aidlc-docs/construction/{unit-name}/functional-design/` (if the plan includes Functional Design)
 - Understand business logic complexity and requirements
 
 ### Step 2: Create NFR Requirements Plan

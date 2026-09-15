@@ -490,7 +490,7 @@ The full runtime contract — invocation, directives, transition semantics, stat
    - Integration test instructions (test interactions between units)
    - Performance test instructions (if applicable)
    - Additional test instructions as needed (contract tests, security tests, e2e tests)
-4. Create instruction files in build-and-test/ subdirectory: build-instructions.md, unit-test-instructions.md, integration-test-instructions.md, performance-test-instructions.md, build-and-test-summary.md
+4. Create instruction files in the `build-and-test/` subdirectory (full artifact list: see `references/construction/build-and-test.md`)
 5. **Wait for Explicit Approval**: Ask: "**Build and test instructions complete. Approve to record this stage?**" - DO NOT PROCEED until user confirms
 6. **MANDATORY**: Log user's response in audit.md with complete raw input
 7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle.

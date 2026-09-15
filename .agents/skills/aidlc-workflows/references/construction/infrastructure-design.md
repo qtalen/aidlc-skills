@@ -13,10 +13,11 @@ consumes:
   - artifact: inception/application-design/unit-of-work.md
     required: true
   - artifact: construction/{unit-name}/functional-design/*
-    required: false
+    required: true
   - artifact: construction/{unit-name}/nfr-design/*
-    required: false
+    required: true
 requires_stage:
+  - functional-design
   - nfr-design
   - units-generation
 for_each: unit-of-work
@@ -33,7 +34,7 @@ scopes:
 
 ## Prerequisites
 - Units Generation must be complete, **or** the execution plan has no Units Generation stage — in that case this stage runs exactly once for the whole task as an implicit single unit (see `workflow-planning.md` Step 3.0), using `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts as its inputs in place of unit artifacts
-- Functional Design must be complete for the unit
+- Functional Design must be complete for the unit, **or** the execution plan has no Functional Design stage — in that case work from `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts instead
 - NFR Design recommended (provides logical components to map)
 - Execution plan must indicate Infrastructure Design stage should execute
 
@@ -43,7 +44,7 @@ Map logical software components to actual infrastructure choices for deployment 
 ## Steps to Execute
 
 ### Step 1: Analyze Design Artifacts
-- Read functional design from `aidlc-docs/construction/{unit-name}/functional-design/`
+- Read functional design from `aidlc-docs/construction/{unit-name}/functional-design/` (if the plan includes Functional Design)
 - Read NFR design from `aidlc-docs/construction/{unit-name}/nfr-design/` (if exists)
 - Identify logical components needing infrastructure
 

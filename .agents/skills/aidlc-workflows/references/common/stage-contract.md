@@ -137,7 +137,7 @@ with their own frontmatter:
 |-------|------|----------|------------|
 | `name` | string | yes | kebab-case; **must match the filename stem** |
 | `depth` | string | yes | `minimal` \| `standard` \| `comprehensive` — the workflow-wide default depth this scope implies (user-overridable) |
-| `keywords` | string[] | yes | May be empty. Word-boundary-matched triggers used by Requirements Analysis to *recommend* a scope (never to auto-apply one) |
+| `keywords` | string[] | yes | May be empty. Word-boundary-matched triggers used by Requirements Analysis to select a scope — auto-applied only on an unambiguous unique match; otherwise they narrow the minimal candidate set (see §6.3) |
 | `description` | string | yes | One sentence — shown in the scope catalog |
 | `default` | boolean | optional per file, **exactly one across the registry** | `true` on exactly one scope (`classic`): the fallback when no keywords match and the user names none |
 
@@ -169,9 +169,11 @@ Rules:
 ### 6.3 Selection and depth binding
 
 - Scope is selected during **Requirements Analysis**: keyword heuristic →
-  recommendation → user confirmation (explicit scope name always wins).
+  auto-select on an unambiguous unique match (no gate; the user is informed
+  after the fact) → on genuine ambiguity, a minimal-candidate (1–2 options)
+  chat question. An explicit scope name from the user always wins.
 - The selected scope's `depth` becomes the workflow default depth; the user may
-  override at the confirmation point or any later gate.
+  override at the Workflow Planning gate or any later gate.
 - The active scope is recorded in `aidlc-docs/aidlc-state.md`.
 
 ---

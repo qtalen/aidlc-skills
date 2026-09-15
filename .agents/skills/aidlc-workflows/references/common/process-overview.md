@@ -78,9 +78,12 @@ flowchart TD
     RequirementsAnalysis -.-> NfrRequirements
     UnitsGeneration -.-> NfrRequirements
     NfrRequirements -.-> NfrDesign
+    FunctionalDesign -.-> InfrastructureDesign
     NfrDesign -.-> InfrastructureDesign
     UnitsGeneration -.-> InfrastructureDesign
+    FunctionalDesign --> CodeGeneration
     InfrastructureDesign --> CodeGeneration
+    NfrDesign --> CodeGeneration
     UnitsGeneration --> CodeGeneration
     CodeGeneration --> BuildAndTest
     BuildAndTest -.-> Operations

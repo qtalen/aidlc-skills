@@ -457,3 +457,17 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 **审查修复（2026-09-14 其五，reviewer 全面审查后落地）**：🔴 workflow-changes.md Type 5/9 把引擎消费的 Scope/Depth 通道错指到 `## Project Information`（引擎只读 `## Execution Plan Summary`）——改为指向正确位置并明示"engine consumes ONLY the Execution Plan Summary copies"；RA Step 2.5 同步改为直接填 Execution Plan Summary 的 Scope/Depth 占位行。🟡 argparse 用法错误与未捕获异常绕过"一律 error JSON"契约——新增 `_JsonArgumentParser`（error → JSON + exit 1）与 main() Exception 兜底（code: internal）；SKILL.md per-unit 阶段块缺"report 恰好一次"护栏——Per-Unit Loop 节加总注；workspace-detection Step 3/6 残留路由散文——Step 3 重构为纯 brownfield/RE 适用性判断、Step 6 改为 report completed + 引擎路由。🔵 B&T 完成消息的 Operations 预测改中性措辞；engine-contract §6 补 Skip>Execute 优先级与节标题严格性说明；死代码清理（EV_FRESH 投入 --fresh 归档审计使用、generate.py `regenerate(check)` 死参删除）；补 4 个测试（CRLF 摘要稳定性、argparse JSON、jump→已完成阶段、未知 scope 名），引擎测试 43→47。
 
 **复审修复（2026-09-14 其六，二轮 reviewer 复审后落地）**：🔴-1 同源残留两处清除——SKILL.md State Ownership 条与 §6.3 B11 矩阵行的"Scope/Depth 属 Project Information"旧口径（改指 Execution Plan Summary）。卫生项：删除仓库根 dogfood 遗留垃圾目录（cmd 变量未展开产物）；AGENTS.md 测试数 73→77、§8 SKILL.md 行数 556→620 勘误。改进项落地：RA Step 2.5 代码块归属消歧（state 填写格式与 audit 记录分开表述）；5 个 construction per-unit note 的 "approval" 统一为 "gate outcome"（覆盖 skipped 收尾）；engine-contract 规则 4 措辞精确化（仅该行回落，Skip 行仍生效）；workspace-detection Step 5 完成消息的下一阶段预测改"Decided by the engine"；engine-contract §10 error 样例补尾注对齐实际输出；test_jump_fresh_archives 补 WORKFLOW_FRESH 断言。
+
+### 2026-09-15：Phase 0/1/2 复审与修复
+
+对 Phase 0/1（契约+生成器）与 Phase 2（scope 矩阵）做了一轮双路全面复审。总体结论：机制层零缺陷（契约 16 条校验规则全有实现、84 格 scope 矩阵逐格核对零误差、--check 零漂移、77 测试全绿），无 🔴 发现。落地的 5 项 🟡 修复：
+
+1. **SKILL.md B&T 手写产物清单陈旧（5/8）**：改为指向阶段文件的指针，不再枚举文件名。
+2. **依赖建模数据修正**：code-generation 的 `requires_stage` 补 `functional-design`、`nfr-design` 边；infrastructure-design 补 `functional-design` 边；5 处同类 consume（nfr-requirements/CG/infra-design 的 FD/*、CG 的 nfr-design/* 与 infra-design/*）`required: false → true`（对齐契约 §2 语义与 nfr-design 既有写法）。流程图/计划图新增 3 条边，经生成器落地。
+3. **FD 前提条件随 scope 条件化**：nfr-requirements / infrastructure-design 的 "Functional Design must be complete" 前提与 Step 1 读取行补"计划无 FD 阶段时改从 requirements.md + RE 产物取数"的条件分支（security-patch/infra scope 下 FD 恒为 SKIP，原措辞每次运行必触发矛盾指令）。
+4. **stage-contract §6.1/§6.3 同步 scope 淡化口径**：keywords 字段描述与选择流程改为"无歧义自动选定、不设门；真歧义才走最小候选聊天问题"，消除与 RA Step 2.5 现行行为的冲突。
+5. **聊天豁免传播**：question-format-guide 总则/清单与 session-continuity 的"NEVER ask in chat"均补 RA Step 2.5 scope 选择问题的唯一豁免。
+
+验证：generate.py 幂等且 --check 零漂移、无 advisory 告警，77 个 unittest 全绿。
+
+复审遗留 backlog（未修，并入既有清单）：契约硬规则 1-8/10/12 与 advisory 13-15 缺单测；解析器未闭合引号静默通过；未注册文件中的 GENERATED 标记区逃逸 --check；workflow-changes Type 9 混淆 scope-SKIP 与 [S] 标记且决策树缺 Type 9 分支；隐式单单元前提注记遗漏 nfr-design/build-and-test；规则 16 的 for_each 豁免宽于约定覆盖面（Phase 4 扩 scope 前处理）；terminology Operations "Outputs" 与 process-overview "No fixed sequences" 陈旧散文；§4 状态段"13 个 GENERATED 标记区"计数口径与现树（17 个）不符，待下次修订校正。

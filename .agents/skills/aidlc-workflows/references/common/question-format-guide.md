@@ -3,7 +3,7 @@
 ## MANDATORY: All Questions Must Use This Format
 
 ### Rule: Never Ask Questions in Chat
-**CRITICAL**: You must NEVER ask questions directly in the chat. ALL questions must be placed in dedicated question files.
+**CRITICAL**: You must NEVER ask questions directly in the chat. ALL questions must be placed in dedicated question files. (Sole exception: the minimal-candidate scope-selection question in Requirements Analysis Step 2.5 — see `references/inception/requirements-analysis.md`.)
 
 ### Question File Format
 
@@ -362,7 +362,7 @@ E) Other (please describe after [Answer]: tag below)
 - ✅ Always validate responses for contradictions
 - ✅ Always create clarification files if needed
 - ✅ Always resolve contradictions before proceeding
-- ❌ Never ask questions in chat
+- ❌ Never ask questions in chat (sole exception: the Requirements Analysis Step 2.5 scope-selection question)
 - ❌ Never make up options just to have A, B, C, D
 - ❌ Never proceed without answers
 - ❌ Never proceed with unresolved contradictions

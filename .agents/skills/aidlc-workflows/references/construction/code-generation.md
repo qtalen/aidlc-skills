@@ -11,13 +11,15 @@ consumes:
   - artifact: inception/application-design/unit-of-work.md
     required: true
   - artifact: construction/{unit-name}/functional-design/*
-    required: false
+    required: true
   - artifact: construction/{unit-name}/nfr-design/*
-    required: false
+    required: true
   - artifact: construction/{unit-name}/infrastructure-design/*
-    required: false
+    required: true
 requires_stage:
+  - functional-design
   - infrastructure-design
+  - nfr-design
   - units-generation
 for_each: unit-of-work
 workspace_writes: true
