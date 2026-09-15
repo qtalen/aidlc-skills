@@ -34,6 +34,8 @@ def _load_engine():
 
 engine = _load_engine()
 
+ISO_UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+
 STAGE_ORDER = [
     "workspace-detection",
     "reverse-engineering",
@@ -312,6 +314,127 @@ class RoutingTests(WorkspaceCase):
         directive = self.next()
         self.assertEqual(directive["stage"], "requirements-analysis")
         self.assertEqual(directive["next_stage"], "user-stories")
+
+    def test_plan_skip_reason_with_comma_recovers_slug(self):
+        # A reason annotation containing a comma must not shear the slug in
+        # two and trip unknown-slug rejection.
+        self.set_plan_lines(
+            skip="infrastructure-design (pure frontend, no infra), "
+            "nfr-design (single unit, no distributed concerns)"
+        )
+        plan = engine.load_state(self.graph, self.workspace).plan
+        self.assertEqual(
+            plan.skip, {"infrastructure-design", "nfr-design"}
+        )
+
+    def test_plan_skip_reason_with_comma_routes(self):
+        self.set_plan_lines(skip="user-stories (no UX research, none planned)")
+        plan = engine.load_state(self.graph, self.workspace).plan
+        self.assertEqual(plan.skip, {"user-stories"})
+        self.assertEqual(self.next()["kind"], "run-stage")
+
+    def test_plan_skip_no_comma_regression(self):
+        self.set_plan_lines(skip="user-stories (no UX), application-design")
+        plan = engine.load_state(self.graph, self.workspace).plan
+        self.assertEqual(plan.skip, {"user-stories", "application-design"})
+
+    def test_plan_skip_none_sentinel_regression(self):
+        self.set_plan_lines(skip="none")
+        plan = engine.load_state(self.graph, self.workspace).plan
+        self.assertEqual(plan.skip, set())
+
+    def test_unknown_plan_slug_with_commaed_reason_rejected(self):
+        self.set_plan_lines(skip="not-a-stage (because, reasons)")
+        self.assert_error(self.next, "plan-invalid")
+
+    def _rename_plan_header(self):
+        """Rename the exact section header to simulate a model reword."""
+        text = self.state_text().replace(
+            "## Execution Plan Summary", "## Execution Plan"
+        )
+        self.write_state(text)
+
+    def test_missing_plan_header_with_filled_lines_rejected(self):
+        # A filled plan line exists but the exact header is gone: routing can
+        # no longer consume it, so this must surface instead of silently
+        # falling back to the scope baseline.
+        self.set_plan_lines(skip="user-stories (no UX)")
+        self._rename_plan_header()
+        error = self.assert_error(self.next, "plan-invalid")
+        self.assertIn("Stages to Skip", error.message)
+
+    def test_exact_header_with_informational_copy_routes(self):
+        # The exact header is present, so a copy elsewhere is informational
+        # and must not disturb routing.
+        self.set_plan_lines(skip="user-stories (no UX)")
+        text = self.state_text().replace(
+            "## Project Information",
+            "## Project Information\n"
+            "- **Stages to Skip**: user-stories (informational copy)",
+        )
+        self.write_state(text)
+        plan = engine.load_state(self.graph, self.workspace).plan
+        self.assertEqual(plan.skip, {"user-stories"})
+        self.assertEqual(self.next()["kind"], "run-stage")
+
+    def test_missing_plan_header_with_placeholder_lines_ok(self):
+        # Untouched placeholders (bracketed values) are not "plan lines", so
+        # a renamed header must not trip the check.
+        self._rename_plan_header()
+        self.assertEqual(self.next()["kind"], "run-stage")
+
+    def test_filled_plan_lines_with_exact_header_ok(self):
+        self.set_plan_lines(execute="user-stories", skip="application-design")
+        plan = engine.load_state(self.graph, self.workspace).plan
+        self.assertEqual(plan.execute, {"user-stories"})
+        self.assertEqual(plan.skip, {"application-design"})
+        self.assertEqual(self.next()["kind"], "run-stage")
+
+
+# ---------------------------------------------------------------------------
+# Tolerant slug-list parsing (_slug_list)
+# ---------------------------------------------------------------------------
+
+
+class SlugListTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.known = set(s["slug"] for s in engine.load_graph()["stages"])
+
+    def parse(self, value):
+        return engine._slug_list(value, self.known)
+
+    def test_plain_list(self):
+        self.assertEqual(
+            self.parse("user-stories, application-design"),
+            ["user-stories", "application-design"],
+        )
+
+    def test_reason_without_comma(self):
+        self.assertEqual(
+            self.parse("user-stories (no UX), application-design"),
+            ["user-stories", "application-design"],
+        )
+
+    def test_reason_with_comma(self):
+        self.assertEqual(
+            self.parse("infrastructure-design (pure frontend, no infra)"),
+            ["infrastructure-design"],
+        )
+
+    def test_reason_with_multiple_commas(self):
+        self.assertEqual(
+            self.parse("nfr-design (no perf, scale, or availability goals)"),
+            ["nfr-design"],
+        )
+
+    def test_none_sentinel(self):
+        self.assertEqual(self.parse("none"), [])
+
+    def test_unknown_leftover_surfaces_for_rejection(self):
+        self.assertEqual(
+            self.parse("not-a-stage (because, reasons)"), ["not-a-stage"]
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -623,6 +746,29 @@ class CliTests(WorkspaceCase):
         code, payload = self._run(["jump", "--workspace", self.workspace])
         self.assertEqual(code, 1)
         self.assertEqual(payload["code"], "usage")
+
+    def test_status_output_has_timestamp(self):
+        code, payload = self._run(["status", "--workspace", self.workspace])
+        self.assertEqual(code, 0)
+        self.assertRegex(payload["timestamp"], ISO_UTC_RE)
+
+    def test_next_output_has_timestamp(self):
+        self._run(["init", "--workspace", self.workspace])
+        code, payload = self._run(["next", "--workspace", self.workspace])
+        self.assertEqual(code, 0)
+        self.assertRegex(payload["timestamp"], ISO_UTC_RE)
+
+    def test_error_output_has_timestamp(self):
+        code, payload = self._run(["next", "--workspace", self.workspace])
+        self.assertEqual(code, 1)
+        self.assertEqual(payload["kind"], "error")
+        self.assertRegex(payload["timestamp"], ISO_UTC_RE)
+
+    def test_usage_error_has_timestamp(self):
+        code, payload = self._run(["jump", "--workspace", self.workspace])
+        self.assertEqual(code, 1)
+        self.assertEqual(payload["code"], "usage")
+        self.assertRegex(payload["timestamp"], ISO_UTC_RE)
 
     def test_argparse_errors_are_json(self):
         # Missing required flags must obey the JSON output contract too.

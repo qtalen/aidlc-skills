@@ -37,6 +37,7 @@ python <skill>/scripts/engine.py <subcommand> [--workspace <path>]
 - `--workspace <path>` overrides the workspace root; it defaults to the current working directory.
 - Python **3.8+** is required. The engine uses only the standard library and ships with the skill — users install nothing.
 - Every subcommand prints **exactly one JSON object to stdout** and nothing else. Parse that object; do not parse logs, stderr, or other side channels.
+- Every printed JSON object — successful output and `error` objects alike — carries a `timestamp` field: ISO 8601 UTC at second precision (e.g. `2026-09-15T05:40:00Z`), taken at output time. Use it directly as the timestamp source for `audit.md` entries in the same interaction; no separate clock reading is needed.
 
 ### Bootstrap probe (before ANY workflow action)
 
@@ -169,6 +170,8 @@ Discipline:
 
 The engine **reads** these lines to filter routing (`Scope`/`Depth` gate the scope matrix; the Execute/Skip lists override it). The model **writes** them; the engine never writes this region.
 
+Format note on the `(reason)` annotation: the parenthesised reason on a Skip line is optional, and it **may contain English commas** — the parser reassembles comma-split fragments against the known slug registry, so a reason such as `(deferred, no user-facing change)` no longer produces an "unknown stage slug" error. Keep reasons short regardless; commas are tolerated, not an invitation to write prose.
+
 Precedence rules (deterministic):
 
 1. A slug in `Stages to Skip` is always out — **Skip wins over Execute** and can even exclude an `ALWAYS` stage (the human approved that plan at the Workflow Planning gate).
@@ -176,7 +179,7 @@ Precedence rules (deterministic):
 3. Otherwise the scope matrix decides: EXECUTE/CONDITIONAL stages are routed, SKIP stages are not.
 4. A `Stages to Execute` line still containing its `[placeholder]` brackets is treated as "not yet written" — that line alone falls back to rule 3; a filled `Stages to Skip` line still applies.
 
-The section header must be exactly `## Execution Plan Summary` — a renamed or mistyped header silently disables plan consumption (routing falls back to the scope baseline). Do not rename it.
+The section header must be exactly `## Execution Plan Summary`. Plan consumption is load-bearing, so a renamed or mistyped header is **detected, not silent**: if the engine finds a filled `Stages to Execute` / `Stages to Skip` line anywhere in the file while the exact header is absent, it returns an `error` directive with code `plan-invalid` (routing cannot consume those lines) and the hint restores the exact header. When the exact header **is** present, copies of these lines elsewhere are informational and have no routing effect. Do not rename it.
 
 ---
 
@@ -231,6 +234,7 @@ Consumers must ignore unknown fields in any output (see §4).
 ```json
 {
   "engine": "ok",
+  "timestamp": "2026-09-15T05:40:00Z",
   "state_version": 1,
   "workspace": "D:/projects/payments",
   "state": "active",
@@ -251,6 +255,7 @@ Consumers must ignore unknown fields in any output (see §4).
 ```json
 {
   "kind": "run-stage",
+  "timestamp": "2026-09-15T05:40:00Z",
   "stage": "requirements-analysis",
   "name": "Requirements Analysis",
   "phase": "inception",
@@ -267,10 +272,12 @@ Consumers must ignore unknown fields in any output (see §4).
 
 Each `consumes` entry has `artifact` (path/glob, relative to `aidlc-docs/`), `required` (boolean), and `conditional_on` (a condition label such as `"brownfield"`, or `null`).
 
+The semantics of `consumes[].required` are defined by stage-contract.md §2: its scope is the **active plan**, so a scope or plan that skips the producing stage renders that consume moot. The engine emits the static contract as-is and never filters `consumes` by plan; judging applicability is the model's job.
+
 ### `next` → `done`
 
 ```json
-{"kind": "done"}
+{"kind": "done", "timestamp": "2026-09-15T05:40:00Z"}
 ```
 
 ### `next` → `error`
@@ -278,6 +285,7 @@ Each `consumes` entry has `artifact` (path/glob, relative to `aidlc-docs/`), `re
 ```json
 {
   "kind": "error",
+  "timestamp": "2026-09-15T05:40:00Z",
   "code": "integrity-violated",
   "message": "The engine-owned region of aidlc-state.md does not match its State Digest. (hand-edit detected)",
   "hint": "Do not continue. Show this to the user, get explicit confirmation, then run: python <skill>/scripts/engine.py rebase"
