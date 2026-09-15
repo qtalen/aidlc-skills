@@ -256,6 +256,8 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 >
 > 实施期裁决（记录在案）：①per-unit（for_each）阶段引擎单次发射、单元内循环归模型，`report` 在最后一个单元门批准后调用一次（5 个 construction 阶段文件均补 per-unit note）；②审计交叉核验在存在 STATE_REBASELINED 事件后豁免（否则 rebase 无法真正"重定基线"）；③`jump` 到计划外阶段返回 `note` 提示需补 Stages to Execute 行（路由纯化，jump 不绕过 scope/计划过滤）；④`--workspace` 参数位子命令之后（调用约定 `engine.py <subcommand> [--workspace <path>]`）；⑤CLI 错误一律 error JSON + 退出码 1（usage 错误同形）；⑥engine-contract.md 将 init/report/jump/rebase 的成功输出记为"通用 JSON 确认对象"（消费方忽略未知字段兜底）。
 >
+> **二次 dogfood 与增量修复（2026-09-15，course-schedule 真实项目 dogfood）**：结论——引擎下限收益已兑现（长离题后状态零歧义恢复、契约缺陷 fail-fast 暴露逗号解析 bug、审计双轨），上限收益（多单元循环、多会话、完整性防漂移）待 Phase 4 场景验证；单单元线性小项目中 stage-major 够用，佐证 Phase 3 排序正确。落地三项增量修复：⑦`_slug_list` 注册表感知容错重组（理由含英文逗号不再误报 unknown slug）；⑧所有 JSON 输出（含 error 与 usage 错误）统一注入 `timestamp` 字段（ISO 8601 UTC 秒级），AUD 时间戳获取规则改为优先读引擎输出；⑨节标题静默回退让位于 fail-fast——`_parse_plan` 检测"计划形态行存在但精确 `## Execution Plan Summary` 标题缺失"并报 plan-invalid（信息性副本与占位符模板豁免，不违背 §6 informational-copies 条款）。配套：workflow-conventions QT-02 补"唯一上下文 Edit 回写、勿用临时脚本"实现提示；AGENTS.md §4 新增"先考证，后修复"编辑纪律（考证 integration-plan 决策/契约字段语义后再动手）；测试 77 → 96 全绿，--check 零漂移。考证修正两条初判：consumes 的 `required` 语义本就写明"生产者被计划跳过则 moot"（stage-contract §2），非缺陷；节标题回退是记录在案的已知弱点，修复方案因此收窄检测条件。
+>
 > **主题："判断归 LLM，精确归工具，决定归人类"落地。** 本节是 Phase 3 的权威清单（已全部实施，见上方状态段）。
 >
 > 技术摸底依据（2026-09-14 完成）：v2.0 侧 `aidlc-orchestrate.ts`（8.6k 行，next/continue/report/park/team-board 五子命令）+ `aidlc-state.ts`（6.8k 行）；选阶段算法 = 全图线性扫描 + scope 网格过滤 + state 覆盖 + checkbox 跳过（`aidlc-lib.ts:21852`）；v2.0 状态文件也是 Markdown。分叉侧现状：契约除 `condition` 外全机器可读；`execution-plan.md` 无程序化消费者（路由靠模型记忆）；状态/审计由模型在 20+ 处散文约定中手维护；`gate` 的下一阶段名散落在阶段正文。
@@ -371,7 +373,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 
 **硬依赖链（顺序不可乱）**：单元清单结构化（Phase 3 ✓ 已排）→ unit-major → claim → merge。Team Construction 的每一步都以 unit-major 为前提：没有引擎感知单元就没有可认领的对象，没有 claim 锁多会话就是状态文件互踩。
 
-1. **unit-major 波次编排**（地基，本身即可交付价值）：`report --unit`、Unit Progress 区启用、单元级审批门节奏（per-stage / unit-end 两种，借鉴 v2.0 `unit_gate_rhythm`）、单元级恢复。stage-major 保留为默认节奏（单单元/小项目无感）
+1. **unit-major 波次编排**（地基，本身即可交付价值）：`report --unit`、Unit Progress 区启用、单元级审批门节奏（per-stage / unit-end 两种，借鉴 v2.0 `unit_gate_rhythm`）、单元级恢复。stage-major 保留为默认节奏（单单元/小项目无感）。**随此项一起做**（2026-09-15 dogfood 排期）：指令中的 `consumes` 条目增加计划感知标注（如 `producer_skipped: true`），把 stage-contract §2 "生产者被跳过则 moot" 的语义在指令层面显性化——引擎有了单元/计划感知后才有能力做这个标注，提前做只会返工
 2. **claim/release + git worktree**（形态 A：多会话团队，harness 无关）：N 个 AI 会话（或人机混合）各自打开同一仓库，claim 粒度 = unit；所有协调逻辑在引擎，harness 只需能跑 shell。状态文件多会话并发写锁是实现期重点（参考 v2.0 mkdir 锁，Python stdlib 有对应做法）
 3. **single 单阶段重跑**（~50–100 行）：`next/report --single`，独立审计对、绝不动主指针、stage_validity 警告不阻塞。用户场景：team 并行试验多个算法变体 → 选定其一单独重跑（试验-收敛闭环）
 4. **swarm 进程内并行**（形态 B：harness 相关，依赖 subagent 能力，工作量最大，可再拆为独立子相位）
@@ -384,6 +386,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 - 五层记忆（org→team→project→phase→stage）+ §13 学习仪式（引擎承担确定性去重写入）
 - 门仪式精细化（HARD STOP、revision 逃生舱、non-matching reply 处理）
 - 完成消息 5 段契约、声音/沉默规则、PRE-GENERATION SUMMARY STOP 强化
+- **report+next 合并评估**（2026-09-15 dogfood 结论：不合并）：合并可省每次转移一次调用，但会破坏被两次守住的 CQS 边界（next 纯只读、report 单一写入口），引入"写成功但路由失败"混合错误域、rejected/revised 时返回冗余指令、对 APG-02 门挂起纪律形成"呈现即诱惑"。**仅当** Phase 4 多单元循环使转移次数成倍增长、编排开销成为真实痛点时再议，届时形态为 `report --and-next` opt-in 标志，默认行为保持纯粹
 
 ### 不排期（仅记录）
 

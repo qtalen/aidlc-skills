@@ -112,9 +112,10 @@ Resolve dynamically, never hardcoded:
 3. Resolve ONCE per session at workflow start (or session resumption) and cache in memory for all subsequent audit writes in that session; re-resolve during the session ONLY if the initial resolution failed. NEVER cache across sessions
 
 ### Timestamp Acquisition
-- The harness environment provides only the current date, not a clock — obtain the full ISO 8601 timestamp (YYYY-MM-DDTHH:MM:SSZ) from the system clock (e.g. a `python -c` one-liner on Windows cmd)
+- Preferred source: the `timestamp` field carried by the output JSON of any engine subcommand run in the SAME interaction (`status`, `next`, `init`, `report`, `jump`, `rebase` — successes and errors alike). This costs zero extra commands: reuse the value the engine already printed
+- Fallback ONLY when that interaction invoked no engine subcommand at all: the harness environment provides only the current date, not a clock — obtain the full ISO 8601 timestamp (YYYY-MM-DDTHH:MM:SSZ) from the system clock (e.g. a `python -c` one-liner on Windows cmd)
 - ONE timestamp acquisition per interaction suffices: multiple audit entries written in the same interaction MAY share it
-- Batch the acquisition with the AUD-02 git config resolution in a single command at workflow start
+- Batch the fallback acquisition with the AUD-02 git config resolution in a single command at workflow start
 
 ### AUD-03: Historical Entries Untouched
 Applies only to entries created after adoption; existing entries MUST NOT be retroactively edited (aligns with DOC-04).
@@ -144,6 +145,8 @@ Mapping rules:
 
 ### QT-02: Answer Write-Back
 Write the tool's answers back into the question file immediately: fill the matching letter after each `[Answer]:` tag (e.g., `[Answer]: C`). For custom answers, write the "Other" option's letter plus the user's verbatim custom text. Question text and option lists MUST NOT be altered during write-back (aligns with DOC-04).
+
+Do the write-back with the `Edit` tool, anchoring each edit on a unique context string that contains the question title or the adjacent option text in the same block, so that each `[Answer]:` line is matched unambiguously. Do NOT generate a temporary script file to perform the write-back.
 
 ### QT-03: Proceed Without Manual Confirmation
 After write-back, run the standard validation from `question-format-guide.md` (completeness check + contradiction/ambiguity detection) and proceed to the next step directly — do NOT wait for the user to say "done". If validation produces clarification questions, the clarification file also follows QT-01.

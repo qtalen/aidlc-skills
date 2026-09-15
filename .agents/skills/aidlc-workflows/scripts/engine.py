@@ -216,16 +216,37 @@ def _audit_path(workspace):
     return os.path.join(workspace, AUDIT_FILE)
 
 
-def _slug_list(value):
-    """Parse a comma-separated slug list; strips ``(reason)`` annotations."""
+def _slug_list(value, known):
+    """Parse a comma-separated slug list; strips ``(reason)`` annotations.
+
+    ``known`` is the registry of valid stage slugs (from the stage graph).
+    A reason annotation may itself contain commas (e.g.
+    ``infrastructure-design (pure frontend, no infra)``), so a raw comma
+    split can shear one entry in two. Fragments that do not resolve to a
+    known slug after stripping a trailing ``(reason)`` are greedily
+    re-joined with the following fragments until they do. A leftover
+    buffer at the end is emitted as-is so the caller's registry validation
+    still rejects it.
+    """
     result = []
+    buf = ""
     for part in value.split(","):
-        part = part.strip()
-        if not part:
+        fragment = part.strip()
+        if not fragment:
             continue
-        part = re.sub(r"\s*\([^)]*\)\s*$", "", part).strip()
-        if part and part.lower() != "none":
-            result.append(part)
+        buf = fragment if not buf else buf + ", " + fragment
+        candidate = re.sub(r"\s*\([^)]*\)\s*$", "", buf).strip()
+        if candidate and candidate.lower() != "none":
+            if candidate in known:
+                result.append(candidate)
+                buf = ""
+            continue
+        # Candidate is empty or the "none" sentinel: this entry is complete.
+        buf = ""
+    if buf:
+        candidate = re.sub(r"\s*\([^)]*\)\s*$", "", buf).strip()
+        if candidate and candidate.lower() != "none":
+            result.append(candidate)
     return result
 
 
@@ -239,18 +260,29 @@ def _parse_plan(graph, lines):
     depth = None
     execute = set()
     skip = set()
+    known = {stage["slug"] for stage in graph["stages"]}
     in_section = False
+    header_present = False
+    stray_plan_key = None
     for line in lines:
         stripped = line.strip()
         if stripped.startswith("## "):
             in_section = stripped == "## Execution Plan Summary"
-            continue
-        if not in_section:
+            if in_section:
+                header_present = True
             continue
         m = re.match(r"^- \*\*([A-Za-z ]+)\*\*:\s*(.*)$", stripped)
         if not m:
             continue
         key, value = m.group(1), m.group(2).strip()
+        if (key in ("Stages to Execute", "Stages to Skip")
+                and not _is_placeholder(value) and not in_section):
+            # A plan-shaped line outside the exact section header. Legal as
+            # an informational copy while the exact header exists; a routing
+            # hazard when it does not.
+            stray_plan_key = key
+        if not in_section:
+            continue
         if _is_placeholder(value):
             continue
         if key == "Scope":
@@ -258,14 +290,23 @@ def _parse_plan(graph, lines):
         elif key == "Depth":
             depth = value.split()[0] if value.split() else None
         elif key == "Stages to Execute":
-            execute = set(_slug_list(value))
+            execute = set(_slug_list(value, known))
         elif key == "Stages to Skip":
-            skip = set(_slug_list(value))
+            skip = set(_slug_list(value, known))
+    if stray_plan_key is not None and not header_present:
+        raise EngineError(
+            "plan-invalid",
+            "Found a filled '**%s**' plan line, but the exact "
+            "'## Execution Plan Summary' section header is missing (renamed "
+            "or mistyped), so routing cannot consume it." % stray_plan_key,
+            "Restore the exact section header '## Execution Plan Summary' in "
+            "aidlc-docs/aidlc-state.md; the engine reads plan lines only from "
+            "that section. Do not rename it.",
+        )
     if not scope:
         scope = default_scope(graph)
     if not depth:
         depth = scope_depth(graph, scope)
-    known = {stage["slug"] for stage in graph["stages"]}
     for slug in sorted(execute | skip):
         if slug not in known:
             raise EngineError(
@@ -936,6 +977,7 @@ class _JsonArgumentParser(argparse.ArgumentParser):
             "message": "Invalid command line: %s" % message,
             "hint": "Usage: python engine.py <status|init|next|report|jump|"
             "rebase> [--workspace <path>]",
+            "timestamp": _now_iso(),
         }
         sys.stdout.write(json.dumps(payload, indent=2) + "\n")
         sys.exit(1)
@@ -1009,29 +1051,22 @@ def main(argv):
                 "rebase> [--workspace <path>]",
             )
     except EngineError as exc:
-        sys.stdout.write(
-            json.dumps(
-                {"kind": "error", "code": exc.code, "message": exc.message,
-                 "hint": exc.hint},
-                indent=2,
-            )
-            + "\n"
-        )
+        error = {"kind": "error", "code": exc.code, "message": exc.message,
+                 "hint": exc.hint}
+        error["timestamp"] = _now_iso()
+        sys.stdout.write(json.dumps(error, indent=2) + "\n")
         return 1
     except Exception as exc:  # last-resort: keep the JSON output contract
-        sys.stdout.write(
-            json.dumps(
-                {"kind": "error", "code": "internal",
+        error = {"kind": "error", "code": "internal",
                  "message": "Unexpected engine failure: %s: %s"
                  % (type(exc).__name__, exc),
                  "hint": "This is an engine bug or an environment problem "
                  "(e.g. a locked file). If it persists, report it with the "
-                 "command line you ran."},
-                indent=2,
-            )
-            + "\n"
-        )
+                 "command line you ran."}
+        error["timestamp"] = _now_iso()
+        sys.stdout.write(json.dumps(error, indent=2) + "\n")
         return 1
+    result["timestamp"] = _now_iso()
     sys.stdout.write(json.dumps(result, indent=2) + "\n")
     return 0
 

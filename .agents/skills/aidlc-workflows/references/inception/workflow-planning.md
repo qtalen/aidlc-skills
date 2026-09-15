@@ -470,7 +470,9 @@ Rules:
 - Use stage **slugs** (the stage filename stem, kebab-case — e.g. `user-stories`),
   comma-separated.
 - Write `none` when a line has no entries.
-- The parenthesised reason on a Skip line is optional; the engine strips it.
+- The parenthesised reason on a Skip line is optional; the engine strips it. The
+  reason may contain commas — the parser reassembles comma-split fragments
+  against the known slug registry — but keep reasons short.
 - Any placeholder text (containing `[`) is treated as unfilled.
 
 Then complete this stage's transition by running:
