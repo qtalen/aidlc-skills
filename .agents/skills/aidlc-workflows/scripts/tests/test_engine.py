@@ -207,6 +207,43 @@ class InitTests(WorkspaceCase):
         self.assertEqual(result["state"], "legacy")
         self.assert_error(self.next, "legacy-state")
 
+    def test_truncated_state_detected_as_corrupt(self):
+        # BEGIN present, END lost (e.g. tail truncation): corruption, not
+        # legacy — legacy requires NO marker at all.
+        self.init()
+        text = self.state_text()
+        kept = [
+            line for line in text.split("\n")
+            if not line.startswith("<!-- END ENGINE-STATE")
+        ]
+        self.write_state("\n".join(kept))
+        result = self.status()
+        self.assertEqual(result["state"], "corrupt")
+        self.assertEqual(result["integrity"], "violated")
+        self.assert_error(self.next, "state-corrupt")
+
+    def test_lone_end_marker_detected_as_corrupt(self):
+        self.init()
+        text = self.state_text()
+        kept = [
+            line for line in text.split("\n")
+            if not line.startswith("<!-- BEGIN ENGINE-STATE")
+        ]
+        self.write_state("\n".join(kept))
+        self.assertEqual(self.status()["state"], "corrupt")
+
+    def test_fresh_still_recovers_corrupt_state(self):
+        self.init()
+        text = self.state_text()
+        kept = [
+            line for line in text.split("\n")
+            if not line.startswith("<!-- END ENGINE-STATE")
+        ]
+        self.write_state("\n".join(kept))
+        ack = self.jump(fresh=True)
+        self.assertEqual(ack["kind"], "fresh")
+        self.assertEqual(self.status()["state"], "none")
+
 
 # ---------------------------------------------------------------------------
 # Routing (next)
@@ -276,6 +313,46 @@ class RoutingTests(WorkspaceCase):
         self.drive_past("requirements-analysis")
         directive = self.next()
         self.assertEqual(directive["stage"], "user-stories")
+
+    def test_skip_line_wins_over_execute_line(self):
+        # Precedence rule 1: a slug on the Skip line stays out even when
+        # the Execute line also lists it — an add-back must remove the
+        # Skip entry first.
+        self.set_plan_lines(skip="user-stories (deferred)",
+                            execute="user-stories")
+        self.drive_past("workspace-detection")
+        self.drive_past("reverse-engineering")
+        self.drive_past("requirements-analysis")
+        directive = self.next()
+        self.assertEqual(directive["stage"], "workflow-planning")
+
+    def test_report_before_skip_line_for_conditional_current(self):
+        # Correct order for skipping the current CONDITIONAL stage:
+        # report the formal skip while it is still current, THEN persist
+        # the Skip line. Routing and integrity both stay healthy.
+        self.drive_past("workspace-detection")
+        ack = self.report("reverse-engineering", "skipped",
+                          "greenfield, no legacy code")
+        self.assertEqual(ack["current_stage"], "requirements-analysis")
+        self.assertEqual(self.marks()["reverse-engineering"], "S")
+        self.set_plan_lines(skip="reverse-engineering (greenfield)")
+        self.assertEqual(self.status()["integrity"], "ok")
+        directive = self.next()
+        self.assertEqual(directive["stage"], "requirements-analysis")
+
+    def test_skip_line_before_report_is_rejected(self):
+        # The inverse order is an intentional failure: once the Skip line
+        # is written, the pointer re-routes past the stage and the report
+        # is no longer addressable.
+        self.drive_past("workspace-detection")
+        self.set_plan_lines(skip="reverse-engineering (greenfield)")
+        self.assert_error(
+            lambda: self.report("reverse-engineering", "skipped",
+                                "greenfield"),
+            "invalid-transition",
+        )
+        directive = self.next()
+        self.assertEqual(directive["stage"], "requirements-analysis")
 
     def test_unknown_plan_slug_rejected(self):
         self.set_plan_lines(skip="not-a-stage")

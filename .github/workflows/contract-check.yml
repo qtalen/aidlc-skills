@@ -12,3 +12,5 @@ jobs:
           python-version: '3.x'
       - name: Verify generated sections are in sync with stage frontmatter
         run: python .agents/skills/aidlc-workflows/scripts/generate.py --check
+      - name: Run generator and engine test suite
+        run: python -m unittest discover -s .agents/skills/aidlc-workflows/scripts/tests

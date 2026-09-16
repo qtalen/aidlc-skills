@@ -226,7 +226,9 @@
 **Recovery Steps**:
 1. Confirm user understands implications
 2. Document skip reason in `audit.md`
-3. Record the formal skip through the engine: `python <skill>/scripts/engine.py report --stage <slug> --result skipped --reason "<reason>"` (only for a CONDITIONAL or planned-SKIP stage; never hand-edit the stage checkboxes)
+3. Record the skip through the engine — **order matters** (never hand-edit the stage checkboxes):
+   - If the stage is the current stage and CONDITIONAL: `python <skill>/scripts/engine.py report --stage <slug> --result skipped --reason "<reason>"` **first**, then record it on the `Stages to Skip` line (a Skip line written first re-routes the pointer past the stage and the report is rejected)
+   - Otherwise: record `- **Stages to Skip**: slug (reason)` in Execution Plan Summary, then run `engine.py next` (the engine never emits the stage). Never `jump` to "route past" it — a forward jump marks the in-flight current stage `[S]`
 4. Proceed to next stage
 5. Note: May cause issues in later stages if dependencies missing
 

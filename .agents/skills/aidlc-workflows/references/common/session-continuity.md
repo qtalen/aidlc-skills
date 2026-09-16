@@ -65,7 +65,7 @@ C) Start Fresh (archive this project's aidlc-docs and reset state)
 
 The Markdown menu is presentation only. Execute the chosen option with the matching engine subcommand:
 - **A) Continue** → `engine.py next` (follow the returned directive)
-- **B) Jump to another stage** → `engine.py jump --stage <slug>` (always pass the **slug**, never the display name)
+- **B) Jump to another stage** → `engine.py jump --stage <slug>` (always pass the **slug**, never the display name). A backward jump resets the target stage **and every stage after it** to `[ ]` — warn the user about this before executing; full semantics in `engine-contract.md` §8
 - **C) Start Fresh** → `engine.py jump --fresh` (archives `aidlc-docs/` to `aidlc-docs-archive-<timestamp>/` and resets state)
 
 ## Error Handling

@@ -19,8 +19,10 @@ Users may request changes to the execution plan or stage execution during the wo
 **Handling**:
 1. **Confirm Request**: "You want to add User Stories stage. This will create user stories and personas. Confirm?"
 2. **Check Dependencies**: Verify all prerequisite stages are complete
-3. **Update Execution Plan Summary**: Add the stage **slug** to `- **Stages to Execute**: slug1, slug2` under `## Execution Plan Summary` in `aidlc-state.md` (model-owned region)
-4. **Execute the change through the engine**: `engine.py jump --stage <slug>` — never hand-edit stage checkboxes or move the pointer manually
+3. **Update Execution Plan Summary**: under `## Execution Plan Summary` in `aidlc-state.md` (model-owned region):
+   - If the slug is listed on `Stages to Skip`, **remove it from that line first** — Skip wins over Execute, so an Execute entry alone cannot bring it back
+   - Add the stage **slug** to `- **Stages to Execute**: slug1, slug2`
+4. **Let the engine re-route**: run `engine.py next`. The engine recomputes the route from the plan lines on every call, so the added-back stage is emitted as soon as it is the earliest pending stage (if it precedes the current pointer, it becomes current immediately — that is expected). Do **not** use `jump` for an add-back: jumping to a stage that has just become current is rejected (`invalid-jump`), and a forward jump would mark uncompleted intermediates `[S]`. Never hand-edit stage checkboxes or move the pointer manually.
 5. **Log Change**: Document in `audit.md` with timestamp and reason (the engine also appends its own transition entry)
 
 **Considerations**:
@@ -40,10 +42,11 @@ Users may request changes to the execution plan or stage execution during the wo
 1. **Confirm Request**: "You want to skip NFR Design. This means no NFR patterns or logical components will be incorporated. Confirm?"
 2. **Warn About Impact**: Explain what will be missing and potential consequences
 3. **Get Explicit Confirmation**: User must explicitly confirm understanding of impact
-4. **Update Execution Plan Summary**: Record the stage as `- **Stages to Skip**: slug (reason)` under `## Execution Plan Summary` in `aidlc-state.md` (model-owned region)
-5. **Execute the change through the engine**: route past the stage with `engine.py jump --stage <slug>` (intermediate uncompleted stages are marked `[S]`); a formal skip of a CONDITIONAL or planned-SKIP stage is recorded with `engine.py report --stage <slug> --result skipped --reason "<reason>"`. Never hand-edit stage checkboxes or move the pointer manually.
-6. **Adjust Later Stages**: Note that later stages may need manual setup
-7. **Log Change**: Document in `audit.md` with timestamp and reason
+4. **Execute the change through the engine — order matters** (never hand-edit stage checkboxes or move the pointer manually):
+   - **Current stage, CONDITIONAL**: record the formal skip **first** with `engine.py report --stage <slug> --result skipped --reason "<reason>"`, **then** persist the decision as `- **Stages to Skip**: slug (reason)` under `## Execution Plan Summary` (writing the Skip line first re-routes the pointer past the stage, and the report is then rejected as `invalid-transition`)
+   - **Any other planned stage** (a future stage, or a current non-CONDITIONAL stage): write the Skip line first, then run `engine.py next` — the engine re-routes and simply never emits the stage. Do **not** use `jump` to "route past" it: a forward jump marks every uncompleted intermediate stage `[S]`, including the in-flight current stage
+5. **Adjust Later Stages**: Note that later stages may need manual setup
+6. **Log Change**: Document in `audit.md` with timestamp and reason
 
 **Considerations**:
 - Later stages may fail or require manual intervention
@@ -258,11 +261,13 @@ User requests change
     |   └─ No: Go to next question
     |
     ├─ Is it adding a skipped stage?
-    |   ├─ Yes: Check prerequisites, add slug to Stages to Execute, jump
+    |   ├─ Yes: Check prerequisites, remove from Stages to Skip (if listed),
+    |   |        add to Stages to Execute, run engine.py next
     |   └─ No: Go to next question
     |
     ├─ Is it skipping a planned stage?
-    |   ├─ Yes: Warn about impact, get confirmation, record in Stages to Skip, report skipped / jump
+    |   ├─ Yes: Warn, get confirmation, then either report skipped first
+    |   |        (current CONDITIONAL stage) or write Stages to Skip + next
     |   └─ No: Go to next question
     |
     └─ Is it changing depth level?

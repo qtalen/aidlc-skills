@@ -27,7 +27,6 @@ The AI model intelligently assesses what stages are needed based on:
 All rule detail file references below (e.g., `references/common/process-overview.md`, `references/inception/workspace-detection.md`) are relative to this skill's directory.
 
 **Common Rules**: ALWAYS load common rules at workflow start:
-- Load `references/common/engine-contract.md` for runtime engine invocation, directives, transition semantics, state ownership, and integrity
 - Load `references/common/process-overview.md` for workflow overview
 - Load `references/common/session-continuity.md` for session resumption guidance
 - Load `references/common/content-validation.md` for content validation requirements
@@ -100,9 +99,10 @@ Only after the probe succeeds may the workflow proceed.
 | `active` | Resume the session per `references/common/session-continuity.md`; the status JSON is the sole source of truth for recovery |
 | `completed` | The workflow is already complete; confirm with the user before starting anything new |
 | `legacy` | A pre-engine state file exists (no `ENGINE-STATE` region): do NOT silently adopt or overwrite it — follow the legacy handling in `references/common/engine-contract.md` |
+| `corrupt` | The `ENGINE-STATE` marker region is present but incomplete or malformed (truncated/hand-edited): do NOT overwrite silently — restore the missing marker line from a backup if available, else get explicit confirmation and Start Fresh (`jump --fresh`) |
 | any state, `integrity: violated` | The engine-owned region drifted: follow the integrity flow in `engine-contract.md` (present the drift, get explicit confirmation, `rebase`) |
 
-The full runtime contract — invocation, directives, transition semantics, state ownership, integrity — is `references/common/engine-contract.md`.
+The full runtime contract — invocation, directives, transition semantics, state ownership, integrity — is `references/common/engine-contract.md`. It is a normative spec loaded **on demand**, not at every workflow start: load it when a bootstrap table row above directs you there (legacy state, integrity violation), before `jump`/`rebase`, or when an engine error or state-format question needs the authoritative answer. Routine operation needs only the compressed protocol in this file plus the engine's self-describing JSON output.
 
 ## MANDATORY: Custom Welcome Message
 
@@ -133,7 +133,8 @@ The full runtime contract — invocation, directives, transition semantics, stat
 
 - The model MUST NOT decide "the next stage" from memory, from the stage blocks in this file, or from any plan prose. Only `next` routes.
 - `next_stage` inside a `run-stage` directive is a prediction ("the stage that would follow if this one completed") for presentation only — never use it to route.
-- Directive consumption rules (including "ignore unknown fields") are normative in `references/common/engine-contract.md`.
+- Never call `report` for an outcome that did not happen — for a non-gated stage the engine cannot distinguish a fabricated report from a real one and would silently skip later stages. If a `run-stage` directive will not be executed (e.g. the user redirected the work), simply drop it: `next` re-emits it on the following iteration. Ignore unknown fields in engine JSON output.
+- The authoritative version of these directive-consumption rules is `references/common/engine-contract.md` §4.
 
 ---
 

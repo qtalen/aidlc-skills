@@ -200,6 +200,7 @@ class State(object):
     def __init__(self):
         self.exists = False
         self.legacy = False
+        self.corrupt = False
         self.marks = {}  # slug -> MARK_*
         self.plan = None
         self.region_start = None  # line index of BEGIN marker
@@ -343,8 +344,14 @@ def load_state(graph, workspace):
             begin = index
         elif line.startswith(END_MARKER):
             end = index
-    if begin is None or end is None or end <= begin:
+    if begin is None and end is None:
         state.legacy = True
+        return state
+    if begin is None or end is None or end <= begin:
+        # A marker is present but the region is incomplete or malformed
+        # (truncation, deletion, reordering). That is corruption, not a
+        # pre-engine file: legacy means NO marker at all.
+        state.corrupt = True
         return state
     state.region_start = begin
     state.region_end = end
@@ -480,7 +487,7 @@ def _audit_append(workspace, event, stage=None, reason=None, detail=None):
 
 def check_integrity(graph, state, workspace):
     """Return None when intact, else an EngineError describing the drift."""
-    if not state.exists or state.legacy:
+    if not state.exists or state.legacy or state.corrupt:
         return None
     region_lines = state.lines[state.region_start + 1 : state.region_end]
     actual = _digest_of_region(region_lines)
@@ -693,6 +700,25 @@ def cmd_status(workspace):
             "the engine. Do not overwrite it silently; confirm with the "
             "user, then Start Fresh (jump --fresh) or migrate manually.",
         }
+    if state.corrupt:
+        return {
+            "engine": "ok",
+            "state_version": STATE_VERSION,
+            "workspace": _posix(os.path.abspath(workspace)),
+            "state": "corrupt",
+            "current_stage": None,
+            "scope": None,
+            "depth": None,
+            "last_completed": None,
+            "integrity": "violated",
+            "completed": [],
+            "remaining": [],
+            "hint": "aidlc-docs/aidlc-state.md has a partial or malformed "
+            "ENGINE-STATE marker region (likely truncated or hand-edited). "
+            "Do not overwrite it silently. Restore the missing marker line "
+            "from a backup if available; otherwise confirm with the user "
+            "and Start Fresh (jump --fresh).",
+        }
     integrity = "ok" if check_integrity(graph, state, workspace) is None else "violated"
     effective = effective_stages(graph, state.plan)
     done = [
@@ -758,6 +784,18 @@ def _load_active(graph, workspace):
             "aidlc-docs/aidlc-state.md predates the engine (no ENGINE-STATE "
             "region).",
             "Confirm with the user, then Start Fresh: "
+            "python <skill>/scripts/engine.py jump --fresh",
+        )
+    if state.corrupt:
+        raise EngineError(
+            "state-corrupt",
+            "aidlc-docs/aidlc-state.md has a partial or malformed "
+            "ENGINE-STATE marker region (BEGIN without END, END without "
+            "BEGIN, or markers out of order) — likely truncated or "
+            "hand-edited.",
+            "Restore the missing marker line from a backup if available "
+            "(exact line: '<!-- END ENGINE-STATE -->'). If no backup "
+            "exists, confirm with the user and Start Fresh: "
             "python <skill>/scripts/engine.py jump --fresh",
         )
     return state

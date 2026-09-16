@@ -1,6 +1,6 @@
 # Runtime Engine Contract
 
-**Purpose**: Normative runtime rules for the AI-DLC orchestration engine (`<skill>/scripts/engine.py`). SKILL.md points here for engine invocation, directive handling, transition semantics, state ownership, and integrity. Load this file whenever bootstrap, routing, or state ownership is in question.
+**Purpose**: Normative runtime rules for the AI-DLC orchestration engine (`<skill>/scripts/engine.py`). SKILL.md points here for engine invocation, directive handling, transition semantics, state ownership, and integrity. This file is loaded **on demand** — when the SKILL.md bootstrap table directs here (legacy state, integrity violation), before `jump`/`rebase`, or when an engine error or state-format dispute needs the authoritative answer. Routine operation needs only the compressed protocol in SKILL.md plus the engine's self-describing JSON output.
 
 **Guiding principle**: **judgment belongs to the LLM, precision belongs to the tool, decisions belong to the human.**
 
@@ -248,7 +248,7 @@ Consumers must ignore unknown fields in any output (see §4).
 }
 ```
 
-`state` is one of `none` (no state file), `active` (in progress), `completed` (all applicable stages done), or `legacy` (a state file exists that predates the engine and has no `ENGINE-STATE` region; do not silently adopt or overwrite it — present the situation, obtain explicit confirmation, and follow the engine's hint before creating engine-owned state). `current_stage` and `last_completed` are `null` when not applicable. `integrity` is `ok` or `violated`.
+`state` is one of `none` (no state file), `active` (in progress), `completed` (all applicable stages done), `legacy` (a state file exists that predates the engine and has no `ENGINE-STATE` region; do not silently adopt or overwrite it — present the situation, obtain explicit confirmation, and follow the engine's hint before creating engine-owned state), or `corrupt` (the `ENGINE-STATE` marker region is present but incomplete or malformed — e.g. truncated, or a marker line deleted; `integrity` reports `violated` and mutating commands fail with error code `state-corrupt`. Restore the missing marker line from a backup if available — the END line is exactly `<!-- END ENGINE-STATE -->`; otherwise obtain explicit user confirmation and Start Fresh with `jump --fresh`). `current_stage` and `last_completed` are `null` when not applicable. `integrity` is `ok` or `violated`.
 
 ### `next` → `run-stage`
 
