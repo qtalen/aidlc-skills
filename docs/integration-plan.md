@@ -373,28 +373,119 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 
 ## 7. 后续 Phase 排期（2026-09-14 重排）
 
+### Phase 3.1：会话连续性增强（park + 恢复简报 + 传感器第一代）【已裁决待实施 2026-09-21】
+
+**背景与根因**（真实用户反馈）：AIDLC 流程中途新建会话要求"从上次结束的地方继续"，发生**文件状态漂移**——旧制品加载不完整导致工作流偏移。路由未漂（引擎是路由 SSOT），漂的是执行层，三个断点（均已代码考证）：
+
+1. **状态机粒度是阶段，中断发生在阶段内部**——`current_stage` 无法区分"未开始"与"中断"（`cmd_status` 无子阶段信息，engine.py:730-742；Unit Progress 预留未用，engine.py:407-408）；无收尾动词，中断不留痕（动词集仅 status/init/next/report/jump/rebase）。
+2. **恢复协议是全量散文指令**——session-continuity.md:38-57 "MANDATORY Load Previous Stage Artifacts" 平铺无优先级无验证，"Load ALL" 物理不可执行 → 模型抽样 → 偏移；恢复协议不读审计尾部（audit.md 这个恢复数据源未被使用）。
+3. **半成品无探测**——`report` 收单不验 produces；pending 阶段 workspace 产物已存在时引擎沉默。
+
+**定位**：park 与证据链均为 Phase 3 砍单在案项（§9 2026-09-14 其二，砍单见本文件 :269/:358/:445——"服务的能力不在分叉范围内，可随时按 §6.5 加回"），本次凭真实用户反馈**有据加回最小子集**：park（v2.0 orchestrate 五子命令之一）+ 证据链子集（missing-produces 探测），以传感器形态实现。Trellis 对照调研（2026-09-21，见 §9 当日记录）验证了同款问题形态与解法方向。
+
+**新决策（实施时录入 §1 决策表）**：
+
+- **D13（动词三层纪律 + 注记转移不变律）**：引擎动词分三层——读（status/next，无副作用）；**转移（report/jump，封闭集合 = 唯二改变 marks/current 的动词，Phase 4/5 永不新增）**；生命周期（init/park/rebase；park 为注记子类）。"转移不变律"：注记动词必须保持 marks 与 current 不变（digest 重算不算转移）。Phase 4 的 claim/release 照此办理——实现为 report 的 additive guard（如 `report --unit` 校验 claim 归属），不新增转移动词。新动词入场券 = 与全部既有 mutating 动词的两两交互测试（交互矩阵自此为 CI 法定成本）。
+- **D14（传感器 fire 点与 finding 接口）**：分叉侧传感器的 fire 点 = 引擎动词（status=恢复时 / report=收单时），永久不变（harness 无关性使然，区别于 v2.0 的 write hook）。finding 对象五字段 `{type, severity, subject, message, action_discipline}` 即 Phase 5 传感器接口；Phase 3.1 交付的 artifact_alerts 为第一代实现（硬编码 manifest），Phase 5 manifest 化时**须过输出等价测试**（固定夹具工作区，前后输出逐字节一致）。`type` 集合可增不可删；同一 state_version 内对象 shape 永不破坏性变更。
+
+**实施规格**：
+
+1. **`park` 动词**：`engine.py park --note "<断点描述>"`。门槛 `_load_active` + `_require_intact`；新增拒绝分支：工作流完成（current=None）→ 错误码 `workflow-complete`（文案对齐 jump 既有拒绝，engine.py:930-936 风格）。效果一：Current Status 区写 `- **Last Parked**: <slug> — <note>`（入 digest；marks/current 不动）。效果二：追加 `aidlc-docs/handoff.md`（懒创建、引擎独写、append-only、integrity 永不解析）——**审计分家**：park 不写 audit.md（转移账本天然有界，审计膨胀与 integrity 解析成本问题就此消解）。写序固定**先 region 后 handoff**（region 是权威源；崩溃窗口=handoff 缺一条历史，resume_note 不受影响）。去重：同 stage+同 note 与 handoff 尾条相同则跳过。note 卫生：必填、换行折叠 `; `、截断 300 字符。清除：`report`/`jump --stage`/`jump --fresh` 前置 `state.parked=None`（fresh 走初始模板天然无行）；`rebase` 保留可解析行。并发：last-writer-wins + handoff 双存，可接受；降级：旧引擎重渲静默丢弃该行、digest 自洽；`--fresh` 归档随 aidlc-docs 整目录——三者均记入契约 §5.5。
+2. **region 与解析**：`_render_region_lines(..., parked)` 加参；`load_state` 解析 Last Parked 行 → `state.parked`；无该行 → parked=None → 重渲逐字节同旧格式；**STATE_VERSION 保持 1**。`_initial_state_text` 标记区外加两行读者须知（新会话先跑 status / 勿改标记区；仅覆盖新项目，入负债）。
+3. **`status` 升级**（active 分支追加；none/legacy/corrupt 早退分支不携带新键，§10+golden 钉死；integrity=violated 时 alerts 照常计算输出）：
+   - **audit 单次读**：`check_integrity` 增缺省参数 `audit_text=None`（缺省自读=现状；`_require_intact` 及 next/report/jump/park 零改动——改返回值方案已否决：`_require_intact` 对非 None 恒 raise，返回 tuple 会致全部 mutating 命令 TypeError）。cmd_status 单次读入，供 integrity / recent_events / 计数三方复用。
+   - `resume_note`：`{stage, note}` 或 null（region 行权威）。
+   - `recent_events`：最近 5 条转移事件（不含 park），元素 `{event, stage, reason, timestamp}`。**新增独立解析函数**：逻辑限定在 `## Engine Transition` 节内（防用户原始输入伪造 Event 行——SKILL.md:571 允许原文入账），与既有 `_audit_events` **共享模块级正则常量**（消双解析器漂移面），后者三元组签名不动（integrity 路径零改动，engine.py:507/511 两处解包不受波及）；时间戳归属"节内最后见到的 Timestamp 归该 Event"，模型条目夹心场景测试锁定。
+   - `audit_entries` / `audit_bytes` 计数（单次读顺带，零成本；为审计分段 contingency 提供 512KB/50ms 触发器度量）。
+   - **artifact_alerts（不对称语义——缺失断言零误报，存在信号低成本）**：
+     - 通用排除：引擎自有文件 `aidlc-state.md` / `audit.md` 不参与任何检查（init 保证存在、零信号价值；WD 阶段因此自然豁免）。
+     - **missing-produces**（completed `[x]` 阶段）：N = 非通配具体产物数（`{unit-name}`/`*` 跳过）；**N≥2 且全部缺失/为空才告警**（列出全部路径）；N=0/1 豁免。依据（一轮审查 🔴-1 + 二轮 🟡-A 考证）：RA questions 条件创建（requirements-analysis.md:174）、B&T 4/8 产物 As-Needed（build-and-test.md:192/252/256）、infra-design 唯一具体产物 shared-infrastructure.md 亦条件产物（infrastructure-design.md:89）、operations produces 为空、WD produces 恰为引擎文件——N=1 时"条件缺席"与"真没写"不可区分，语义鸿沟留待 gen-2 per-produce required。action_discipline: "Report to the user; do not regenerate or fabricate artifacts."（防 Goodhart：模型自作主张补制品）。
+     - **resumed-artifacts**（current 阶段）：覆盖全部 produces 条目（引擎文件除外）；具体路径=退化 glob 精确存在；`{unit-name}` → `*` 翻译后 glob 展开；**任一匹配存在即告警**（封顶 5，message 注明可能是半成品）。存在信号=中断残留，误报代价低（"先读后写"恰为正确指引），且恰好覆盖 per-unit 阶段中断半成品（用户真实场景近邻）。action_discipline: "Read existing files before writing; append rather than regenerate (unless in a rejected/revised redo — see session-continuity)."
+     - 整体 fail-open：探测异常 → `alerts_unavailable: true` + 空数组（不响亮但可见）；写动词照旧 fail-loud。
+4. **`report` 软警告**：completed/approved 时对当前阶段按 N≥2 全缺规则检查 → 输出 `produces_missing: [...]`，**转移照常成功**；检查本身 try/except fail-open（异常省略字段——绝不阻断唯一写入口，否则重试撞 invalid-transition）；rejected/revised/skipped 不查。软警告跑一个 dogfood 周期再议升级硬错误。
+5. **测试**（102 → 约 134）：ParkTests(~9：handoff 写入且 audit 零新增/digest 自洽/marks 不变/note 卫生/no-state 与 workflow-complete 拒绝/去重两分支/report 清除/**写序用 mock.patch 断言 `_write_text_atomic` 先于 `_append_text`**)；StatusRecoveryTests(~10：resume_note 有无/recent_events 5 条/时间戳夹心/**反误报六连**（RA-minimal 无 questions、B&T 缺 e2e、infra N=1 豁免、operations N=0 豁免、WD fresh-init 无 resumed、RA 单缺不告警）/**正例**（RA completed 双缺失告警、resumed glob 含磁盘 `auth[1]` 目录命中、current RA 半成品 requirements.md）/alerts_unavailable)；ReportWarningTests(2：字段出现且转移成功/fail-open 字段省略)；BackwardCompatTests(2：旧格式载入 parked=None、report 重渲逐字节回归)；InteractionMatrixTests(4：park×report、park×jump --stage、park×jump --fresh、park×rebase)；GoldenOutputTests(~4：形状对齐契约 §10，掩码=timestamp 键+ISO 值+workspace 路径占位)；CliTests(~2：park 缺 --note、usage 串与 docstring 动词列表含 park)。
+6. **文档同步**（9 处）：engine-contract.md（§1 动词分类列全 8 个+转移定义+不变律；:158 枚举补 park；新 §5.5 Park Semantics 含写序/并发/降级/--fresh 归档/引擎文件排除；§6 措辞"**引擎对** audit.md 的写入收窄为转移条目，模型侧用户输入记录与 CTX phase summary 不变"+Last Parked 行与 handoff.md 引擎独占；§9 表加 park；§10 样例含 status 新键形状/early-exit 无新键/violated 时 alerts 照常/park ack/workflow-complete 错误/produces_missing/finding 形状/alerts_unavailable）；session-continuity.md（恢复协议 v2：status→integrity→resume_note+recent_events→响应 alerts→分级阅读①引擎输出②required consumes③按需→增量续作含 rejected/revised 整体重写例外；Park Ritual 含 CTX-01 边界双写；反劝退条；Welcome Back 模板加 "Last parked: [stage] — [note]" 行；生成标记区保留为查阅地图）；checkpointing.md（CTX-02 改"分级阅读第 2 层插入 checkpoint 优先"+always-load 集加 resume_note/artifact_alerts；CTX-03 归属 phase summary 留 audit/park 记 handoff+补"模型侧读纪律不约束引擎全量读"；opt-in 文案补"断点与探测已默认，本扩展只管蒸馏与轻量加载"）；checkpointing.opt-in.md（Session Resumption Trigger 段改写，删 "full-artifact loading" 过期锚点）；error-handling.md（"Missing Artifacts During Resumption" **节头**定序交叉引用覆盖全节：传感器发现→报告用户→用户决定后才进入本节 jump→regenerate 路径）；SKILL.md（bootstrap active 行补 resume_note；Park 触发规则；:534/:554 枚举补 park；Directory 树加 handoff.md）；terminology.md（Park/Parked 词条）；AGENTS.md（§3.1 动词列表+park+handoff.md；实施后测试数 102→实际数）；本文件（§1 决策表录 D13/D14；§9 记录实施结果）。
+7. **顺序与验证**：engine.py（region→park/handoff→status→report→头部→CLI/docstring）→ 全部测试全绿 → `generate.py --check` 零漂移（本相位不触 frontmatter/生成物）→ 文档按第 6 条清单 → 终验（二次全绿幂等 + git diff 生成标记区零改动 + AGENTS.md 测试数更新 + CI 绿）。
+8. **不做（八项）**：per-unit missing 精确覆盖（Phase 4 Unit Progress）｜report 硬阻断｜审计分段实现（contingency）｜CTX 转正（维持两层：默认层确定薄/增强层智能厚）｜missing-produces 自动补写｜handoff 模型直读 API（resume_note 是唯一通道）｜per-produce required 标记（gen-2）｜存量项目头部须知迁移。
+9. **负债清单（七条，backlog）**：①N=1 具体产物阶段豁免 missing-produces（gen-2 per-produce required 可解）②per-unit missing 精确覆盖依赖 Phase 4 Unit Progress（`{unit-name}` 逐单元展开）③report 软警告待 dogfood 后议升级④状态文件头部读者须知仅覆盖新项目⑤审计分段 contingency（触发器 512KB 或解析 50ms，度量=新计数字段）⑥未 park 且当前阶段零制品的中断不可探测（park 是自律层非传感器）⑦handoff.md 无模型直读 API。
+
+### Phase 3.2：Trellis 借鉴立即批（机制移植，零代码复制）【已裁决待实施 2026-09-22】
+
+**来源**：Phase 3.1 立项同日的 Trellis 调研（§9 2026-09-21）产出四档借鉴清单（本体见本节第 9 条，随本节落盘）。Phase 3.2 承载①档全部 5 项 + ②档 2 项 + 落档编辑；经三轮独立 reviewer 审核（R1/R2 完成、R3 因服务中断放弃、R4 为新 reviewer 定义首跑），全部发现逐条考证属实后消解，本节为终版。审查过程与裁决见 §9 2026-09-22。
+
+**0. 批次与前置**：Phase 3.1 → **Phase 3.2** → Phase 4 → 5A → 5B。串行理由（R2/R4 修正）：**仅 integration-plan.md 与 AGENTS.md 共享**（3.2 各内容 WP 不触 SKILL.md）。**前置 P0（半小时）**：四档清单本体已随本节落盘（P0 自解，R4-R1 阻塞项消解）。原则：frontmatter 零改动；generate.py --check 例行验证。
+
+**1. WP-7 integration-plan 落档**（1h）——三件套：① §9 登记 Trellis 借鉴登记表（从本节第 9 条迁移，加"状态"列，先记"计划中"，收尾回填；④档 evidence-first 注明与 WP-1 非同一物：前者=扩展结构范式，后者=提问纪律）；② §7 Phase 5+ 拆写 5A/5B 并给完整映射表——**已前移至 2026-09-22 落档时完成**（5A/5B 两节 + 映射注 + Phase 4 Trellis 设计输入清单 6 项挂 Phase 4 节末 + ④档三项入不排期，执行期仅核对无漂移）；③ 新增 §7 Phase 3.2 实施状态段。
+
+**2. WP-1 Evidence-First 提问纪律**（~120 行，1.5-2h）：
+- a. question-format-guide.md 顶部新增 **Evidence-First Policy**，含优先级条款（探索优先覆盖各阶段 "when in doubt, ask" 类指令——overconfidence=不查就假设）与豁免表：可由代码库/制品探索回答的问题必须由探索解决（引用来源），不进问题文件。**豁免**：RA Step 2.5 scope 聊天问题（既有唯一聊天豁免）；**扩展 opt-in 问题**（RA Step 5.1 MANDATORY 项，天然非探索可解，R4 新增豁免）
+- b. Multiple Choice Guidelines 补两要素：**when a recommendation exists** 时必含 Recommendation（含一句话理由）+ "If you choose otherwise" trade-off 行（对齐 QT-01 条件口径，同步 QT-01 映射说明）
+- c. 排序纪律与既有 Best Practices #3（one topic）合并表述
+- d. **系统性收口 sweep（D23 先例通用化）**：8 个产问题的阶段文件（RA/user-stories/application-design/units-generation/functional-design/nfr-requirements/nfr-design/infrastructure-design）各加 1 行指针；overconfidence-prevention.md 的 "Default to Asking" 处加同款指针
+- e. 自洽修复：指南示例（:78/:133/:151/:308/:322 等非三类问题——数据库选型/部署目标/架构模式）改写或标注；Question Structure 模板与 Summary 清单同步两要素
+- 验收：**全树 grep 无相抵指令**
+
+**3. WP-3 DOC-06 导航索引（advisory）**（~30 行，0.5h）：workflow-conventions.md Group 1 新增 DOC-06——≥300 整行的 aidlc-docs **内容制品**（创建或实质更新）须顶部维护"任务→章节"导航表，覆盖全部 H2（可机械核对）。**排除**：audit.md（append-only 互斥）、aidlc-state.md/handoff.md（引擎独占）、checkpoints（≤200 行上限）、问题文件（QT/DOC-04 辖区）。声明为该文件**首条 advisory 规则**（:21 措辞修正 + Blocking 行为节注明 advisory=列出不阻断；理由：缺失无危害，blocking 训练用户无视 findings）。同步：Overview 行 DOC-01~05→01~06；Enforcement Integration 表补收窄语境行。
+
+**4. WP-5 RE 可选产物**（~30 行，0.5h）：reverse-engineering.md Step 9 与 Step 10 之间新增**无编号小节** "Optional Artifact: Working Conventions"（禁重编号，:302 有步号自引用）。落点 `aidlc-docs/inception/reverse-engineering/working-conventions.md`——**位于既有通配 produce `inception/reverse-engineering/*` 内，自动进入会话加载清单与 3.1 resumed-artifacts 探测，无需 frontmatter 改动**（删 promote 说法；是否单列留 gen-2 per-produce 决策，入负债）。内容纪律：source-backed（每条约定带来源路径引用，拒绝空话）；**定位为 Phase 5A 知识树的种子/导入源**（防两套约定存储分叉，R4-B3 新增）。同步：Step 10 时间戳/产物清单提及；Step 12 完成消息列出。
+
+**5. WP-4 B&T 提交协议**（~50 行，1h）：build-and-test.md **Step 9 内**新增 "### Commit Protocol"，**时序定死**：门批准 → `report approved` → 完成消息正文呈现 commit 计划（APG-05 允许）→ Approve & Continue 语义含"执行 commit 计划"；拒绝 → Request Changes / 手动路径。内容：①脏文件二分，判定依据=**本会话工具调用实际写过的路径**，其余一律二类列出、绝不静默暂存；②一次性展示 commit 计划（含阶段与单元）；③禁 amend、禁 push（用户显式要求除外）；④**非 git 工作区**：对齐 AUD-02 先例（no git → 标注 unknown，不阻塞，跳过协议，R4 新增）；⑤commit 计划与确认结果入 audit，hash 记入 build-and-test-summary.md；⑥顺序：工作成果 → **若存在**归档/handoff 待提交项则其后（条件式，B&T 时点二者常不存在）。**AM-03 自主模式**：不自动 commit，完成消息列出待提交清单。前置核查存档：全库 grep 结论（仅 AUD-02 git config 与 security-baseline lock-file 提法，无冲突）。
+
+**6. WP-2 dogfood 协议**（新文件 docs/dogfood-protocol.md，中文，~120 行，1.5h）：六条度量——①重复解释次数→audit 条目趋势 ②PRD 范围清晰度→**定性项**（观测边界/非目标声明表述，不新增 RA 模板节）③重复评审→rejected/revised 趋势 ④换工具稳定→引擎 JSON 一致性 ⑤新人首任务独立完成→定性 ⑥RCA bug 沉淀率→5A 后生效。消融对照=**历史对照**（Phase 3 前后 dogfood 记录）+ **引擎内开关对照**（park/软警告 on-off）；显式注明"无引擎臂在当前契约下不可构造"（D6 HARD STOP + Only-next-routes）。数据源=audit trail + 3.1 的 audit_entries/audit_bytes；一次一表记录模板。定位：**服务 3.1 落地后的首个 dogfood 周期**（含 3.1 遗留的"软警告待 dogfood 后议升级"决策回填）。
+
+**7. WP-6 契约硬规则单测清零**（~300-400 行，4-6h）：映射表**以模块 docstring 固化**在 test_generate.py；表首行注明规则 9/11/16 已覆盖（test_generate.py:251/:264/:278）。实施时核对规则 1 与 12 是否真无夹具（12 需临时技能树或 SKILL_ROOT override，方法记入映射表）；补 **reserved 键（reviewer）夹具**锁定契约 §5 预留命名空间。收尾：AGENTS.md 测试数 102→实际数刷新。
+
+**8. Phase 5A 骨架（WP-7 落档，不实施）**：位置 `aidlc-docs/knowledge/<domain>/index.md`（index 只路由）；条目 frontmatter 预留 `governs:`（条目级无碍；未来用于阶段 frontmatter 须走契约 §5 保留命名空间）。机制定性：**按需加载的复盘约定条款**，复用两态扩展体系（opt-in 存根 + 常载规则），非新加载机制。写入仪式双触发：B&T 收尾自问 + 复盘触发器——判定者=**模型**、计数窗口=**同单元连续失败**、跨会话以 handoff/audit note **best-effort** 续（引擎计数属引擎改动，须付 D13 交互矩阵成本）。内容纪律：可执行契约模板（签名/边界行为/错误矩阵/来源引用）；"分析留在聊天里=零"；超阈值拆分。学习双出口：约定→知识树条目 or→传感器提案（D14 finding 形态）。知识源关系：**RE working-conventions.md = 知识树初始种子/导入源**（唯一"约定"存储为知识树）；空树期 knowledge_refs 回退引用它与既有规则文件。悬空依赖显式化：knowledge_refs 完整设计见 docs/result-oriented-delegation-design.md（待 WP-7 第 6 项处理）。排期：Phase 4 后、5B 前。
+
+**9. 四档清单本体**（WP-7 执行时迁入 §9 登记表，加状态列）：
+
+| 档 | 项 | 去向 |
+|---|---|---|
+| ①立即（5） | brainstorm 三纪律 / 成功度量清单 / 消融对照 / 长制品导航索引 / 批量提交协议 | WP-1 / WP-2 / WP-2 / WP-3 / WP-4 |
+| ②排期（3） | 单层活知识树闭环 / spec 冷启动 / 契约硬规则单测清零 | 5A 立项（WP-7 落档骨架）/ WP-5（RE 可选产物为先行）/ WP-6 |
+| ③相位触发（8） | 策展清单 / 派遣三件套 / channel 对照 / 单元依赖显式化 / spec 移植 / knowledge_refs 字段 / 学习双出口 / 任务信封设计稿处理 | Phase 4 设计输入（WP-7 清单 6 项）/ Phase 5 |
+| ④仅记录（3） | 技能版本戳 / 模板升级保护 / evidence-first 扩展范式（≠WP-1 提问纪律） | 技能分发/升级阶段再议 |
+
+**10. 顺序与验收**：**前置 P0（已自解）→ WP-7 → WP-6 → WP-1 → WP-3 → WP-5 → WP-4 → WP-2 → 收尾**（登记表状态回填 + AGENTS.md 测试数 + 全量 unittest + generate.py --check + 散文一致性 sweep）。总验收：测试全绿（102 + 3.1 新增 + WP-6 新增）、--check 零漂移、全树无相抵指令、dogfood-protocol 与 3.1 数据源对齐且服务其首个 dogfood 周期。总工时 **~10-12h**（WP-7 因②前移缩至 1h；WP-7 前置锁定全部裁决与清单；WP-6 前置去风险——最大最易超时项压尾会拖垮总验收；WP-4 交叉契约面最大放后吸收结论；WP-2 纯文档殿后备用）。
+
+**11. 不做（十项）**：per-unit missing 精确覆盖（Phase 4）｜report 硬阻断｜审计分段实现｜CTX 转正｜missing-produces 自动补写｜handoff 模型直读｜per-produce required 标记（gen-2）｜存量项目头部须知迁移｜**SKILL.md 问答概述指针（可选镀金）**｜**RA 模板加 out-of-scope 节（度量 2 已降定性）**。
+
+**12. 负债清单（并入本节 backlog，WP-7 执行时挂 §9）**：WP-5 通配单列 per-produce 决策（gen-2）/ 5A 触发器跨会话计数 best-effort / WP-4 二分语义随 Phase 4 claim/merge 重审 / 登记表漂移风险（收尾回填对冲）/ 消融无引擎臂违宪（永久，除非契约变更）/ 四档清单状态列初始为"计划中"待收尾刷新。
+
 ### Phase 4：Team Construction
 
 **硬依赖链（顺序不可乱）**：单元清单结构化（Phase 3 ✓ 已排）→ unit-major → claim → merge。Team Construction 的每一步都以 unit-major 为前提：没有引擎感知单元就没有可认领的对象，没有 claim 锁多会话就是状态文件互踩。
 
 1. **unit-major 波次编排**（地基，本身即可交付价值）：`report --unit`、Unit Progress 区启用、单元级审批门节奏（per-stage / unit-end 两种，借鉴 v2.0 `unit_gate_rhythm`）、单元级恢复。stage-major 保留为默认节奏（单单元/小项目无感）。**随此项一起做**（2026-09-15 dogfood 排期）：指令中的 `consumes` 条目增加计划感知标注（如 `producer_skipped: true`），把 stage-contract §2 "生产者被跳过则 moot" 的语义在指令层面显性化——引擎有了单元/计划感知后才有能力做这个标注，提前做只会返工
-2. **claim/release + git worktree**（形态 A：多会话团队，harness 无关）：N 个 AI 会话（或人机混合）各自打开同一仓库，claim 粒度 = unit；所有协调逻辑在引擎，harness 只需能跑 shell。状态文件多会话并发写锁是实现期重点（参考 v2.0 mkdir 锁，Python stdlib 有对应做法）
+2. **claim/release + git worktree**（形态 A：多会话团队，harness 无关）：N 个 AI 会话（或人机混合）各自打开同一仓库，claim 粒度 = unit；所有协调逻辑在引擎，harness 只需能跑 shell。状态文件多会话并发写锁是实现期重点（参考 v2.0 mkdir 锁，Python stdlib 有对应做法）。**Trellis 前车之鉴（2026-09-21 调研）**：其曾实现后又删除 worktree 管理（复杂度收益比不佳）——引入 worktree 前先评估，能靠 claim 锁 + 目录约定解决就不上
 3. **single 单阶段重跑**（~50–100 行）：`next/report --single`，独立审计对、绝不动主指针、stage_validity 警告不阻塞。用户场景：team 并行试验多个算法变体 → 选定其一单独重跑（试验-收敛闭环）
 4. **swarm 进程内并行**（形态 B：harness 相关，依赖 subagent 能力，工作量最大，可再拆为独立子相位）
 
-### Phase 5+：reviewer 及其他（逐项独立可交付，纯增量无返工，路径见 §6.5）
+**Trellis 设计输入（2026-09-22，源自 §7 Phase 3.2 四档清单③档，进入本相位设计时逐项核对）**：① 上下文策展清单——派遣给 worker 的文件清单须 `{file, reason}` 二元组 + 字节预算 + 禁预注册代码文件（worker 应自己改动代码，派遣方只给规格）；② 派遣三件套——Active task 首行约束 + 递归守卫（子会话禁再派遣）+ 任务注入标记-or-回拉双通道；③ channel 事件日志 vs claim 注册表对照——协调状态放文件而非聊天流（channel 可丢、注册表可审计），与上面 claim/release 设计合并评估；④ 单元依赖显式写在工件（units.md 依赖列），而非图暗示；⑤ spec 移植模式——上游规格可整体移植进单元工件。
+
+### Phase 5A：单层活知识树与学习闭环（Trellis ②档"单层活树闭环"立项；Phase 4 后、5B 前；完整骨架见 §7 Phase 3.2 第 8 条）
+
+- 知识树：`aidlc-docs/knowledge/<domain>/index.md`（index 只路由不存内容）；条目 frontmatter 预留 `governs:`（条目级无碍；未来用于阶段 frontmatter 须走契约 §5 保留命名空间流程）
+- 写入仪式双触发（B&T 收尾自问 + 复盘触发器——模型判定、同单元连续失败计数窗口、跨会话以 handoff/audit note best-effort 续）+ 学习双出口（约定→知识树条目 or→传感器提案[D14 finding 形态]）
+- knowledge_refs（③档）：按 `task`/阶段声明需要加载的知识引用；完整设计见 `docs/result-oriented-delegation-design.md`（现为"讨论记录待并入"状态，Phase 4 设计输入第 6 项处理并入/延后）；空树期回退引用 RE working-conventions（WP-5 交付）与既有规则文件
+- 种子关系：RE working-conventions.md = 知识树初始种子/导入源，唯一"约定"存储为知识树（防两套分叉，R4 裁决）
+
+### Phase 5B：reviewer 及其他（逐项独立可交付，纯增量无返工，路径见 §6.5）
 
 - reviewer 状态机（启用契约 §5 预留字段 reviewer/review_artifact/reviewer_max_iterations；READY/NOT-READY 回路由 report 分支承接）
-- 传感器自检清单 → report 时阻塞校验（required-sections / upstream-coverage / traceability / claim-sources）
+- 传感器自检清单 → report 时阻塞校验（required-sections / upstream-coverage / traceability / claim-sources）。**注（2026-09-21）**：fire 点与 finding 接口已由 Phase 3.1 的 D14 预定——fire 点 = 引擎动词（status/report，harness 无关性决定，区别于 v2.0 的 write hook），finding 五字段形状见 §7 Phase 3.1；Phase 3.1 交付的 artifact_alerts 即传感器第一代，manifest 化时须过输出等价测试
 - persona 体系（轻量版 inline 扮演先行；完整版 14 agent + 知识库另议）
-- 五层记忆（org→team→project→phase→stage）+ §13 学习仪式（引擎承担确定性去重写入）
+- 五层记忆（org→team→project→phase→stage）+ §13 学习仪式（引擎承担确定性去重写入）；与 5A 关系——5A 先交付项目级单层闭环，五层记忆届时复用其条目模板与写入仪式做跨层扩展
 - 门仪式精细化（HARD STOP、revision 逃生舱、non-matching reply 处理）
 - 完成消息 5 段契约、声音/沉默规则、PRE-GENERATION SUMMARY STOP 强化
 - **report+next 合并评估**（2026-09-15 dogfood 结论：不合并）：合并可省每次转移一次调用，但会破坏被两次守住的 CQS 边界（next 纯只读、report 单一写入口），引入"写成功但路由失败"混合错误域、rejected/revised 时返回冗余指令、对 APG-02 门挂起纪律形成"呈现即诱惑"。**仅当** Phase 4 多单元循环使转移次数成倍增长、编排开销成为真实痛点时再议，届时形态为 `report --and-next` opt-in 标志，默认行为保持纯粹
 
+**Trellis 借鉴映射注（2026-09-22）**：③档 8 项——5 项入 Phase 4 设计输入（见 Phase 4 节末），knowledge_refs 字段与学习双出口入 5A，任务信封设计稿处理挂 Phase 4 输入第 6 项；②档"活树闭环"即 5A 立项本体（spec 冷启动先行已由 Phase 3.2 WP-5 承载）；5B 各项无 Trellis 来源，为原有 backlog 原位保留。④档 3 项见"不排期（仅记录）"。
+
 ### 不排期（仅记录）
 
 - **多 intent / compose**（D11）：一个版本就是一个产品意图；当前版本做到一半去做不相干的另一件事，应该是两个 git 版本的事。**重启前提**：与 Team Construction 协同设计——claim 注册表天然按 intent 隔离（v2.0 为 `claim/<intent-id8>/<unit>`）；`aidlc-docs/` 路径假设需加 intent 维度，属目录结构级重构，是所有后置项中侵入最深的
+- **Trellis ④档三项**（2026-09-22 记录，触发条件出现再议）：**技能版本戳**（技能分发/多版本共存场景——SKILL.md 元数据声明版本，消费方可探测兼容性）；**模板升级保护**（用户本地定制模板与上游技能升级冲突场景——生成物标记区机制推广到用户模板）；**evidence-first 扩展范式**（将 WP-1 的 evidence-first 纪律推广为扩展作者的结构性模板：最小证据→定位瓶颈→分支→再测量；≠WP-1 提问纪律，二者同名不同物）
 
 ---
 
@@ -478,3 +569,34 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 验证：generate.py 幂等且 --check 零漂移、无 advisory 告警，77 个 unittest 全绿。
 
 复审遗留 backlog（未修，并入既有清单）：契约硬规则 1-8/10/12 与 advisory 13-15 缺单测；解析器未闭合引号静默通过；未注册文件中的 GENERATED 标记区逃逸 --check；workflow-changes Type 9 混淆 scope-SKIP 与 [S] 标记且决策树缺 Type 9 分支；隐式单单元前提注记遗漏 nfr-design/build-and-test；规则 16 的 for_each 豁免宽于约定覆盖面（Phase 4 扩 scope 前处理）；terminology Operations "Outputs" 与 process-overview "No fixed sequences" 陈旧散文；§4 状态段"13 个 GENERATED 标记区"计数口径与现树（17 个）不符，待下次修订校正。
+
+### 2026-09-21：跨会话文件状态漂移——诊断、Trellis 对照、两轮审查与 Phase 3.1 立项
+
+**触发**：真实用户反馈两条——①长会话中开头读过的规则/spec 遗忘导致执行偏移；②流程中途新建会话要求"从上次结束的地方继续"后仍发生文件状态漂移（旧制品加载不完整、工作流偏移）。
+
+**根因诊断**（全部代码考证）：路由层未漂（引擎是路由 SSOT），漂在执行层——①状态机粒度是阶段而中断发生在阶段内部，引擎对阶段内进度失明且中断不留痕；②恢复协议是"MANDATORY Load ALL"全量散文指令，无优先级无验证，且不读审计尾部；③report 收单不验 produces、半成品无探测。详见 §7 Phase 3.1 背景节。
+
+**Trellis 对照调研**（外部工作流框架，docs.trytrellis.app + 本地仓库全量考察）：同一哲学（"判断归 LLM、精确归工具、决定归人类"）的正交投影——我们把确定性押在阶段路由（契约+引擎），它押在状态保活与知识复利（per-turn breadcrumb 注入 + 活 spec 回写闭环）。对本次立项的直接馈赠：①park 是其 task.py 生命周期事件的成熟先例（"生命周期事件 ≠ 状态转移"）；②"必需步骤必须出现在模型必经通道"不变量；③"分析留在聊天里=零"的落盘纪律；④其自身删掉 worktree 管理的历史警示已并入 Phase 4 前置检查意识。其他可借鉴项（knowledge_refs 三代演进、反劝退表、成功度量清单等）记录于当日会话，供后续相位取用。
+
+**方案演进与两轮审查**（全部发现均经逐条考证属实后消解）：
+
+- 一轮（reviewer）：1🔴（传感器 produces 检查语义与 frontmatter 数据现实冲突——RA/B&T 条件产物、`{unit-name}` 占位）+ 6🟡（尾部读冗余、`_audit_events` 改元组砸 integrity、audit 收窄措辞冲突、D13 分类漏 init/rebase、三规格空洞、文档漏三处）+ 8🔵。裁决核心：缺失检查与存在检查采用**不对称语义**。
+- 二轮（reviewer）：3🟡（①infra-design 唯一具体产物亦为条件产物+operations 空产物 → 定 **N≥2 且全缺才告警**通用规则，弃硬编码豁免表；②resumed 检查条目参与范围 → 定**全产物参与唯排除引擎自有文件**；③单次读实现二选一 → 写死**可选参数方案**，改返回值会致 `_require_intact` 对非 None 恒 raise、全部 mutating 命令 TypeError）+ 8🔵 + 4 建议（共享正则常量、新解析器限定 Engine Transition 节、violated 时 alerts 照常、terminology 词条），全部采纳。
+- 副作用治理（讨论定案）：审计膨胀→**账本分家**（park 记 handoff.md，audit.md 只收转移，天然有界；审计分段降级为 contingency，触发器 512KB/50ms）；Goodhart（告警变任务）→action_discipline 字段禁自行补写；fail-open 不可见→alerts_unavailable 标记；引擎角色扩张→D13/D14 把 ad-hoc 实现定性为"传感器第一代"而非透支（换心脏不换接口）。
+- **既有 CTX checkpointing 扩展（opt-in）与新方案互补而非重复**：边界重压缩归 CTX-01 检查点、任意断点轻记号归 park、确定性探测与路由归引擎；CTX 三处修订并入实施清单（CTX-02 措辞对齐分级阅读、CTX-01×park 边界双写、CTX-03 归属澄清）。
+
+**产出**：Phase 3.1 完整实施计划（§7，已裁决待实施）；D13/D14 待实施时录入 §1 决策表。park/证据链属"有据加回"（砍单见 :269/:358/:445）。测试 102 → 约 134。
+
+### 2026-09-22：Trellis 借鉴综合、Phase 3.2 三轮独立审核与终版立项
+
+**过程**：①对 Trellis 文档库与技能市场做补充调研（spec 冷启动/活树模板/真实案例/evidence-first 领域技能范式），与既有调研合并产出**四档借鉴清单**（①立即 5 项/②排期 3 项/③相位触发 8 项/④仅记录 3 项）——清单本体已随 §7 Phase 3.2 第 9 条落盘，取代 2026-09-21 条目中"记录于当日会话"的临时状态。②据清单起草 Phase 3.2 实施计划（7 个工作包 + Phase 5A 骨架），经三轮独立 reviewer 审核。
+
+**三轮审核（模型各异，全部发现经主智能体逐条考证属实后消解）**：
+- **R1**（引导性提示词）：1🔴（WP-1 三类白名单与阶段文件 MUST 指令冲突）+ 6🟡 + 8🔵。微观精确度高（指南自带示例自相矛盾、QT-01 条件口径、步号自引用、规则 9/11/16 已覆盖的测试名证据）。
+- **R2**（中性提示词，换模型）：1🔴 + 7🟡 + 4🔵 + 6 建议。系统思维最强——独有发现：四档清单无源、**消融臂违宪**（D6 + Only-next-routes 使无引擎对照契约性不可行）、AM-03 阻塞、扩展"第三态"无先例、串行理由失实（3.2 实不触 SKILL.md）。
+- **R3**：因 opencode 服务中断两次未完成，放弃。
+- **R4**（新 reviewer 定义首跑）：1🔴 + 7🟡 + 6🔵。首次出现"核对通过项"正向确认节与显式不可核验范围声明；独有发现：knowledge_refs 依赖悬空（指向"讨论记录待并入"的 result-oriented-delegation-design.md）、扩展 opt-in 豁免缺失、知识树×working-conventions 两套存储风险；但未达 R2 的消融违宪深度。**方法学副产物**：比较两轮完成的审核确认中性提示词优于引导性提示词（R2 在无预埋条件下覆盖 R1 全部发现且增量更重），据此修订了 reviewer/architect/executor 三个子代理定义与全局 AGENTS.md 委派纪律（反锚定协议+待验证主张+路径委派；属 opencode 全局配置，非本仓库变更，特此记录以解释后续审核行为的变化）。
+
+**合并裁决要点**：Evidence-First Policy 含优先级条款与扩展豁免 + 8 文件 sweep（D23 通用化）；DOC-06 首条 advisory + 排除表；WP-5 通 produces 自动覆盖（删 promote）；WP-4 时序定死（门批准→report→commit 计划入完成消息）+ AM-03 不自动 commit + 非 git 回退；WP-2 度量 2 降定性 + 消融改历史/开关对照；5A 定性为按需加载约定条款（复用两态）；WP-7 扩三件套 + Phase 4 设计输入 6 项（新增任务信封设计稿处理）。
+
+**产出**：§7 Phase 3.2 终版（已裁决待实施，前置 P0 已自解）；同日完成 WP-7-② 前移——Phase 5+ 拆写为 5A（知识树与学习闭环）/5B（reviewer 及其他）+ 映射注、Phase 4 节末挂 Trellis 设计输入 6 项、④档三项入不排期（回应"去向列悬空"缺口：四档清单的路由在 §7 各节全部落地）。工时 ~10-12h（WP-7 因前移缩至 1h），顺序 P0→WP-7→6→1→3→5→4→2→收尾。
