@@ -2,6 +2,19 @@
 
 ## MANDATORY: All Questions Must Use This Format
 
+### Evidence-First Policy (priority rule)
+
+**Priority**: This policy **overrides** every "when in doubt, ask" instruction in stage rule files. Overconfidence is assuming without checking — and asking without exploring is the same failure, aimed at the user instead.
+
+- **Explore before asking**: any question that can be answered from the codebase or existing artifacts (dependency manifests, config files, README, previously produced `aidlc-docs/` artifacts, Reverse Engineering output) **must** be resolved by exploration. Record the answer with its source reference; do not put the question in a question file.
+- **Ask only what exploration cannot answer**: legitimate question-file items are user preferences, intent, priorities, or trade-off decisions that no artifact can decide — or items where exploration was genuinely inconclusive (say so, and show what you checked).
+- **Exemptions** (not subject to exploration):
+
+| Question class | Why exempt |
+|---|---|
+| The Requirements Analysis Step 2.5 scope-selection chat question | The only chat question by design — it selects the workflow shape itself before any exploration output exists |
+| Extension opt-in questions (Requirements Analysis Step 5.1 MANDATORY items) | User preference by construction — exploration cannot decide whether the user *wants* an extension |
+
 ### Rule: Never Ask Questions in Chat
 **CRITICAL**: You must NEVER ask questions directly in the chat. ALL questions must be placed in dedicated question files. (Sole exception: the minimal-candidate scope-selection question in Requirements Analysis Step 2.5 — see `references/inception/requirements-analysis.md`.)
 
@@ -28,7 +41,13 @@ B) [Second meaningful option]
 
 [...additional options as needed...]
 
+[(Optional) mark exactly one option "(Recommended)" when a well-founded
+recommendation exists — see Multiple Choice Guidelines]
+
 X) Other (please describe after [Answer]: tag below)
+
+[(Optional, only when a recommendation exists)
+If you choose otherwise: <one-line trade-off the user accepts>]
 
 [Answer]: 
 ```
@@ -86,6 +105,8 @@ C) Other (please describe after [Answer]: tag below)
 [Answer]: 
 ```
 
+> **Evidence-First annotation for this example**: Question 3 (new vs existing codebase) is decided by Workspace Detection and Reverse Engineering — never re-ask it. Questions 1 (auth method) and 2 (web/mobile) are exploration-first in a brownfield: inspect the existing codebase, dependency manifests, and config first; ask only for greenfield preference decisions or when exploration is inconclusive.
+
 ### User Response Format
 Users will answer by filling in the letter choice after [Answer]: tag:
 
@@ -127,6 +148,12 @@ After user confirms completion:
 - Be specific and clear
 - **Don't make up options to fill A, B, C, D slots**
 
+#### Recommendation and Trade-off (when a recommendation exists)
+- When you hold a well-founded recommendation (from exploration evidence, project context, or ecosystem defaults), mark **exactly one** meaningful option with `(Recommended)` and append a one-sentence reason to that option
+- Below the options (above `[Answer]:`), add one line: `If you choose otherwise: <what the user gives up, one sentence>`
+- If no well-founded recommendation exists, omit both — a weak recommendation is worse than none
+- This marking is pure option metadata: the QT-01 question-tool flow (see `references/extensions/workflow/workflow-conventions/workflow-conventions.md`) is unchanged, and Autonomous Mode `auto-recommended` (AM-04) selects exactly the option marked `(Recommended)`
+
 #### Good Example:
 ```markdown
 ## Question 5
@@ -145,6 +172,8 @@ E) Other (please describe after [Answer]: tag below)
 [Answer]: 
 ```
 
+> Evidence-First: in a brownfield, the database choice is usually already fixed by the codebase (dependency manifests, ORM config, connection strings) — explore first; ask only when exploration is inconclusive or the user is deliberately re-deciding.
+
 #### Bad Example (Avoid):
 ```markdown
 ## Question 5
@@ -158,6 +187,8 @@ C) Maybe
 
 [Answer]: 
 ```
+
+> Beyond the broken options (Yes/No/Maybe do not answer "what"), this question also violates the Evidence-First Policy: the database in an existing codebase is explorable, not askable.
 
 ### Workflow Integration
 
@@ -296,7 +327,7 @@ Please answer these clarifying questions before I can proceed with classificatio
 
 1. **Be Specific**: Questions should be clear and unambiguous
 2. **Be Comprehensive**: Cover all necessary information
-3. **Be Concise**: Keep questions focused on one topic
+3. **Be Concise**: Keep each question to exactly one topic/decision, and order the file so upstream, blocking decisions come first — a later question may be moot depending on an earlier answer
 4. **Be Practical**: Options should be realistic and actionable
 5. **Be Consistent**: Use same format throughout all question files
 
@@ -315,6 +346,7 @@ C) Other (please describe after [Answer]: tag below)
 
 [Answer]: 
 ```
+> Evidence-First: Workspace Detection / Reverse Engineering already answers this — shown as a format illustration only, never re-ask it.
 
 #### Example with 3 meaningful options:
 ```markdown
@@ -331,6 +363,7 @@ D) Other (please describe after [Answer]: tag below)
 
 [Answer]: 
 ```
+> Evidence-First: the deployment target in a brownfield is explorable (deploy scripts, CI config, IaC files) — explore first; ask only when inconclusive.
 
 #### Example with 4 meaningful options:
 ```markdown
@@ -349,6 +382,7 @@ E) Other (please describe after [Answer]: tag below)
 
 [Answer]: 
 ```
+> Evidence-First: an existing codebase's architecture is read, not asked — inspect the code first; ask only for greenfield or deliberate re-architecture decisions.
 
 ## Summary
 
@@ -357,6 +391,9 @@ E) Other (please describe after [Answer]: tag below)
 - ✅ Always use multiple choice format
 - ✅ **Always include "Other" as the LAST option (MANDATORY)**
 - ✅ Only include meaningful options - don't make up options to fill slots
+- ✅ Explore before asking — resolve codebase/artifact-answerable questions by exploration and record the source
+- ✅ When a well-founded recommendation exists, mark exactly one option `(Recommended)` with a reason and add the "If you choose otherwise" trade-off line
+- ✅ Order questions upstream/blocking-first, one decision per question
 - ✅ Always use [Answer]: tags
 - ✅ Always wait for user completion
 - ✅ Always validate responses for contradictions
@@ -364,6 +401,7 @@ E) Other (please describe after [Answer]: tag below)
 - ✅ Always resolve contradictions before proceeding
 - ❌ Never ask questions in chat (sole exception: the Requirements Analysis Step 2.5 scope-selection question)
 - ❌ Never make up options just to have A, B, C, D
+- ❌ Never ask what the codebase or existing artifacts already answer (Evidence-First Policy)
 - ❌ Never proceed without answers
 - ❌ Never proceed with unresolved contradictions
 - ❌ Never make assumptions about ambiguous responses

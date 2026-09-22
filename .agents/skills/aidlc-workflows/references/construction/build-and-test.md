@@ -365,6 +365,24 @@ Present completion message in this structure:
 ---
 ```
 
+### Commit Protocol
+
+Timing is fixed: the completion message at this gate presents the commit plan in its body → the user's "Approve & Continue" counts as both stage approval and authorization to execute the commit plan → only then run `python <skill>/scripts/engine.py report --stage build-and-test --result approved` (per Step 8) → execute the commit plan. The plan is never presented after the approval click, and no git write happens before `report approved`.
+
+- Presenting the commit plan in the message body is compatible with APG-05 ("No Template Modification"): the two-option template stays untouched — the plan is plain prose in the message body, not a third visible option.
+- **Request Changes path, or the user preferring to handle commits manually** → execute NO git write operations.
+
+Protocol:
+
+1. **Dirty-file triage**: classify every dirty workspace path by whether this session's tool calls actually wrote it. First class: artifacts produced by this workflow. Every other dirty file is second class — list it, NEVER stage it silently.
+2. **One-shot commit plan presentation**: list first-class files grouped by their owning stage and unit; list second-class files as a plain inventory (never staged automatically).
+3. **No amend, no push** — unless the user explicitly asks.
+4. **Non-git workspace**: align with the AUD-02 precedent — no git → mark commit information `unknown`, do not block the flow, and skip this entire protocol.
+5. **Audit**: write the commit plan and its confirmation outcome to `audit.md`; record the resulting commit hashes in `build-and-test-summary.md`.
+6. **Commit order**: commit work results first; IF any archival/handoff pending items exist at that point, commit them afterward (conditional — at build-and-test time these typically do not exist).
+
+**Autonomous Mode (AM-03)**: never commit automatically under Autonomous Mode — the completion message lists the pending-to-commit inventory and the user decides (see `../extensions/workflow/autonomous-mode/autonomous-mode.md`).
+
 ---
 
 ## Step 10: Log Interaction

@@ -144,6 +144,8 @@ Analyze whatever the user has provided:
 
 **CRITICAL**: Use comprehensive analysis to evaluate requirements completeness. Default to asking questions when there is ANY ambiguity or missing detail.
 
+**Evidence-First gate**: resolve anything explorable from the codebase and existing artifacts before asking (Evidence-First Policy, references/common/question-format-guide.md); only preference-driven or exploration-inconclusive items become questions.
+
 **MANDATORY**: Evaluate ALL of these areas and ask questions for ANY that are unclear:
 - **Functional Requirements**: Core features, user interactions, system behaviors
 - **Non-Functional Requirements**: Performance, security, scalability, usability

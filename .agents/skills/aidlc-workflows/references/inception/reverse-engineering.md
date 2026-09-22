@@ -275,6 +275,15 @@ Create `aidlc-docs/inception/reverse-engineering/code-quality-assessment.md`:
 - **Anti-patterns**: [List with locations]
 ```
 
+### Optional Artifact: Working Conventions
+
+Reverse engineering reveals implicit team and code conventions (naming schemes, error-handling idioms, module boundaries, test practices). These observations are worth persisting once — otherwise every subsequent stage has to re-infer them from the code.
+
+- **Artifact location (optional)**: `aidlc-docs/inception/reverse-engineering/working-conventions.md`. It falls within this stage's `produces` wildcard (`inception/reverse-engineering/*`), so it is automatically covered by session loading and recovery probing — no contract or frontmatter changes are needed.
+- **Source-backed discipline**: every convention entry MUST cite its source (the concrete file path, module, or document location where the convention was observed). Do not write vague statements without provenance; do not write speculations unsupported by exploration findings.
+- **Positioning**: this file is the seed and import source for the future Phase 5A knowledge tree (`aidlc-docs/knowledge/`). Until the knowledge tree exists, it is the single store for conventions; once it is enabled, conventions should be imported into it — not kept as a second, divergent store.
+- **Trigger**: produce this file ONLY when reverse engineering actually surfaced actionable implicit conventions. If exploration produced no substantive convention findings, skip this artifact and say so in the completion message.
+
 ## Step 10: Create Timestamp File
 
 Create `aidlc-docs/inception/reverse-engineering/reverse-engineering-timestamp.md`:
@@ -295,6 +304,7 @@ Create `aidlc-docs/inception/reverse-engineering/reverse-engineering-timestamp.m
 - [x] technology-stack.md
 - [x] dependencies.md
 - [x] code-quality-assessment.md
+- [ ] working-conventions.md (optional — check only if produced per the Working Conventions section)
 ```
 
 ## Step 11: Update State Tracking
@@ -306,7 +316,7 @@ Stage progress is engine-owned. Do not hand-write a `## Reverse Engineering Stat
 ```markdown
 # 🔍 Reverse Engineering Complete
 
-[AI-generated summary of key findings from analysis in the form of bullet points]
+[AI-generated summary of key findings from analysis in the form of bullet points; if produced, include `working-conventions.md` (optional artifact) in the artifact list]
 
 > **📋 <u>**REVIEW REQUIRED:**</u>**  
 > Please examine the reverse engineering artifacts at: `aidlc-docs/inception/reverse-engineering/`

@@ -47,7 +47,7 @@ These directives were telling the AI to avoid asking questions rather than encou
 
 ### New Guiding Principles
 
-1. **Default to Asking**: When there's any ambiguity, ask clarifying questions
+1. **Default to Asking**: When there's any ambiguity, ask clarifying questions — gated by the Evidence-First Policy (`references/common/question-format-guide.md`): explore the codebase and existing artifacts first; ask only what exploration cannot answer (assuming without checking is the same failure as not asking at all)
 2. **Comprehensive Coverage**: Evaluate ALL relevant categories, don't skip areas
 3. **Thorough Analysis**: Carefully analyze ALL user responses for ambiguities
 4. **Mandatory Follow-up**: Create follow-up questions for ANY unclear responses
@@ -57,9 +57,9 @@ These directives were telling the AI to avoid asking questions rather than encou
 
 ### For Question Generation
 - Evaluate ALL question categories, don't skip any
-- Ask questions wherever clarification would improve quality
+- Ask questions wherever clarification would improve quality (gated by the Evidence-First Policy: explore the codebase and artifacts before asking)
 - Include comprehensive question categories in each stage
-- Default to inclusion rather than exclusion of questions
+- Default to inclusion rather than exclusion of questions (every included question must still pass the Evidence-First gate)
 
 ### For Answer Analysis
 - Look for vague responses: "depends", "maybe", "not sure", "mix of", "somewhere between"
@@ -71,7 +71,7 @@ These directives were telling the AI to avoid asking questions rather than encou
 - Create separate clarification files when ambiguities are detected
 - Ask specific questions to resolve each ambiguity
 - Don't proceed until ALL unclear responses are clarified
-- Be thorough - better to over-clarify than under-clarify
+- Be thorough - better to over-clarify than under-clarify (follow-up questions to the user remain gated by the Evidence-First Policy)
 
 ## Quality Assurance
 
@@ -97,4 +97,4 @@ This guide should be referenced when:
 
 ## Key Takeaway
 
-**It's better to ask too many questions than to make incorrect assumptions.** The cost of asking clarifying questions upfront is far less than the cost of implementing the wrong solution based on assumptions.
+**It's better to ask too many questions than to make incorrect assumptions** — and every one of those questions must first pass the Evidence-First gate: assuming without checking and asking without exploring are the same failure. The cost of asking clarifying questions upfront is far less than the cost of implementing the wrong solution based on assumptions.

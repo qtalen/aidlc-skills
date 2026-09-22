@@ -411,9 +411,23 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 8. **不做（八项）**：per-unit missing 精确覆盖（Phase 4 Unit Progress）｜report 硬阻断｜审计分段实现（contingency）｜CTX 转正（维持两层：默认层确定薄/增强层智能厚）｜missing-produces 自动补写｜handoff 模型直读 API（resume_note 是唯一通道）｜per-produce required 标记（gen-2）｜存量项目头部须知迁移。
 9. **负债清单（七条，backlog）**：①N=1 具体产物阶段豁免 missing-produces（gen-2 per-produce required 可解）②per-unit missing 精确覆盖依赖 Phase 4 Unit Progress（`{unit-name}` 逐单元展开）③report 软警告待 dogfood 后议升级④状态文件头部读者须知仅覆盖新项目⑤审计分段 contingency（触发器 512KB 或解析 50ms，度量=新计数字段）⑥未 park 且当前阶段零制品的中断不可探测（park 是自律层非传感器）⑦handoff.md 无模型直读 API。
 
-### Phase 3.2：Trellis 借鉴立即批（机制移植，零代码复制）【已裁决待实施 2026-09-22】
+### Phase 3.2：Trellis 借鉴立即批（机制移植，零代码复制）【✅ 已完成 2026-09-22】
 
 **来源**：Phase 3.1 立项同日的 Trellis 调研（§9 2026-09-21）产出四档借鉴清单（本体见本节第 9 条，随本节落盘）。Phase 3.2 承载①档全部 5 项 + ②档 2 项 + 落档编辑；经三轮独立 reviewer 审核（R1/R2 完成、R3 因服务中断放弃、R4 为新 reviewer 定义首跑），全部发现逐条考证属实后消解，本节为终版。审查过程与裁决见 §9 2026-09-22。
+
+**实施状态（2026-09-22 开工，同日全部完成）**：
+
+| 工作包 | 状态 |
+|---|---|
+| P0 四档清单落盘 | ✅ 已自解 |
+| WP-7 落档（①登记表 ②5A/5B 拆写 ③本状态段） | ✅ 完成（②为 2026-09-22 立项时前移完成，开工核验无漂移） |
+| WP-6 契约硬规则单测清零 | ✅ 完成（+25 测试：规则 1-8/10/12-15 全覆盖，含保留键 reviewer/sensors 夹具与规则 12 的 SKILL_ROOT patch 法；零契约-实现出入） |
+| WP-1 Evidence-First 提问纪律 | ✅ 完成（指南顶部 Policy+豁免表、Recommendation+trade-off 两要素、排序纪律并入 Best Practices #3、6 处示例标注、9 文件 sweep 指针） |
+| WP-3 DOC-06 导航索引 | ✅ 完成（advisory 定性、:21 例外条款、Overview 01~06、Enforcement 表补行） |
+| WP-5 RE 可选产物 | ✅ 完成（无编号小节、source-backed、5A 种子定位、Step 10/12 同步） |
+| WP-4 B&T 提交协议 | ✅ 完成（时序定死、六条内容、AUD-02 先例、AM-03 不自动 commit） |
+| WP-2 dogfood 协议 | ✅ 完成（docs/dogfood-protocol.md 100 行，六度量+消融+模板，3.1 术语逐字对齐） |
+| 收尾（登记表回填/测试数刷新/全量验证/一致性 sweep） | ✅ 完成（169 全绿 + --check 零漂移 + 全树无相抵指令） |
 
 **0. 批次与前置**：Phase 3.1 → **Phase 3.2** → Phase 4 → 5A → 5B。串行理由（R2/R4 修正）：**仅 integration-plan.md 与 AGENTS.md 共享**（3.2 各内容 WP 不触 SKILL.md）。**前置 P0（半小时）**：四档清单本体已随本节落盘（P0 自解，R4-R1 阻塞项消解）。原则：frontmatter 零改动；generate.py --check 例行验证。
 
@@ -431,7 +445,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 
 **4. WP-5 RE 可选产物**（~30 行，0.5h）：reverse-engineering.md Step 9 与 Step 10 之间新增**无编号小节** "Optional Artifact: Working Conventions"（禁重编号，:302 有步号自引用）。落点 `aidlc-docs/inception/reverse-engineering/working-conventions.md`——**位于既有通配 produce `inception/reverse-engineering/*` 内，自动进入会话加载清单与 3.1 resumed-artifacts 探测，无需 frontmatter 改动**（删 promote 说法；是否单列留 gen-2 per-produce 决策，入负债）。内容纪律：source-backed（每条约定带来源路径引用，拒绝空话）；**定位为 Phase 5A 知识树的种子/导入源**（防两套约定存储分叉，R4-B3 新增）。同步：Step 10 时间戳/产物清单提及；Step 12 完成消息列出。
 
-**5. WP-4 B&T 提交协议**（~50 行，1h）：build-and-test.md **Step 9 内**新增 "### Commit Protocol"，**时序定死**：门批准 → `report approved` → 完成消息正文呈现 commit 计划（APG-05 允许）→ Approve & Continue 语义含"执行 commit 计划"；拒绝 → Request Changes / 手动路径。内容：①脏文件二分，判定依据=**本会话工具调用实际写过的路径**，其余一律二类列出、绝不静默暂存；②一次性展示 commit 计划（含阶段与单元）；③禁 amend、禁 push（用户显式要求除外）；④**非 git 工作区**：对齐 AUD-02 先例（no git → 标注 unknown，不阻塞，跳过协议，R4 新增）；⑤commit 计划与确认结果入 audit，hash 记入 build-and-test-summary.md；⑥顺序：工作成果 → **若存在**归档/handoff 待提交项则其后（条件式，B&T 时点二者常不存在）。**AM-03 自主模式**：不自动 commit，完成消息列出待提交清单。前置核查存档：全库 grep 结论（仅 AUD-02 git config 与 security-baseline lock-file 提法，无冲突）。
+**5. WP-4 B&T 提交协议**（~50 行，1h）：build-and-test.md **Step 9 内**新增 "### Commit Protocol"，**时序定死**：门批准 → `report approved` → 完成消息正文呈现 commit 计划（APG-05 允许）→ Approve & Continue 语义含"执行 commit 计划"（**2026-09-22 审核更正**：原文顺序可歧读为"批准后才呈现计划"；实施定序为"完成消息含计划先呈现 → Approve & Continue 即阶段批准+执行授权 → `report approved` → 执行"，见 build-and-test.md Commit Protocol 与 §9 实施后审核段）；拒绝 → Request Changes / 手动路径。内容：①脏文件二分，判定依据=**本会话工具调用实际写过的路径**，其余一律二类列出、绝不静默暂存；②一次性展示 commit 计划（含阶段与单元）；③禁 amend、禁 push（用户显式要求除外）；④**非 git 工作区**：对齐 AUD-02 先例（no git → 标注 unknown，不阻塞，跳过协议，R4 新增）；⑤commit 计划与确认结果入 audit，hash 记入 build-and-test-summary.md；⑥顺序：工作成果 → **若存在**归档/handoff 待提交项则其后（条件式，B&T 时点二者常不存在）。**AM-03 自主模式**：不自动 commit，完成消息列出待提交清单。前置核查存档：全库 grep 结论（仅 AUD-02 git config 与 security-baseline lock-file 提法，无冲突）。
 
 **6. WP-2 dogfood 协议**（新文件 docs/dogfood-protocol.md，中文，~120 行，1.5h）：六条度量——①重复解释次数→audit 条目趋势 ②PRD 范围清晰度→**定性项**（观测边界/非目标声明表述，不新增 RA 模板节）③重复评审→rejected/revised 趋势 ④换工具稳定→引擎 JSON 一致性 ⑤新人首任务独立完成→定性 ⑥RCA bug 沉淀率→5A 后生效。消融对照=**历史对照**（Phase 3 前后 dogfood 记录）+ **引擎内开关对照**（park/软警告 on-off）；显式注明"无引擎臂在当前契约下不可构造"（D6 HARD STOP + Only-next-routes）。数据源=audit trail + 3.1 的 audit_entries/audit_bytes；一次一表记录模板。定位：**服务 3.1 落地后的首个 dogfood 周期**（含 3.1 遗留的"软警告待 dogfood 后议升级"决策回填）。
 
@@ -439,7 +453,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 
 **8. Phase 5A 骨架（WP-7 落档，不实施）**：位置 `aidlc-docs/knowledge/<domain>/index.md`（index 只路由）；条目 frontmatter 预留 `governs:`（条目级无碍；未来用于阶段 frontmatter 须走契约 §5 保留命名空间）。机制定性：**按需加载的复盘约定条款**，复用两态扩展体系（opt-in 存根 + 常载规则），非新加载机制。写入仪式双触发：B&T 收尾自问 + 复盘触发器——判定者=**模型**、计数窗口=**同单元连续失败**、跨会话以 handoff/audit note **best-effort** 续（引擎计数属引擎改动，须付 D13 交互矩阵成本）。内容纪律：可执行契约模板（签名/边界行为/错误矩阵/来源引用）；"分析留在聊天里=零"；超阈值拆分。学习双出口：约定→知识树条目 or→传感器提案（D14 finding 形态）。知识源关系：**RE working-conventions.md = 知识树初始种子/导入源**（唯一"约定"存储为知识树）；空树期 knowledge_refs 回退引用它与既有规则文件。悬空依赖显式化：knowledge_refs 完整设计见 docs/result-oriented-delegation-design.md（待 WP-7 第 6 项处理）。排期：Phase 4 后、5B 前。
 
-**9. 四档清单本体**（WP-7 执行时迁入 §9 登记表，加状态列）：
+**9. 四档清单本体**（已迁入 §9 登记表并加状态列；本表为规格存档，以 §9 为准）：
 
 | 档 | 项 | 去向 |
 |---|---|---|
@@ -624,3 +638,50 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 **负债清单追加**：⑨produces 若引入字面 `[`/`?` 字符，missing-produces（字面量判断）与 resumed-artifacts（glob 判断）将不一致——届时需 glob.escape 或显式字面量声明（来源：审核主张 B 裁决的残余风险）。
 
 **第二轮审核（同日，reviewer 复审）**：裁决"修复轮通过，可作为提交依据"。修复逐条验收通过（tier-2 新措辞与 CTX-02 一致、workflow-changes §6 自洽、fresh-init 测试载荷成立[排除逻辑移除即红]、计数/键集/落盘断言全部到位）；三主张裁决：A 证伪（编辑事故无残留，逐行核查 GoldenOutputTests 区域）、B 部分证实（Phase 3 历史条目挂当前计数属时间线混淆，无功能后果）、C 证实（"8 个"确系规格笔误，jump --fresh 是 jump 的旗标非独立动词）。新发现 1🟡+6🔵，全部当场修复：🟡AM-05 断点通道改指 park（原指 audit.md，与 CTX-03 相抵且恢复通道不覆盖）；🔵 workflow-conventions 时间戳枚举补 park、AGENTS.md Phase 3 条目改"当时 77 例，现累计 144"、本文件 §7 规格就地注记 8→7 笔误、金样测试补 audit_bytes==文件字节数断言（格式微调不敏感）、session-continuity 早退指引改指 status hint+契约 §10（error-handling.md 不覆盖 legacy）、CliTests._run 委托 _run_main 消双实现。终态：144 全绿 + --check 零漂移。
+
+### 2026-09-22（续三）：Phase 3.2 开工——Trellis 借鉴登记表（WP-7-①）
+
+四档清单自 §7 Phase 3.2 第 9 条迁入，加"状态"列。WP-7-②（5A/5B 拆写 + Phase 4 设计输入挂档 + ④档三项入不排期）为立项时前移完成，开工核验无漂移。
+
+| 档 | 项 | 去向 | 状态 |
+|---|---|---|---|
+| ①立即 | brainstorm 三纪律 | WP-1（Evidence-First 提问纪律） | 已完成（2026-09-22） |
+| ①立即 | 成功度量清单 | WP-2（dogfood 协议） | 已完成（2026-09-22） |
+| ①立即 | 消融对照 | WP-2（dogfood 协议） | 已完成（2026-09-22） |
+| ①立即 | 长制品导航索引 | WP-3（DOC-06） | 已完成（2026-09-22） |
+| ①立即 | 批量提交协议 | WP-4（B&T Commit Protocol） | 已完成（2026-09-22） |
+| ②排期 | 单层活知识树闭环 | Phase 5A 立项（骨架已落 §7） | 已落档（实施在 Phase 5A） |
+| ②排期 | spec 冷启动 | WP-5（RE 可选产物为先行） | 已完成（2026-09-22） |
+| ②排期 | 契约硬规则单测清零 | WP-6 | 已完成（2026-09-22） |
+| ③相位触发 | 上下文策展清单 | Phase 4 设计输入 | 已落档（实施在 Phase 4） |
+| ③相位触发 | 派遣三件套 | Phase 4 设计输入 | 已落档（实施在 Phase 4） |
+| ③相位触发 | channel 事件日志 vs claim 注册表对照 | Phase 4 设计输入 | 已落档（实施在 Phase 4） |
+| ③相位触发 | 单元依赖显式化 | Phase 4 设计输入 | 已落档（实施在 Phase 4） |
+| ③相位触发 | spec 移植模式 | Phase 4 设计输入 | 已落档（实施在 Phase 4） |
+| ③相位触发 | knowledge_refs 字段 | Phase 5A | 已落档（设计稿 docs/result-oriented-delegation-design.md，处理挂 Phase 4 输入第 6 项） |
+| ③相位触发 | 学习双出口 | Phase 5A | 已落档（实施在 Phase 5A） |
+| ③相位触发 | 任务信封设计稿处理 | Phase 4 输入第 6 项 | 已落档（实施在 Phase 4） |
+| ④仅记录 | 技能版本戳 | 技能分发/升级阶段再议 | 已落档（不排期，带触发条件） |
+| ④仅记录 | 模板升级保护 | 技能分发/升级阶段再议 | 已落档（不排期，带触发条件） |
+| ④仅记录 | evidence-first 扩展范式 | 技能分发/升级阶段再议 | 已落档（不排期；**与 WP-1 非同一物**：此项=扩展结构范式，WP-1=提问纪律） |
+
+执行顺序：WP-7 → WP-6 → WP-1 → WP-3 → WP-5 → WP-4 → WP-2 → 收尾（登记表状态回填 + AGENTS.md 测试数 + 全量 unittest + --check + 散文一致性 sweep）。
+
+### 2026-09-22（续四）：Phase 3.2 实施完成
+
+开工即收尾，同日完成全部 7 个工作包（并行分发 3 个 executor：WP-6 测试 / WP-3+5+4 文档 / WP-2 新文档；WP-1 强耦合由主智能体直做）。要点：
+
+- **WP-6**：test_generate.py +367 行/25 测试（Rule1~15 各类，规则 9/11/16 既有覆盖在 docstring 映射表注明）；映射表以模块 docstring 固化（含规则 12 的 SKILL_ROOT 调用期 patch 方法说明）；保留键 reviewer/sensors 夹具锁定契约 §5；实施中发现规则 7 实际校验点在 `_validate_references` 而非 build_stage——按实际实现测试，行为与契约一致，零出入。
+- **WP-1**：question-format-guide.md 顶部 Evidence-First Policy（优先级条款覆盖各阶段 "when in doubt, ask" 类指令 + 豁免表：RA Step 2.5 scope 聊天问题、RA Step 5.1 扩展 opt-in 问题）；Multiple Choice Guidelines 新增 Recommendation and Trade-off 小节（与 QT-01 流程无涉、AM-04 auto-recommended 恰选 "(Recommended)" 项）；排序纪律并入 Best Practices #3；Question Structure 模板与 Summary 清单同步两要素；6 处探索可解示例全部标注（新/旧项目由 WD/RE 定、数据库/部署/架构 brownfield 先探索）；sweep 落地 9 文件（8 个产问题阶段文件各 1 行 Evidence-First gate 指针 + overconfidence-prevention.md "Default to Asking" 补门控）。验收达成：全树 grep 各 ask-aggressively 指令均有相邻门控从属化，无孤立相抵指令。
+- **WP-3**：DOC-06 导航索引（advisory）：≥300 整行内容制品顶部"任务→章节"表覆盖全部 H2；排除 audit/state/handoff/checkpoints/问题文件；:21 补 Advisory 例外条款（列出不阻断）；Overview 与 Enforcement 表同步。
+- **WP-5**：RE Step 9/10 之间无编号小节 "Optional Artifact: Working Conventions"（步号零重排）；source-backed 纪律（每条约定带来源引用）；定位 Phase 5A 知识树种子/导入源（防两套存储分叉）；免 frontmatter 改动（produces 通配已覆盖）；Step 10 产物清单与 Step 12 完成消息同步。
+- **WP-4**：B&T Step 9 内 "Commit Protocol" 子节，时序定死（门批准 → report approved → 完成消息正文呈现 commit 计划 → Approve & Continue 即批准执行；**时序表述已于实施后审核更正，以 build-and-test.md Commit Protocol 新序为准**）；六条内容（脏文件二分/一次性计划/禁 amend-push/非 git 对齐 AUD-02 跳过/审计+hash 入 summary/条件式归档顺序）；AM-03 不自动 commit。
+- **WP-2**：docs/dogfood-protocol.md（100 行中文）：六条度量（2/5 定性、6 待 5A）、消融对照（历史+引擎内开关，显式声明无引擎臂不可构造 D6/HARD STOP/Only-next-routes）、数据源对齐 3.1（audit_entries/audit_bytes/分级阅读）、一次一表模板含软警告升级决策回填行。
+
+**终态**：测试 144 → **169** 全绿；--check 零漂移；登记表 7 行回填"已完成"；AGENTS.md 测试数与路线图同步。规格两处既知小漂移（WP-5 ":302 步号自引用"锚点过期、测试基线数 102→144）均在就绪核查中预判并按语义稳健指令处置，无实施影响。
+
+**负债挂档（第 12 条六项，随本轮 §9 落档）**：①WP-5 通配单列 per-produce 决策→gen-2（未决）；②5A 触发器跨会话计数 best-effort→Phase 5A 设计输入（未决）；③WP-4 二分语义随 Phase 4 claim/merge 重审→Phase 4 设计输入（未决）；④登记表漂移风险→已由收尾回填对冲，长期靠"以 §9 为准"标记（§7 第 9 条已加注）；⑤消融无引擎臂违宪→永久（除非契约变更）；⑥四档清单状态列"计划中"待收尾刷新→已消解（本轮收尾回填完毕）。
+
+**实施后审核（同日，reviewer 全量静态审查）**：裁决"通过，可作为提交依据"，0🔴/1🟡/4🔵；五主张裁决：A 证实（Neo4l 虚惊无残留）、B 部分证实（overconfidence :60/:74/:100 三行无相邻门控，验收条款实质达成/字面未全达）、C 证实（映射表 16 规则无遗漏，30+25=55 与 114 合计 169 精确吻合）、D 实质满足（行内门控约束力强于指针行，意图达成）、E 证实（步号顺移无交叉引用破坏）。审核发现全部当场修复：🟡六条负债挂 §9（本段即修复）；🔵overconfidence 三行补门控半句（B 项字面口径随之达成）、AGENTS.md Phase 3.1 行改"当时 144 例"范式、B&T Commit Protocol 时序句重排（完成消息含计划先呈现→Approve & Continue 即阶段批准+执行授权→report approved→执行，消除"批准后才见计划"的歧读）、§7 第 9 条加"已迁入 §9，以 §9 为准"标记。
+
+**第二轮审核（同日，reviewer 复审修复轮）**：裁决"修复轮通过（0🔴/0🟡/2🔵），可作为提交依据"；五项修复逐条验收属实，新鲜眼光复查未发现第一轮误判（169 计数静态精确复核、门控 sweep 抽查、新术语交叉引用、WP-3/5 本体抽样均过）。四主张裁决：A 部分证实（B&T/§7 时序张力属实且发现 §9 记录内亦有旧序残留——新发现第二处）、B 部分证实（:61 属覆盖度轴无需门控、:62 属边界字面未闭合）、C 证实（§9 记录无美化失真）、D 证实（括注二次修正后干净）。两条 🔵 当场修复：§7 :448 与 §9 旧序两处加"审核更正，以 build-and-test.md 新序为准"指针（对照 :409 行内更正先例）、overconfidence :62 补门控半句（"every included question must still pass the Evidence-First gate"）。命令级验证由主智能体代跑闭合：169 全绿 + --check 零漂移。

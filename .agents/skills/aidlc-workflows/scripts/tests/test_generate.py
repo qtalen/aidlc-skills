@@ -9,6 +9,28 @@ Pure standard library. The ``scripts`` directory is intentionally *not* made a
 package: the module under test is loaded by absolute path via importlib, and
 integration tests exercise it as a subprocess against a throwaway copy of the
 skill tree (the real skill files are never written to).
+
+Contract §7 rule -> fixture -> tests map (rules 1-12 hard-fail, 13-16
+advisory; rules 9, 11 and 16 were already covered before this table existed):
+
+| Rule | Summary | Fixture | Tests |
+|------|---------|---------|-------|
+| 1 | unknown frontmatter keys rejected (incl. reserved `reviewer:`/`sensors:`) | build_stage() in memory | Rule1Tests |
+| 2 | slug is kebab-case and equals filename stem | build_stage() in memory | Rule2Tests |
+| 3 | phase matches containing directory | build_stage() in memory | Rule3Tests |
+| 4 | required keys present, list-typed, enum-valid | build_stage() in memory | Rule4Tests |
+| 5 | condition is a non-empty string | build_stage() in memory | Rule5Tests |
+| 6 | for_each only accepts 'unit-of-work' | build_stage() in memory | Rule6Tests |
+| 7 | requires_stage references known slugs | _warn_stage() + _validate_references() | Rule7Tests |
+| 8 | requires_stage graph is acyclic | _warn_stage() + _detect_cycles() | Rule8Tests |
+| 9 | scopes key set equals registered scopes | build_stage() in memory | covered by test_incomplete_scopes_keyset_errors (StageValidationTests) |
+| 10 | scope values in EXECUTE/SKIP/CONDITIONAL | build_stage() in memory | Rule10Tests |
+| 11 | ALWAYS stage is EXECUTE in every scope | build_stage() in memory | covered by test_always_stage_must_execute_everywhere (StageValidationTests) |
+| 12 | scope registry files valid (name/depth/keys/default) | load_scopes() with generate.SKILL_ROOT patched to a temp dir (module global read at call time; generate.py:31, :534-535) — no tree copy needed | Rule12Tests |
+| 13 | every consume artifact matches some producer | _warn_stage() + compute_warnings() | Rule13Tests |
+| 14 | required consume's producer listed in requires_stage | _warn_stage() + compute_warnings() | Rule14Tests |
+| 15 | an artifact is not written by two stages | _warn_stage() + compute_warnings() | Rule15Tests |
+| 16 | required consume not left without executing producer | _warn_stage() + compute_warnings() | covered by Rule16AdvisoryTests |
 """
 
 import importlib.util
@@ -329,6 +351,351 @@ class Rule16AdvisoryTests(unittest.TestCase):
         self.assertFalse(
             [w for w in warnings if "all producer stages are SKIP" in w]
         )
+
+
+# ---------------------------------------------------------------------------
+# 2b. Contract hard-rule tests (stage-contract.md §7, rules 1-15)
+# ---------------------------------------------------------------------------
+
+
+def _scope_fm(name, depth="standard", default=None, omit=()):
+    """Build a minimal scope registry frontmatter + H1 body."""
+    lines = ["---", "name: " + name]
+    if "depth" not in omit:
+        lines.append("depth: " + depth)
+    lines.append("keywords: []")
+    if "description" not in omit:
+        lines.append('description: "Test scope"')
+    if default is not None:
+        lines.append("default: " + default)
+    lines.append("---")
+    lines.append("")
+    lines.append("# " + name)
+    return "\n".join(lines)
+
+
+class Rule1Tests(unittest.TestCase):
+    def test_unknown_key_rejected(self):
+        text = _stage_fm(
+            "my-stage",
+            "inception",
+            "CONDITIONAL",
+            {"classic": "EXECUTE"},
+        ).replace("---\nslug:", "---\nbogus_key: 1\nslug:", 1)
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn("unknown frontmatter key(s)", str(ctx.exception))
+        self.assertIn("bogus_key", str(ctx.exception))
+
+    def test_reserved_key_reviewer_rejected(self):
+        # Rule 1: 'reviewer' is reserved (contract §5), not an allowed key.
+        text = _stage_fm(
+            "my-stage",
+            "inception",
+            "CONDITIONAL",
+            {"classic": "EXECUTE"},
+        ).replace("---\nslug:", "---\nreviewer: none\nslug:", 1)
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn("unknown frontmatter key(s)", str(ctx.exception))
+        self.assertIn("reviewer", str(ctx.exception))
+
+    def test_reserved_key_sensors_rejected(self):
+        # Rule 1: 'sensors' is reserved (contract §5), not an allowed key.
+        text = _stage_fm(
+            "my-stage",
+            "inception",
+            "CONDITIONAL",
+            {"classic": "EXECUTE"},
+        ).replace("---\nslug:", "---\nsensors: []\nslug:", 1)
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn("unknown frontmatter key(s)", str(ctx.exception))
+        self.assertIn("sensors", str(ctx.exception))
+
+
+class Rule2Tests(unittest.TestCase):
+    def test_slug_must_equal_filename_stem(self):
+        text = _stage_fm(
+            "my-stage", "inception", "CONDITIONAL", {"classic": "EXECUTE"}
+        )
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "other-name.md", "other-name", "inception", text, ["classic"]
+            )
+        self.assertIn("must equal filename stem", str(ctx.exception))
+
+    def test_slug_must_be_kebab_case(self):
+        text = _stage_fm(
+            "My_Stage", "inception", "CONDITIONAL", {"classic": "EXECUTE"}
+        )
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "My_Stage.md", "My_Stage", "inception", text, ["classic"]
+            )
+        self.assertIn("is not kebab-case", str(ctx.exception))
+
+
+class Rule3Tests(unittest.TestCase):
+    def test_phase_must_match_directory(self):
+        text = _stage_fm(
+            "my-stage", "construction", "CONDITIONAL", {"classic": "EXECUTE"}
+        )
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn("must match containing directory", str(ctx.exception))
+
+
+class Rule4Tests(unittest.TestCase):
+    def test_missing_required_key_gate(self):
+        # Rule 4: drop the gate line from an otherwise valid frontmatter.
+        text = _stage_fm(
+            "my-stage", "inception", "CONDITIONAL", {"classic": "EXECUTE"}
+        ).replace("gate: none\n", "")
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn("missing required key", str(ctx.exception))
+        self.assertIn("'gate'", str(ctx.exception))
+
+    def test_produces_must_be_list(self):
+        text = _stage_fm(
+            "my-stage",
+            "inception",
+            "CONDITIONAL",
+            {"classic": "EXECUTE"},
+            produces="not-a-list",
+        )
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn("produces must be a list", str(ctx.exception))
+
+    def test_execution_enum_violation(self):
+        text = _stage_fm(
+            "my-stage", "inception", "SOMETIMES", {"classic": "EXECUTE"}
+        )
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn("execution must be one of", str(ctx.exception))
+
+
+class Rule5Tests(unittest.TestCase):
+    def test_empty_condition_rejected(self):
+        text = _stage_fm(
+            "my-stage",
+            "inception",
+            "CONDITIONAL",
+            {"classic": "EXECUTE"},
+            condition="",
+        )
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn("condition must be a non-empty string", str(ctx.exception))
+
+
+class Rule6Tests(unittest.TestCase):
+    def test_for_each_must_be_unit_of_work(self):
+        text = _stage_fm(
+            "my-stage", "inception", "CONDITIONAL", {"classic": "EXECUTE"}
+        ).replace("---\nslug:", "---\nfor_each: per-module\nslug:", 1)
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn("for_each must be 'unit-of-work'", str(ctx.exception))
+
+
+class Rule7Tests(unittest.TestCase):
+    def test_unknown_requires_stage_slug(self):
+        stages = [_warn_stage("a", requires_stage=["nonexistent-stage"])]
+        with self.assertRaises(generate.HardError) as ctx:
+            generate._validate_references(stages)
+        self.assertIn("requires_stage references unknown slug", str(ctx.exception))
+        self.assertIn("nonexistent-stage", str(ctx.exception))
+
+
+class Rule8Tests(unittest.TestCase):
+    def test_requires_stage_cycle_detected(self):
+        a = _warn_stage("a", requires_stage=["b"])
+        b = _warn_stage("b", requires_stage=["a"])
+        by_slug = {"a": a, "b": b}
+        with self.assertRaises(generate.HardError) as ctx:
+            generate._detect_cycles([a, b], by_slug)
+        self.assertIn("cycle detected", str(ctx.exception))
+
+
+class Rule10Tests(unittest.TestCase):
+    def test_invalid_scope_value_rejected(self):
+        text = _stage_fm(
+            "my-stage",
+            "inception",
+            "CONDITIONAL",
+            {"classic": "MAYBE", "bugfix": "EXECUTE"},
+        )
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic", "bugfix"]
+            )
+        self.assertIn("scopes.classic must be one of", str(ctx.exception))
+
+
+class Rule12Tests(unittest.TestCase):
+    def setUp(self):
+        self._orig_root = generate.SKILL_ROOT
+        self._root = tempfile.mkdtemp()
+        generate.SKILL_ROOT = self._root
+        self._scopes_dir = os.path.join(
+            self._root, "references", "common", "scopes"
+        )
+        os.makedirs(self._scopes_dir)
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        generate.SKILL_ROOT = self._orig_root
+        shutil.rmtree(self._root, ignore_errors=True)
+
+    def _write_scope(self, filename, text):
+        with open(
+            os.path.join(self._scopes_dir, filename),
+            "w",
+            encoding="utf-8",
+            newline="",
+        ) as handle:
+            handle.write(text)
+
+    def test_name_must_equal_stem(self):
+        # Rule 12: one valid registry file plus an offender.
+        self._write_scope("alpha.md", _scope_fm("alpha", default="true"))
+        self._write_scope("beta.md", _scope_fm("alpha"))
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.load_scopes()
+        self.assertIn("must equal filename stem", str(ctx.exception))
+
+    def test_missing_required_scope_key(self):
+        # Rule 12: description omitted.
+        self._write_scope("alpha.md", _scope_fm("alpha", default="true"))
+        self._write_scope("beta.md", _scope_fm("beta", omit=("description",)))
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.load_scopes()
+        self.assertIn("missing required scope key", str(ctx.exception))
+        self.assertIn("'description'", str(ctx.exception))
+
+    def test_depth_enum_violation(self):
+        # Rule 12: 'deep' is not a valid scope depth.
+        self._write_scope("alpha.md", _scope_fm("alpha", default="true"))
+        self._write_scope("beta.md", _scope_fm("beta", depth="deep"))
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.load_scopes()
+        self.assertIn("depth must be one of", str(ctx.exception))
+
+    def test_zero_defaults_rejected(self):
+        # Rule 12: a legal file that does not opt in as default still needs
+        # exactly one default somewhere.
+        self._write_scope("alpha.md", _scope_fm("alpha"))
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.load_scopes()
+        self.assertIn("no scope declares default: true", str(ctx.exception))
+
+    def test_two_defaults_rejected(self):
+        # Rule 12: two defaults must fail.
+        self._write_scope("alpha.md", _scope_fm("alpha", default="true"))
+        self._write_scope("beta.md", _scope_fm("beta", default="true"))
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.load_scopes()
+        self.assertIn(
+            "more than one scope declares default: true", str(ctx.exception)
+        )
+
+
+class Rule13Tests(unittest.TestCase):
+    def test_unmatched_consume_warns(self):
+        consumer = _warn_stage(
+            "consumer",
+            consumes=[_consume("artifact.md")],
+            scopes={"classic": "EXECUTE"},
+        )
+        warnings = generate.compute_warnings([consumer], ["classic"])
+        self.assertTrue(
+            [w for w in warnings if "matches no stage's produces" in w]
+        )
+
+    def test_matched_producer_does_not_warn(self):
+        producer = _warn_stage(
+            "producer", produces=["artifact.md"], scopes={"classic": "EXECUTE"}
+        )
+        consumer = _warn_stage(
+            "consumer",
+            consumes=[_consume("artifact.md")],
+            scopes={"classic": "EXECUTE"},
+        )
+        warnings = generate.compute_warnings([producer, consumer], ["classic"])
+        self.assertFalse(
+            [w for w in warnings if "matches no stage's produces" in w]
+        )
+
+
+class Rule14Tests(unittest.TestCase):
+    def test_required_producer_missing_from_requires_stage(self):
+        producer = _warn_stage(
+            "producer", produces=["artifact.md"], scopes={"classic": "EXECUTE"}
+        )
+        consumer = _warn_stage(
+            "consumer",
+            consumes=[_consume("artifact.md")],
+            scopes={"classic": "EXECUTE"},
+        )
+        warnings = generate.compute_warnings([producer, consumer], ["classic"])
+        self.assertTrue([w for w in warnings if "not in requires_stage" in w])
+
+    def test_required_producer_listed_in_requires_stage(self):
+        producer = _warn_stage(
+            "producer", produces=["artifact.md"], scopes={"classic": "EXECUTE"}
+        )
+        consumer = _warn_stage(
+            "consumer",
+            consumes=[_consume("artifact.md")],
+            requires_stage=["producer"],
+            scopes={"classic": "EXECUTE"},
+        )
+        warnings = generate.compute_warnings([producer, consumer], ["classic"])
+        self.assertFalse([w for w in warnings if "not in requires_stage" in w])
+
+
+class Rule15Tests(unittest.TestCase):
+    def test_duplicate_producer_warns(self):
+        first = _warn_stage(
+            "p1", produces=["artifact.md"], scopes={"classic": "EXECUTE"}
+        )
+        second = _warn_stage(
+            "p2", produces=["artifact.md"], scopes={"classic": "EXECUTE"}
+        )
+        warnings = generate.compute_warnings([first, second], ["classic"])
+        self.assertTrue([w for w in warnings if "produces collision" in w])
+
+    def test_distinct_producers_do_not_warn(self):
+        first = _warn_stage(
+            "p1", produces=["a.md"], scopes={"classic": "EXECUTE"}
+        )
+        second = _warn_stage(
+            "p2", produces=["b.md"], scopes={"classic": "EXECUTE"}
+        )
+        warnings = generate.compute_warnings([first, second], ["classic"])
+        self.assertFalse([w for w in warnings if "produces collision" in w])
 
 
 # ---------------------------------------------------------------------------

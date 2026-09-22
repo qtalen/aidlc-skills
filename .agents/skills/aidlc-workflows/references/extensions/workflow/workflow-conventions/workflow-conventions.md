@@ -4,7 +4,7 @@
 
 MANDATORY cross-cutting rules for every AI-DLC workflow execution. This file has no `.opt-in.md` — it is ALWAYS enforced and loaded at workflow start. It consolidates four rule groups:
 
-- **DOC-01~05** Documentation Consistency — keep aidlc-docs artifacts synchronized with code after every change
+- **DOC-01~06** Documentation Consistency — keep aidlc-docs artifacts synchronized with code after every change
 - **APG-01~05** Approval Gate Semantics — how user responses at stage approval gates are classified and handled
 - **AUD-01~04** Audit Attribution — authorship fields on audit.md entries
 - **QT-01~04** Question Tool Flow — after generating a question file, collect answers via the `question` tool, write them back to the file, then proceed
@@ -18,7 +18,7 @@ A **blocking finding** means:
 2. Do NOT present "Continue to Next Stage" until resolved (present only "Request Changes" with explanation; for APG/AUD violations, correct the handling/entry first)
 3. Log the finding in `aidlc-docs/audit.md` with rule ID, description, and stage context
 
-All rules are **blocking** by default. Rules not applicable to the current stage/change are marked N/A (not a finding).
+All rules are **blocking** by default, with one exception: rules explicitly marked **Advisory** in their own entry (currently DOC-06) are listed as reminders in the completion message but never block the flow. Rules not applicable to the current stage/change are marked N/A (not a finding).
 
 ---
 
@@ -49,6 +49,13 @@ Question-and-answer files, clarification sections of plan files, and `audit.md` 
 
 ### DOC-05: Generic Artifacts, No Cross-Project Leakage
 Shared workflow rule files MUST contain no project-specific identifiers (project names, requirement/story numbering from one project). Project-specific content belongs in the project's `aidlc-docs/`, never in shared rules.
+
+### DOC-06: Navigation Index for Long Content Artifacts (Advisory)
+When creating or substantially updating an `aidlc-docs/` **content artifact of 300+ total lines**, maintain a task→section navigation table at the top of the file — one row per H2 heading (section title + one-line purpose) — so readers can locate the relevant section without reading the whole file.
+
+- The navigation table MUST cover **all H2 headings** of the file (mechanically checkable by comparing table rows against the file's H2 list).
+- **Exclusions**: `audit.md` (append-only log, mutually exclusive with a maintained index), `aidlc-docs/aidlc-state.md` and `aidlc-docs/handoff.md` (engine-owned), checkpoint files under `aidlc-docs/checkpoints/` (bounded by the 200-line cap, never triggers this rule), and question files (QT / DOC-04 jurisdiction).
+- **Nature**: advisory — a missing or incomplete navigation index is NOT a blocking finding. When found missing, list it as a reminder in the completion message and continue; never block the flow over it.
 
 ---
 
@@ -163,6 +170,7 @@ If the `question` tool is unavailable, errors out, or returns without answers, f
 | Every stage completion + every change request | DOC-01, DOC-02, DOC-03 |
 | Historical record handling | DOC-04 |
 | Shared rule file edits | DOC-05 |
+| Creating or substantially updating a long (300+ line) aidlc-docs content artifact | DOC-06 (advisory — narrow context; list reminder if missing, never block) |
 | Every approval gate (all stages, inception + construction) | APG-01 ~ APG-05 |
 | Every audit.md write | AUD-01, AUD-02, AUD-03 |
 | Every question file creation (requirements, stories, design, clarification) | QT-01 ~ QT-04 |
