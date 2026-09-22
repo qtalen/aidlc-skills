@@ -91,12 +91,14 @@ All rule detail file references below (e.g., `references/common/process-overview
 
 Only after the probe succeeds may the workflow proceed.
 
+**Engine call failures after bootstrap**: if any engine invocation later fails with `'python' is not recognized`, `command not found`, or `No module named`, stop retrying. Tell the user the workflow requires Python 3.8+ (standard library only — no pip/venv needed) and give the platform install command — Windows: `winget install Python.Python.3.12` or the python.org installer; macOS: `brew install python3` or `xcode-select --install`; Debian/Ubuntu: `sudo apt install python3`. Retry the engine call once Python is installed.
+
 **Interpret the status JSON** (the single JSON object on stdout):
 
 | `state` / `integrity` | Action |
 |---|---|
 | `none` | New workflow: display the welcome message (next section) → run Workspace Detection → `engine.py init` creates `aidlc-state.md` deterministically |
-| `active` | Resume the session per `references/common/session-continuity.md`; the status JSON is the sole source of truth for recovery |
+| `active` | Resume the session per `references/common/session-continuity.md`; read `resume_note` and `artifact_alerts` from the status JSON first — they are the resumption briefing (last parked context; any missing-artifact alerts). The status JSON is the sole source of truth for recovery |
 | `completed` | The workflow is already complete; confirm with the user before starting anything new |
 | `legacy` | A pre-engine state file exists (no `ENGINE-STATE` region): do NOT silently adopt or overwrite it — follow the legacy handling in `references/common/engine-contract.md` |
 | `corrupt` | The `ENGINE-STATE` marker region is present but incomplete or malformed (truncated/hand-edited): do NOT overwrite silently — restore the missing marker line from a backup if available, else get explicit confirmation and Start Fresh (`jump --fresh`) |
@@ -135,6 +137,12 @@ The full runtime contract — invocation, directives, transition semantics, stat
 - `next_stage` inside a `run-stage` directive is a prediction ("the stage that would follow if this one completed") for presentation only — never use it to route.
 - Never call `report` for an outcome that did not happen — for a non-gated stage the engine cannot distinguish a fabricated report from a real one and would silently skip later stages. If a `run-stage` directive will not be executed (e.g. the user redirected the work), simply drop it: `next` re-emits it on the following iteration. Ignore unknown fields in engine JSON output.
 - The authoritative version of these directive-consumption rules is `references/common/engine-contract.md` §4.
+
+## Park (Session Parking)
+
+**CRITICAL**: Park whenever the workflow is interrupted outside a normal stage transition — the user asks to pause, the topic switches away mid-task, or a long task senses an imminent session interruption.
+
+To park, run `python <skill>/scripts/engine.py park --note "<what is in flight; next step; caveats>"` (prefer `python`, fall back to `python3`). Park writes only an annotation — the state file's Last Parked line plus `aidlc-docs/handoff.md`: stage marks and the current stage are unchanged and no audit entry is written. A new session resumes from the status JSON's `resume_note` (see Engine Bootstrap).
 
 ---
 
@@ -531,7 +539,7 @@ The Operations stage will eventually include:
 - **Adaptive Execution**: Only execute stages that add value
 - **Transparent Planning**: Always show execution plan before starting
 - **User Control**: User can request stage inclusion/exclusion
-- **Progress Tracking**: Stage progress is engine-owned. The engine exclusively maintains the ENGINE-STATE region of `aidlc-state.md` (stage checkboxes, Current Status, State Digest) through `report`/`jump`. The model MUST NOT hand-edit that region.
+- **Progress Tracking**: Stage progress is engine-owned. The engine exclusively maintains the ENGINE-STATE region of `aidlc-state.md` (stage checkboxes, Current Status, State Digest) through `report`/`jump` (transitions) and `park` (annotations). The model MUST NOT hand-edit that region.
 - **State Ownership**: The model maintains only the model-owned regions of `aidlc-state.md` (Project Information, Workspace State, Code Location Rules, Extension Configuration, Autonomous Mode, Execution Plan Summary — incl. the Scope/Depth/Stages lines the engine reads for routing) per template. The full ownership matrix is in `references/common/engine-contract.md`.
 - **Complete Audit Trail**: Log ALL user inputs and AI responses in audit.md with timestamps
   - **CRITICAL**: Capture user's COMPLETE RAW INPUT exactly as provided
@@ -551,7 +559,7 @@ The Operations stage will eventually include:
 
 ### Two-Level Checkbox Tracking System
 - **Plan-Level**: Track detailed execution progress within each stage. Plan files live in `aidlc-docs/` and remain model-owned — update their checkboxes immediately in the same interaction where the work is completed.
-- **Stage-Level**: Overall workflow progress lives in the engine-owned region of `aidlc-state.md`. It is maintained exclusively by the engine through `report`/`jump` (see Orchestration Loop) — the model MUST NOT hand-edit it.
+- **Stage-Level**: Overall workflow progress lives in the engine-owned region of `aidlc-state.md`. It is maintained exclusively by the engine through `report`/`jump` (transitions) and `park` (annotations) (see Orchestration Loop) — the model MUST NOT hand-edit it.
 - **Update immediately**: All plan-level checkbox updates happen in the SAME interaction where the work is completed.
 
 ## Prompts Logging Requirements
@@ -611,7 +619,8 @@ The Operations stage will eventually include:
 │   │   └── build-and-test/
 │   ├── operations/                 # 🟡 OPERATIONS PHASE (placeholder)
 │   ├── aidlc-state.md
-│   └── audit.md
+│   ├── audit.md
+│   └── handoff.md                  # Engine-owned park notes
 ```
 
 **CRITICAL RULE**:

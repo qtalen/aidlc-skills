@@ -23,6 +23,16 @@ The engine is the single authority for the workflow's deterministic mechanics.
 
 **Condition prose never enters the engine.** Because of this, a CONDITIONAL stage is always emitted as a `run-stage` directive with `"conditional": true`. When the model judges the stage does not apply, it records that judgment with `report --stage <slug> --result skipped --reason "<why>"`. A skip without `--reason` is rejected by the engine.
 
+### Verb taxonomy (7 subcommands)
+
+| Layer | Verbs | Mutates stage marks / current stage? |
+|---|---|---|
+| Read | `status`, `next` | No — pure reads |
+| Transition | `report`, `jump` | **Yes — the only verbs that change marks or the pointer** (a closed set) |
+| Lifecycle | `init`, `park`, `rebase` | No — `init` only creates; `park` is an annotation sub-kind; `rebase` re-renders the region without changing marks or current |
+
+**Transition-invariance law**: annotation verbs (`park`, and `rebase`'s digest re-render) MUST leave the stage marks and the current stage unchanged. Only `report` and `jump` may alter them.
+
 ---
 
 ## 2. Invocation and Bootstrap Probe
@@ -142,6 +152,29 @@ Usage notes:
 
 ---
 
+## 5.5 Park Semantics (`park`)
+
+`park` records an in-flight annotation — it is **never a transition**. It lets an interrupted session leave a human-readable "what was in flight" note without advancing, rewinding, or re-marking anything.
+
+```
+engine.py park --note "<what is in flight, the next step, and any caveats>"
+```
+
+- **`--note` is required.** Newlines in the note are folded to `"; "` and it is truncated to 300 characters. A note left empty by sanitization is a usage error.
+- **Same gate as other mutating verbs**: the state file must exist and be engine-owned, and integrity must pass (the digest check runs before any write).
+- **A completed workflow cannot park.** With no current stage remaining, `park` fails with error code `workflow-complete`.
+- **Effects — exactly two writes:**
+  1. The `## Current Status` section of the engine region gains `- **Last Parked**: <slug> — <note>`. The line sits inside the State Digest; marks and current stage are untouched (transition-invariance, §1).
+  2. A park entry is appended to `aidlc-docs/handoff.md` (created lazily with a fixed header). The file is append-only, engine-exclusive to write, and the integrity machinery never parses it.
+- **Write order is fixed: region first, handoff second.** The region line is the authoritative source (`status` → `resume_note` reads it). A crash between the two writes leaves the handoff file one historical entry short; recovery is unaffected.
+- **Dedup**: if the handoff file's last park entry already holds the same (stage, note), the append is skipped (`handoff_appended: false`).
+- **Cleared by transitions**: `report`, `jump --stage`, and `jump --fresh` empty the parked note (a transition supersedes what was in flight); `rebase` preserves it.
+- **Concurrency**: last-writer-wins on the region, and a duplicated handoff history, is acceptable — neither corrupts anything.
+- **Degradation**: an older engine re-rendering the region silently drops the `Last Parked` line and remains digest-consistent; `jump --fresh` archives `handoff.md` together with the whole `aidlc-docs/` directory.
+- **No audit entry**: `park` never appends to `audit.md` (engine audit writes are transition entries only — see §6).
+
+---
+
 ## 6. State File Partition Ownership
 
 `aidlc-docs/aidlc-state.md` is partitioned. Two parties write it, but each owns disjoint regions. The engine-owned region is delimited by the `ENGINE-STATE` markers.
@@ -155,9 +188,10 @@ The engine reads `Scope`/`Depth` and the plan lists **only** from the `## Execut
 
 Discipline:
 
-- The model **MUST NOT hand-edit** the engine-owned region (the `ENGINE-STATE` marker region) — its checkboxes, Current Status, State Digest, or Unit Progress. All changes there flow through `report`, `jump`, or `rebase`.
+- The model **MUST NOT hand-edit** the engine-owned region (the `ENGINE-STATE` marker region) — its checkboxes, Current Status (including the `Last Parked` line), State Digest, or Unit Progress. All changes there flow through engine verbs: transitions via `report` and `jump`, the annotation via `park`, re-baselining via `rebase`. Beyond the transition verbs, none of these may move a checkbox or the pointer — `park` and `rebase` rewrite the region while keeping marks and current unchanged (transition-invariance, §1).
 - The model maintains the model-owned regions normally, following the templates in the stage rules.
-- **User input records in `audit.md` remain model-owned.** The model is the sole visible source of user input; the engine additionally appends its own transition entries to the audit log. Never let an engine transition entry substitute for logging the user's raw input.
+- **Engine writes to `audit.md` are narrowed to transition entries.** The engine appends one entry per recorded transition only — `park` writes no audit entry. **User input records in `audit.md` remain model-owned**: the model is the sole visible source of user input, and the model's CTX phase summaries are unchanged. Never let an engine transition entry substitute for logging the user's raw input.
+- **The `Last Parked` line (inside the engine region) and `aidlc-docs/handoff.md` are engine-exclusive.** The model never writes or reformats either (§5.5).
 
 **Execution Plan Summary is a load-bearing channel.** After the Workflow Planning gate is approved, the model writes the coverage decision as structured lines in the Execution Plan Summary region of the state file:
 
@@ -216,10 +250,11 @@ When to jump: a user asks to redo, revisit, reorder, or skip ahead — any delib
 
 | Subcommand | Mutates state? | Purpose |
 |---|---|---|
-| `status` | No | Bootstrap probe + session-recovery data source. Returns `state`, `scope`, `depth`, `current_stage`, `last_completed`, `integrity`, `completed`, `remaining`. |
+| `status` | No | Bootstrap probe + session-recovery data source. Returns `state`, `scope`, `depth`, `current_stage`, `last_completed`, `integrity`, `completed`, `remaining`, plus the recovery keys `resume_note`, `recent_events`, `audit_entries`, `audit_bytes`, `artifact_alerts`, `alerts_unavailable` (active/completed states only — see §10). |
 | `init` | Yes (create) | Deterministically create `aidlc-docs/aidlc-state.md` (model-region placeholders + `ENGINE-STATE` region: the 14-stage slug checklist, Current Status, reserved Unit Progress, State Digest) and the `audit.md` header. Errors if the state file already exists. |
 | `next` | No | Pure-read routing. Returns exactly one directive: `run-stage`, `done`, or `error`. |
 | `report` | Yes | The only transition entry point. `--stage <slug> --result <r> [--reason]`. See §5. |
+| `park` | Yes (annotation) | Park in-flight work. `--note <text>` required. Writes the `Last Parked` line into Current Status (inside the digest) and appends to `aidlc-docs/handoff.md`; marks, current stage, and the audit log are untouched. See §5.5. |
 | `jump` | Yes | Change course. `--stage <slug>` (redo/forward) or `--fresh` (Start Fresh). See §8. |
 | `rebase` | Yes | After human confirmation of a detected drift, re-baseline the State Digest. See §7. |
 
@@ -244,11 +279,55 @@ Consumers must ignore unknown fields in any output (see §4).
   "last_completed": "requirements-analysis",
   "integrity": "ok",
   "completed": ["workspace-detection", "requirements-analysis"],
-  "remaining": ["workflow-planning", "application-design", "units-generation", "functional-design", "nfr-requirements", "nfr-design", "infrastructure-design", "code-generation", "build-and-test"]
+  "remaining": ["workflow-planning", "application-design", "units-generation", "functional-design", "nfr-requirements", "nfr-design", "infrastructure-design", "code-generation", "build-and-test"],
+  "resume_note": null,
+  "recent_events": [
+    {"event": "STAGE_COMPLETED", "stage": "workspace-detection", "reason": "-", "timestamp": "2026-09-15T05:36:10Z"},
+    {"event": "STAGE_APPROVED", "stage": "requirements-analysis", "reason": "-", "timestamp": "2026-09-15T05:39:44Z"}
+  ],
+  "audit_entries": 3,
+  "audit_bytes": 546,
+  "artifact_alerts": [],
+  "alerts_unavailable": false
 }
 ```
 
 `state` is one of `none` (no state file), `active` (in progress), `completed` (all applicable stages done), `legacy` (a state file exists that predates the engine and has no `ENGINE-STATE` region; do not silently adopt or overwrite it — present the situation, obtain explicit confirmation, and follow the engine's hint before creating engine-owned state), or `corrupt` (the `ENGINE-STATE` marker region is present but incomplete or malformed — e.g. truncated, or a marker line deleted; `integrity` reports `violated` and mutating commands fail with error code `state-corrupt`. Restore the missing marker line from a backup if available — the END line is exactly `<!-- END ENGINE-STATE -->`; otherwise obtain explicit user confirmation and Start Fresh with `jump --fresh`). `current_stage` and `last_completed` are `null` when not applicable. `integrity` is `ok` or `violated`.
+
+**Recovery keys.** The `active` and `completed` states additionally carry:
+
+- `resume_note` — `{stage, note}` when the workflow is parked (the `Last Parked` region line is authoritative), else `null`. Cleared by any `report`/`jump`; preserved by `rebase` (§5.5).
+- `recent_events` — the last 5 engine transition entries as `{event, stage, reason, timestamp}`. Parsed **only** from `## Engine Transition` sections of `audit.md`, so model-owned audit entries (which may quote Event-shaped lines) can never forge recovery data; an entry's timestamp is the last `**Timestamp**` line within its section.
+- `audit_entries` / `audit_bytes` — count and byte size of the audit transition log; the measurements feeding the audit-partitioning contingency (512 KB scale). The engine only measures — it never splits the file.
+- `artifact_alerts` — sensor findings, five fixed fields each (shape below).
+- `alerts_unavailable` — `true` only when the sensor probe itself failed unexpectedly (fail-open: it arrives with an empty `artifact_alerts` array, and the probe never blocks).
+
+The early-exit branches (`none`, `legacy`, `corrupt`) return **only** the base keys shown in the sample above — none of the recovery keys appear on them (`legacy` and `corrupt` additionally carry their pre-existing diagnostic `hint` field). When `integrity` is `violated`, the artifact sensors still run and `artifact_alerts` is still computed.
+
+**Finding shape** — every `artifact_alerts[]` entry is exactly `{type, severity, subject, message, action_discipline}`. The `type` set may grow in future engine versions but never shrinks, and within a given `state_version` the shape never changes destructively (consumers ignore unknown fields, §4):
+
+```json
+{
+  "type": "missing-produces",
+  "severity": "warning",
+  "subject": "requirements-analysis",
+  "message": "Completed stage 'requirements-analysis' is missing ALL of its declared concrete produces: aidlc-docs/inception/requirements/requirements.md, aidlc-docs/inception/requirements/requirement-verification-questions.md. Either the artifacts were lost or the stage was reported without producing them.",
+  "action_discipline": "Report to the user; do not regenerate or fabricate artifacts."
+}
+```
+
+```json
+{
+  "type": "resumed-artifacts",
+  "severity": "info",
+  "subject": "reverse-engineering",
+  "message": "Files the current stage 'reverse-engineering' will produce already exist (possible half-done work from an interrupted session): aidlc-docs/inception/reverse-engineering/tech-stack.md.",
+  "action_discipline": "Read existing files before writing; append rather than regenerate (unless in a rejected/revised redo — see session-continuity)."
+}
+```
+
+- **`missing-produces` (warning)** — fires for a *completed* stage only when it declares **N ≥ 2 concrete produces** (no wildcards, and excluding the engine's own `aidlc-state.md`/`audit.md`) and **all** of them are missing or empty on disk. Stages with 0–1 concrete produces are exempt.
+- **`resumed-artifacts` (info)** — fires for the *current* stage when any declared produce already exists on disk. `{unit-name}` templates are globbed as `*` and any single match counts; the path list is capped at 5; engine-owned files are excluded.
 
 ### `next` → `run-stage`
 
@@ -294,6 +373,49 @@ The semantics of `consumes[].required` are defined by stage-contract.md §2: its
 
 `code` is a stable, machine-readable category; `message` is human-readable; `hint` is a remediation instruction. Present `message` and `hint` verbatim and stop.
 
+The same `error` shape covers mutating-verb failures, e.g. parking a completed workflow:
+
+```json
+{
+  "kind": "error",
+  "code": "workflow-complete",
+  "message": "The workflow is complete; there is no in-flight work to park.",
+  "hint": "To restart, use: python <skill>/scripts/engine.py jump --fresh",
+  "timestamp": "2026-09-15T05:40:00Z"
+}
+```
+
 ### Write subcommands
 
-`init`, `report`, `jump`, and `rebase` print a JSON acknowledgment object on success. Treat a `kind: "error"` object (or a non-zero exit status) as failure; otherwise the operation succeeded. Unknown fields in the acknowledgment must be ignored.
+`init`, `report`, `park`, `jump`, and `rebase` print a JSON acknowledgment object on success. Treat a `kind: "error"` object (or a non-zero exit status) as failure; otherwise the operation succeeded. Unknown fields in the acknowledgment must be ignored.
+
+A `park` acknowledgment:
+
+```json
+{
+  "kind": "parked",
+  "stage": "workflow-planning",
+  "note": "Mid requirements interview; next: confirm NFR scope with user",
+  "handoff_file": "aidlc-docs/handoff.md",
+  "handoff_appended": true,
+  "timestamp": "2026-09-15T05:40:00Z"
+}
+```
+
+`handoff_appended` is `false` when the handoff file's last entry already holds the same (stage, note) — dedup, §5.5.
+
+A `report` acknowledgment may carry a soft, non-blocking `produces_missing` warning. It appears only for `completed`/`approved` (`rejected`/`revised`/`skipped` are not checked); the check is fail-open and never blocks the transition:
+
+```json
+{
+  "kind": "reported",
+  "stage": "requirements-analysis",
+  "result": "approved",
+  "current_stage": "user-stories",
+  "produces_missing": [
+    "aidlc-docs/inception/requirements/requirements.md",
+    "aidlc-docs/inception/requirements/requirement-verification-questions.md"
+  ],
+  "timestamp": "2026-09-15T05:40:00Z"
+}
+```

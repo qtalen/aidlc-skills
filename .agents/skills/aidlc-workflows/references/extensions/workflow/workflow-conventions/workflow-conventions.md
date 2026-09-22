@@ -112,7 +112,7 @@ Resolve dynamically, never hardcoded:
 3. Resolve ONCE per session at workflow start (or session resumption) and cache in memory for all subsequent audit writes in that session; re-resolve during the session ONLY if the initial resolution failed. NEVER cache across sessions
 
 ### Timestamp Acquisition
-- Preferred source: the `timestamp` field carried by the output JSON of any engine subcommand run in the SAME interaction (`status`, `next`, `init`, `report`, `jump`, `rebase` — successes and errors alike). This costs zero extra commands: reuse the value the engine already printed
+- Preferred source: the `timestamp` field carried by the output JSON of any engine subcommand run in the SAME interaction (`status`, `next`, `init`, `report`, `park`, `jump`, `rebase` — successes and errors alike). This costs zero extra commands: reuse the value the engine already printed
 - Fallback ONLY when that interaction invoked no engine subcommand at all: the harness environment provides only the current date, not a clock — obtain the full ISO 8601 timestamp (YYYY-MM-DDTHH:MM:SSZ) from the system clock (e.g. a `python -c` one-liner on Windows cmd)
 - ONE timestamp acquisition per interaction suffices: multiple audit entries written in the same interaction MAY share it
 - Batch the fallback acquisition with the AUD-02 git config resolution in a single command at workflow start

@@ -32,6 +32,14 @@
 - ✅ "The change footprint spans multiple components" (change footprint)
 - ❌ "Let's use a component-level scope" (ambiguous - say "the change footprint is component-level")
 
+### Park / Parked
+
+**Park**: An engine annotation action (`engine.py park --note "..."`) that records what is in flight for the next session — it writes the state file's Last Parked line and `aidlc-docs/handoff.md`, and never changes stage marks, the current stage, or the audit trail.
+
+**Parked**: The paused state of a session after Park; a new session resumes from the status JSON's `resume_note`.
+
+**Related terms**: `resume_note`, `handoff.md`, `aidlc-state.md`
+
 ## Three-Phase Lifecycle
 
 ### INCEPTION PHASE

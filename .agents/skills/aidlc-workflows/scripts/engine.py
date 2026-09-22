@@ -9,7 +9,10 @@ to the human. This engine owns the workflow's deterministic mechanics:
 - deterministic state creation (``init``),
 - changing course (``jump`` / ``jump --fresh``),
 - state integrity (State Digest + audit cross-check, ``rebase``),
-- the bootstrap probe / session-recovery data source (``status``).
+- the bootstrap probe / session-recovery data source (``status``),
+- in-flight parking (``park`` — an annotation, never a transition; it
+  keeps marks and current unchanged, writes a handoff note, and never
+  touches the audit log).
 
 The engine reads ONLY the author-time compiled artifact
 ``scripts/data/stage-graph.json`` (produced by ``scripts/generate.py``). It
@@ -25,6 +28,7 @@ Subcommands:
     init      deterministically create aidlc-docs state/audit
     next      route: emit exactly one directive (read-only)
     report    record a stage transition (the only write entry)
+    park      park in-flight work with a handoff note (annotation)
     jump      change course: --stage <slug> | --fresh
     rebase    re-baseline the State Digest after human confirmation
 
@@ -34,6 +38,7 @@ usage errors and unexpected internal failures).
 """
 
 import argparse
+import glob
 import hashlib
 import json
 import os
@@ -54,6 +59,7 @@ STATE_VERSION = 1
 DOCS_DIR = "aidlc-docs"
 STATE_FILE = os.path.join(DOCS_DIR, "aidlc-state.md")
 AUDIT_FILE = os.path.join(DOCS_DIR, "audit.md")
+HANDOFF_FILE = os.path.join(DOCS_DIR, "handoff.md")
 
 BEGIN_MARKER = "<!-- BEGIN ENGINE-STATE"
 END_MARKER = "<!-- END ENGINE-STATE -->"
@@ -65,6 +71,20 @@ MARK_REJECTED = "R"
 MARK_REVISED = "?"
 
 RESULTS = ("completed", "approved", "rejected", "revised", "skipped")
+
+# Produce entries that are the engine's own files: guaranteed to exist after
+# init and carry zero signal for artifact sensors (workspace-detection is
+# therefore naturally exempt from both probes).
+ENGINE_OWNED_PRODUCES = ("aidlc-state.md", "audit.md")
+
+PARK_NOTE_MAX = 300
+
+HANDOFF_HEADER = (
+    "# AI-DLC Handoff Notes\n"
+    "\n"
+    "Engine-owned park notes (append-only; never hand-edit). The latest\n"
+    "entry surfaces via `engine.py status` -> resume_note.\n"
+)
 
 # Audit event vocabulary (appended by the engine only).
 EV_CREATED = "STATE_CREATED"
@@ -81,6 +101,17 @@ EV_FOR_RESULT = {
 
 MARK_RE = re.compile(r"^- \[( |x|S|R|\?)\] ([a-z0-9][a-z0-9-]*)\s*$")
 DIGEST_RE = re.compile(r"^sha256: ([0-9a-f]{64})\s*$")
+PARKED_RE = re.compile(
+    r"^- \*\*Last Parked\*\*: ([a-z0-9][a-z0-9-]*) — (.+)$"
+)
+
+# Audit line grammar (shared by every audit parser in this module; the
+# entry format itself is written by _audit_append).
+AUDIT_SECTION_RE = re.compile(r"^##\s+Engine Transition\s*$")
+AUDIT_TIMESTAMP_RE = re.compile(r"^\*\*Timestamp\*\*:\s*(.+)$")
+AUDIT_EVENT_RE = re.compile(r"^\*\*Event\*\*:\s*(.+)$")
+AUDIT_STAGE_RE = re.compile(r"^\*\*Stage\*\*:\s*(.+)$")
+AUDIT_REASON_RE = re.compile(r"^\*\*Reason\*\*:\s*(.+)$")
 
 
 class EngineError(Exception):
@@ -207,6 +238,7 @@ class State(object):
         self.region_end = None  # line index of END marker
         self.lines = []
         self.digest = None
+        self.parked = None  # (slug, note) from the Last Parked line, or None
 
 
 def _state_path(workspace):
@@ -363,6 +395,10 @@ def load_state(graph, workspace):
         d = DIGEST_RE.match(line)
         if d:
             state.digest = d.group(1)
+            continue
+        p = PARKED_RE.match(line)
+        if p:
+            state.parked = (p.group(1), p.group(2))
     state.plan = _parse_plan(graph, state.lines)
     return state
 
@@ -374,7 +410,8 @@ def load_state(graph, workspace):
 PHASE_TITLES = ("inception", "construction", "operations")
 
 
-def _render_region_lines(graph, marks, current, completed_all, digest):
+def _render_region_lines(graph, marks, current, completed_all, digest,
+                         parked=None):
     lines = []
     lines.append("State Version: %d" % STATE_VERSION)
     lines.append("Engine: aidlc-workflows/scripts/engine.py")
@@ -403,6 +440,8 @@ def _render_region_lines(graph, marks, current, completed_all, digest):
         )
         lines.append("- **Current Stage**: %s" % (current or "-"))
         lines.append("- **Status**: Active")
+    if parked:
+        lines.append("- **Last Parked**: %s — %s" % (parked[0], parked[1]))
     lines.append("")
     lines.append("## Unit Progress")
     lines.append("(reserved — not used in state version %d)" % STATE_VERSION)
@@ -426,10 +465,14 @@ def _digest_of_region(region_lines):
 def _splice_region(state, graph, current, completed_all):
     """Replace the engine region inside the existing file; model parts intact."""
     placeholder = _render_region_lines(
-        graph, state.marks, current, completed_all, "0" * 64
+        graph, state.marks, current, completed_all, "0" * 64,
+        parked=state.parked,
     )
     digest = _digest_of_region(placeholder)
-    region = _render_region_lines(graph, state.marks, current, completed_all, digest)
+    region = _render_region_lines(
+        graph, state.marks, current, completed_all, digest,
+        parked=state.parked,
+    )
     new_lines = (
         state.lines[: state.region_start + 1]
         + region
@@ -444,26 +487,87 @@ def _splice_region(state, graph, current, completed_all):
 
 
 def _audit_events(audit_text):
-    """Yield (event, stage, reason) tuples from engine transition entries."""
+    """Yield (event, stage, reason) tuples from engine transition entries.
+
+    Deliberately whole-file (legacy behavior): the integrity cross-check
+    accepts any Event-shaped line, confined or not.
+    """
     events = []
     event = stage = reason = None
     for line in audit_text.split("\n"):
         stripped = line.strip()
-        m = re.match(r"^\*\*Event\*\*:\s*(.+)$", stripped)
+        m = AUDIT_EVENT_RE.match(stripped)
         if m:
             if event:
                 events.append((event, stage, reason))
             event, stage, reason = m.group(1).strip(), None, None
             continue
-        m = re.match(r"^\*\*Stage\*\*:\s*(.+)$", stripped)
+        m = AUDIT_STAGE_RE.match(stripped)
         if m:
             stage = m.group(1).strip()
             continue
-        m = re.match(r"^\*\*Reason\*\*:\s*(.+)$", stripped)
+        m = AUDIT_REASON_RE.match(stripped)
         if m:
             reason = m.group(1).strip()
     if event:
         events.append((event, stage, reason))
+    return events
+
+
+def _audit_transition_events(audit_text):
+    """Engine transition entries as dicts, confined to engine sections.
+
+    Unlike ``_audit_events`` (whole-file, legacy integrity semantics), this
+    parser only reads lines inside ``## Engine Transition`` sections, so
+    model-owned audit entries (which may quote raw user input containing
+    Event-shaped lines) cannot forge recovery data. Timestamp attribution:
+    the LAST ``**Timestamp**`` line seen in the section is the event's
+    timestamp.
+    """
+    events = []
+    in_section = False
+    timestamp = event = stage = reason = None
+
+    def flush():
+        if event:
+            events.append(
+                {
+                    "event": event,
+                    "stage": stage,
+                    "reason": reason,
+                    "timestamp": timestamp,
+                }
+            )
+
+    for line in audit_text.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            if in_section:
+                flush()
+            in_section = bool(AUDIT_SECTION_RE.match(stripped))
+            timestamp = event = stage = reason = None
+            continue
+        if not in_section:
+            continue
+        m = AUDIT_TIMESTAMP_RE.match(stripped)
+        if m:
+            timestamp = m.group(1).strip()
+            continue
+        m = AUDIT_EVENT_RE.match(stripped)
+        if m:
+            if event:
+                flush()
+            event, stage, reason = m.group(1).strip(), None, None
+            continue
+        m = AUDIT_STAGE_RE.match(stripped)
+        if m:
+            stage = m.group(1).strip()
+            continue
+        m = AUDIT_REASON_RE.match(stripped)
+        if m:
+            reason = m.group(1).strip()
+    if in_section:
+        flush()
     return events
 
 
@@ -485,8 +589,12 @@ def _audit_append(workspace, event, stage=None, reason=None, detail=None):
     _append_text(path, "\n".join(lines))
 
 
-def check_integrity(graph, state, workspace):
-    """Return None when intact, else an EngineError describing the drift."""
+def check_integrity(graph, state, workspace, audit_text=None):
+    """Return None when intact, else an EngineError describing the drift.
+
+    ``audit_text`` may be supplied by callers that already read the audit
+    log (single-read reuse); None means read it here (historical behavior).
+    """
     if not state.exists or state.legacy or state.corrupt:
         return None
     region_lines = state.lines[state.region_start + 1 : state.region_end]
@@ -499,8 +607,9 @@ def check_integrity(graph, state, workspace):
             "Do not continue. Show this to the user, get explicit "
             "confirmation, then run: python <skill>/scripts/engine.py rebase",
         )
-    audit_path = _audit_path(workspace)
-    audit_text = _read_text(audit_path) if os.path.isfile(audit_path) else ""
+    if audit_text is None:
+        audit_path = _audit_path(workspace)
+        audit_text = _read_text(audit_path) if os.path.isfile(audit_path) else ""
     events = _audit_events(audit_text)
     # Once a human has confirmed a re-baseline, the pre-rebase history is
     # accepted by definition; cross-checking would make rebase useless.
@@ -610,6 +719,115 @@ def _directive_for(graph, state, slug):
 
 
 # ---------------------------------------------------------------------------
+# Session recovery sensors (fail-open)
+# ---------------------------------------------------------------------------
+
+
+def _is_engine_owned_produce(rel):
+    return os.path.basename(rel) in ENGINE_OWNED_PRODUCES
+
+
+def _stage_missing_produces(workspace, stage):
+    """Concrete produces of a completed stage that are all missing/empty.
+
+    Asymmetric rule: only N>=2 concrete (non-wildcard) entries qualify, and
+    an alert fires only when ALL of them are missing or empty. N=0/1 stages
+    are exempt (a single conditionally-absent produce is indistinguishable
+    from a genuinely missing one). Returns [] when no alert should fire.
+    """
+    concrete = [
+        rel
+        for rel in stage["produces"]
+        if "{" not in rel and "*" not in rel and not _is_engine_owned_produce(rel)
+    ]
+    if len(concrete) < 2:
+        return []
+    docs = os.path.join(workspace, DOCS_DIR)
+    missing = []
+    for rel in concrete:
+        path = os.path.join(docs, rel)
+        if not os.path.exists(path) or os.path.getsize(path) == 0:
+            missing.append(_posix(os.path.join(DOCS_DIR, rel)))
+    return missing if len(missing) == len(concrete) else []
+
+
+def _stage_resumed_artifacts(workspace, stage):
+    """Produce paths of the current stage that already exist on disk.
+
+    Existence is the signal of an interrupted session (half-done work).
+    ``{unit-name}`` is translated to ``*`` and globbed; any single match
+    counts. Capped at 5 paths. Engine-owned files are excluded.
+    """
+    docs = _posix(os.path.join(workspace, DOCS_DIR))
+    hits = []
+    for rel in stage["produces"]:
+        if _is_engine_owned_produce(rel):
+            continue
+        pattern = rel.replace("{unit-name}", "*")
+        if "*" in pattern or "?" in pattern or "[" in pattern:
+            hits.extend(glob.glob(docs + "/" + pattern))
+        else:
+            full = docs + "/" + pattern
+            if os.path.exists(full):
+                hits.append(full)
+    unique = []
+    for path in sorted(set(hits)):
+        rel = os.path.relpath(path, workspace)
+        unique.append(_posix(rel))
+    return unique[:5]
+
+
+def _artifact_alerts(graph, state, workspace, current):
+    """First-generation artifact findings (D14 finding shape, fail-open).
+
+    Raises nothing: the caller wraps this in try/except and degrades to
+    ``alerts_unavailable`` on any unexpected failure.
+    """
+    alerts = []
+    for stage in graph["stages"]:
+        if state.marks.get(stage["slug"]) != MARK_DONE:
+            continue
+        missing = _stage_missing_produces(workspace, stage)
+        if missing:
+            alerts.append(
+                {
+                    "type": "missing-produces",
+                    "severity": "warning",
+                    "subject": stage["slug"],
+                    "message": (
+                        "Completed stage %r is missing ALL of its declared "
+                        "concrete produces: %s. Either the artifacts were "
+                        "lost or the stage was reported without producing "
+                        "them." % (stage["slug"], ", ".join(missing))
+                    ),
+                    "action_discipline": "Report to the user; do not "
+                    "regenerate or fabricate artifacts.",
+                }
+            )
+    if current:
+        stage = _stage_by_slug(graph, current)
+        resumed = _stage_resumed_artifacts(workspace, stage)
+        if resumed:
+            alerts.append(
+                {
+                    "type": "resumed-artifacts",
+                    "severity": "info",
+                    "subject": current,
+                    "message": (
+                        "Files the current stage %r will produce already "
+                        "exist (possible half-done work from an interrupted "
+                        "session): %s."
+                        % (current, ", ".join(resumed))
+                    ),
+                    "action_discipline": "Read existing files before "
+                    "writing; append rather than regenerate (unless in a "
+                    "rejected/revised redo — see session-continuity).",
+                }
+            )
+    return alerts
+
+
+# ---------------------------------------------------------------------------
 # State file template (init)
 # ---------------------------------------------------------------------------
 
@@ -642,6 +860,10 @@ def _initial_state_text(graph):
         "- **Depth**: [scope default]",
         "- **Stages to Execute**: [filled at Workflow Planning approval]",
         "- **Stages to Skip**: [filled at Workflow Planning approval]",
+        "",
+        "Reader notes: a new session MUST run `engine.py status` (recovery "
+        "briefing) before touching anything; the ENGINE-STATE region below "
+        "is engine-owned — never hand-edit it.",
         "",
         BEGIN_MARKER
         + " | do not hand-edit — maintained by scripts/engine.py -->",
@@ -719,7 +941,13 @@ def cmd_status(workspace):
             "from a backup if available; otherwise confirm with the user "
             "and Start Fresh (jump --fresh).",
         }
-    integrity = "ok" if check_integrity(graph, state, workspace) is None else "violated"
+    audit_path = _audit_path(workspace)
+    audit_text = _read_text(audit_path) if os.path.isfile(audit_path) else ""
+    integrity = (
+        "ok"
+        if check_integrity(graph, state, workspace, audit_text=audit_text) is None
+        else "violated"
+    )
     effective = effective_stages(graph, state.plan)
     done = [
         s["slug"]
@@ -727,18 +955,36 @@ def cmd_status(workspace):
         if _is_done(state.marks.get(s["slug"], MARK_PENDING))
     ]
     remaining = [s["slug"] for s in pending_stages(graph, state)]
+    current = remaining[0] if remaining else None
+    transitions = _audit_transition_events(audit_text)
+    try:
+        alerts = _artifact_alerts(graph, state, workspace, current)
+        alerts_unavailable = False
+    except Exception:  # fail-open: sensors never block the probe itself
+        alerts = []
+        alerts_unavailable = True
     return {
         "engine": "ok",
         "state_version": STATE_VERSION,
         "workspace": _posix(os.path.abspath(workspace)),
         "state": "completed" if not remaining else "active",
-        "current_stage": remaining[0] if remaining else None,
+        "current_stage": current,
         "scope": state.plan.scope,
         "depth": state.plan.depth,
         "last_completed": done[-1] if done else None,
         "integrity": integrity,
         "completed": done,
         "remaining": remaining,
+        "resume_note": (
+            {"stage": state.parked[0], "note": state.parked[1]}
+            if state.parked
+            else None
+        ),
+        "recent_events": transitions[-5:],
+        "audit_entries": len(transitions),
+        "audit_bytes": len(audit_text.encode("utf-8")),
+        "artifact_alerts": alerts,
+        "alerts_unavailable": alerts_unavailable,
     }
 
 
@@ -873,7 +1119,7 @@ def cmd_report(workspace, slug, result, reason):
     graph = load_graph()
     state = _load_active(graph, workspace)
     _require_intact(graph, state, workspace)
-    _validate_transition(graph, state, slug, result, reason)
+    stage = _validate_transition(graph, state, slug, result, reason)
     mark = {
         "completed": MARK_DONE,
         "approved": MARK_DONE,
@@ -882,16 +1128,25 @@ def cmd_report(workspace, slug, result, reason):
         "skipped": MARK_SKIPPED,
     }[result]
     state.marks[slug] = mark
+    state.parked = None  # a transition supersedes any parked note
     new_current = current_stage(graph, state)
     text = _splice_region(state, graph, new_current, new_current is None)
     _write_text_atomic(_state_path(workspace), text)
     _audit_append(workspace, EV_FOR_RESULT[result], stage=slug, reason=reason)
-    return {
+    ack = {
         "kind": "reported",
         "stage": slug,
         "result": result,
         "current_stage": new_current,
     }
+    if result in ("completed", "approved"):
+        try:  # soft warning, fail-open: never block the only write entry
+            missing = _stage_missing_produces(workspace, stage)
+            if missing:
+                ack["produces_missing"] = missing
+        except Exception:
+            pass
+    return ack
 
 
 def cmd_jump(workspace, slug, fresh):
@@ -964,6 +1219,7 @@ def cmd_jump(workspace, slug, fresh):
             slug,
             ", ".join(skipped) if skipped else "none",
         )
+    state.parked = None  # a course change supersedes any parked note
     new_current = current_stage(graph, state)
     text = _splice_region(state, graph, new_current, new_current is None)
     _write_text_atomic(_state_path(workspace), text)
@@ -1001,6 +1257,103 @@ def cmd_rebase(workspace):
 
 
 # ---------------------------------------------------------------------------
+# park (annotation verb — never a transition; marks and current unchanged)
+# ---------------------------------------------------------------------------
+
+
+def _handoff_path(workspace):
+    return os.path.join(workspace, HANDOFF_FILE)
+
+
+def _sanitize_park_note(note):
+    """Fold newlines to '; ' and truncate; '' when nothing is left."""
+    folded = "; ".join(
+        part.strip()
+        for part in note.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        if part.strip()
+    )
+    return folded[:PARK_NOTE_MAX]
+
+
+def _handoff_tail(workspace):
+    """(stage, note) of the LAST park entry in handoff.md, or None."""
+    path = _handoff_path(workspace)
+    if not os.path.isfile(path):
+        return None
+    stage = note = None
+    for line in _read_text(path).split("\n"):
+        stripped = line.strip()
+        m = AUDIT_STAGE_RE.match(stripped)
+        if m:
+            stage = m.group(1).strip()
+            continue
+        m = re.match(r"^\*\*Note\*\*:\s*(.*)$", stripped)
+        if m:
+            note = m.group(1).strip()
+    if stage is None or note is None:
+        return None
+    return (stage, note)
+
+
+def _handoff_append(workspace, stage, note):
+    entry = "\n".join(
+        [
+            "",
+            "## Park",
+            "**Timestamp**: %s" % _now_iso(),
+            "**Stage**: %s" % stage,
+            "**Note**: %s" % note,
+            "",
+            "---",
+            "",
+        ]
+    )
+    prefix = ""
+    path = _handoff_path(workspace)
+    if not os.path.isfile(path):
+        prefix = HANDOFF_HEADER
+    _append_text(path, prefix + entry)
+
+
+def cmd_park(workspace, note):
+    graph = load_graph()
+    state = _load_active(graph, workspace)
+    _require_intact(graph, state, workspace)
+    note = _sanitize_park_note(note)
+    if not note:
+        raise EngineError(
+            "usage",
+            "park requires a non-empty note.",
+            "Re-run with --note \"<what is in flight, the next step, and "
+            "any caveats>\".",
+        )
+    current = current_stage(graph, state)
+    if current is None:
+        raise EngineError(
+            "workflow-complete",
+            "The workflow is complete; there is no in-flight work to park.",
+            "To restart, use: python <skill>/scripts/engine.py jump --fresh",
+        )
+    state.parked = (current, note)
+    # Write order is fixed: region first (authoritative), then handoff.
+    # A crash between the two leaves handoff one entry short — resume_note
+    # comes from the region, so recovery is unaffected.
+    text = _splice_region(state, graph, current, False)
+    _write_text_atomic(_state_path(workspace), text)
+    appended = False
+    if _handoff_tail(workspace) != (current, note):
+        _handoff_append(workspace, current, note)
+        appended = True
+    return {
+        "kind": "parked",
+        "stage": current,
+        "note": note,
+        "handoff_file": _posix(HANDOFF_FILE),
+        "handoff_appended": appended,
+    }
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -1013,8 +1366,9 @@ class _JsonArgumentParser(argparse.ArgumentParser):
             "kind": "error",
             "code": "usage",
             "message": "Invalid command line: %s" % message,
-            "hint": "Usage: python engine.py <status|init|next|report|jump|"
-            "rebase> [--workspace <path>]",
+            "hint": "Usage: python engine.py "
+            "<status|init|next|report|park|jump|rebase> "
+            "[--workspace <path>]",
             "timestamp": _now_iso(),
         }
         sys.stdout.write(json.dumps(payload, indent=2) + "\n")
@@ -1049,6 +1403,9 @@ def _build_parser():
     report.add_argument("--result", required=True, choices=RESULTS)
     report.add_argument("--reason", default=None)
 
+    park = add("park", help="park in-flight work with a handoff note")
+    park.add_argument("--note", required=True)
+
     jump = add("jump", help="change course")
     jump.add_argument("--stage", default=None)
     jump.add_argument("--fresh", action="store_true")
@@ -1070,6 +1427,8 @@ def main(argv):
             result = cmd_next(workspace)
         elif args.command == "report":
             result = cmd_report(workspace, args.stage, args.result, args.reason)
+        elif args.command == "park":
+            result = cmd_park(workspace, args.note)
         elif args.command == "jump":
             if not args.fresh and not args.stage:
                 raise EngineError(
@@ -1085,8 +1444,9 @@ def main(argv):
             raise EngineError(
                 "usage",
                 "No subcommand given.",
-                "Usage: python engine.py <status|init|next|report|jump|"
-                "rebase> [--workspace <path>]",
+                "Usage: python engine.py "
+                "<status|init|next|report|park|jump|rebase> "
+                "[--workspace <path>]",
             )
     except EngineError as exc:
         error = {"kind": "error", "code": exc.code, "message": exc.message,

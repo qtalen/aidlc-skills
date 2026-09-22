@@ -36,19 +36,20 @@ Each checkpoint MUST be **≤200 lines** and contain exactly these sections:
 
 ---
 
-## Rule CTX-02: Checkpoint-First Session Resumption (Overrides session-continuity.md loading)
+## Rule CTX-02: Checkpoint-First Session Resumption (Tiered Reading, Layer 2)
 
-**Load guarantee**: the companion `checkpointing.opt-in.md` stub is always loaded at workflow start and contains a Session Resumption Trigger — when this extension is Enabled in `aidlc-state.md`, this rules file is loaded BEFORE session-continuity.md's loading steps are applied, so this override is in context at the moment resumption decisions are made.
+**Load guarantee**: the companion `checkpointing.opt-in.md` stub is always loaded at workflow start and contains a Session Resumption Trigger — when this extension is Enabled in `aidlc-state.md`, this rules file is loaded BEFORE session-continuity.md's recovery steps are applied, so this rule is in context at the moment resumption decisions are made.
 
-**Rule**: When this extension is enabled, session resumption MUST use checkpoint-first loading — this **overrides** the full-artifact loading prescribed in `references/common/session-continuity.md` for its stated scope (the same override convention as Autonomous Mode AM-03 overriding APG rules; enabled extension rules are hard constraints per SKILL.md Extensions Loading):
+**Rule**: the session-continuity.md Recovery Protocol (v2) prescribes **tiered reading**: (1) engine output, (2) the current stage's required consumes, (3) on demand. When this extension is enabled, checkpoint-first applies at **tier 2**: required-consumes reads MUST prefer checkpoint coverage first (the same convention as Autonomous Mode AM-03 overriding APG rules; enabled extension rules are hard constraints per SKILL.md Extensions Loading):
 
-1. **Always load**: `aidlc-docs/aidlc-state.md`, the latest checkpoint file(s), and the artifacts of the stage being resumed.
-2. **Load on demand only**: earlier-stage artifacts are loaded ONLY when (a) the latest checkpoint's Open Items or Core Constraints reference a gap/conflict that requires the source artifact, or (b) the user asks. The fallback load is scoped to the specific artifact needed, never "load ALL".
-3. **Announce**: the welcome-back summary MUST state what was loaded (checkpoint-first) and what was deliberately not loaded.
+1. **Always load**: `aidlc-docs/aidlc-state.md`, the latest checkpoint file(s), the artifacts of the stage being resumed, and the engine-direct recovery data from `engine.py status` — `resume_note` and `artifact_alerts` (engine output, not checkpoint products; consumed at tier 1 regardless of checkpoint coverage).
+2. **Tier 2 (required consumes), checkpoint-first**: satisfy the current stage's required consumes from the latest checkpoint where covered; read the source artifact only when the checkpoint does not cover it.
+3. **Load on demand only (tier 3)**: earlier-stage artifacts beyond checkpoint coverage are loaded ONLY when (a) the latest checkpoint's Open Items or Core Constraints reference a gap/conflict that requires the source artifact, or (b) the user asks. The fallback load is scoped to the specific artifact needed, never "load ALL".
+4. **Announce**: the welcome-back summary MUST state what was loaded (checkpoint-first) and what was deliberately not loaded.
 
-When resuming a stage whose required input has **no checkpoint coverage** (e.g., project predates this extension), fall back to the standard session-continuity loading for that input and note the fallback in audit.md.
+When a tier-2 required input has **no checkpoint coverage** (e.g., project predates this extension), read the source artifact directly per the standard tiered reading and note the fallback in audit.md.
 
-**Verification**: resumption loads ≤ the always-load set plus explicitly justified on-demand artifacts; no unconditional full-tree artifact loading; fallback cases logged.
+**Verification**: resumption consumes the always-load set (including `resume_note` and `artifact_alerts` from the engine) and loads nothing beyond explicitly justified on-demand artifacts; no unconditional full-tree artifact loading; fallback cases logged.
 
 ---
 
@@ -57,9 +58,10 @@ When resuming a stage whose required input has **no checkpoint coverage** (e.g.,
 **Rule**: audit.md grows append-only and MUST be folded for reading:
 
 1. **Phase summary entries**: at each checkpoint point (CTX-01), append one audit.md entry summarizing the phase/unit (stages executed, approvals received, blocking findings raised and resolved) — this is a normal append, never a rewrite (DOC-04).
-2. **Read discipline**: on session resumption, do NOT read audit.md in full. Read only the most recent phase summary entry and entries newer than the latest checkpoint. Historical audit entries are read only when investigating a specific decision or dispute.
+2. **Breakpoint markers are not audit entries**: a light marker for an arbitrary mid-phase pause belongs to the Park Ritual's handoff channel (`engine.py park` → state-file Last Parked line + `aidlc-docs/handoff.md`), NOT to audit.md. Only phase/unit boundaries produce audit summary entries.
+3. **Read discipline**: on session resumption, do NOT read audit.md in full. Read only the most recent phase summary entry and entries newer than the latest checkpoint. Historical audit entries are read only when investigating a specific decision or dispute. This read discipline is model-side only — it does not constrain the engine's own full reads of state and audit data (performed internally for digest verification and audit cross-checks).
 
-**Verification**: a summary entry exists for each checkpointed phase/unit; resumption does not perform full audit.md reads.
+**Verification**: a summary entry exists for each checkpointed phase/unit; mid-phase pauses leave handoff markers, not audit entries; resumption does not perform full audit.md reads.
 
 ---
 

@@ -10,6 +10,8 @@ If you want the skill to take effect globally, you can copy the `.agents` direct
 
 **Requirements**: the skill directory is self-contained — the only prerequisite is that your AI coding tool can load the skill and run **Python 3.8+** (`python` or `python3` on the PATH). The skill ships a built-in orchestration engine (`scripts/engine.py`, standard library only) that owns workflow routing, stage state, and audit transitions; no interpreter beyond stock Python is needed and nothing else is installed.
 
+**Runtime requirements**: Python 3.8+ — standard library only, no third-party dependencies, no pip/venv needed. If Python is missing, install it with one of: Windows `winget install Python.Python.3.12` or the python.org installer · macOS `brew install python3` or `xcode-select --install` · Debian/Ubuntu `sudo apt install python3`.
+
 Before your next coding session, simply load this skill — no additional learning cost is required.
 
 For an introduction to the aidlc skill, read my article [**From OpenSpec to AIDLC: How I Improved My Team's AI Code Quality**](https://www.dataleadsfuture.com/from-openspec-to-aidlc-how-i-improved-my-teams-ai-code-quality/)

@@ -270,6 +270,8 @@
 
 ### Missing Artifacts During Resumption
 
+**Sensor-first ordering (Phase 3.1+)**: Before applying any recovery step in this section, run `engine.py status` and check `artifact_alerts` (missing-produces). If it flags missing artifacts, report them to the user first — never write or fabricate the artifacts yourself. Only after the user decides (confirming the artifacts are lost and must be redone) proceed to the jump→regenerate path below.
+
 **Error**: Required artifacts from previous stages are missing
 - **Cause**: Files deleted, moved, or never created
 - **Solution**: 

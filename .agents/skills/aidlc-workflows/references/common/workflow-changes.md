@@ -131,14 +131,15 @@ Users may request changes to the execution plan or stage execution during the wo
 
 **Handling**:
 1. **Complete Current Step**: Finish the current step in progress if possible
-2. **Record the Transition**: If a stage finished, write it through the engine (`engine.py report --stage <slug> --result completed|approved`); never hand-edit stage checkboxes
-3. **No Manual State Edits**: `aidlc-state.md` is already current — the engine wrote every transition as it happened
-4. **Log Pause**: Document pause point in `audit.md`
-5. **Provide Resume Instructions**: "When you return, I'll detect your existing project and offer to continue from: [current stage, current step]"
+2. **Park In-Flight Work**: If pausing mid-stage, run `engine.py park --note "<in-flight X; next step Y; caveat Z>"` so the next session gets a precise breakpoint (see session-continuity.md Park Ritual)
+3. **Record the Transition**: If a stage finished, write it through the engine (`engine.py report --stage <slug> --result completed|approved`); never hand-edit stage checkboxes
+4. **No Manual State Edits**: `aidlc-state.md` is already current — the engine wrote every transition as it happened
+5. **Log Pause**: Document pause point in `audit.md`
+6. **Provide Resume Instructions**: "When you return, I'll detect your existing project and offer to continue from: [current stage, current step]"
 
 **On Resume**:
-1. **Detect Existing Project**: Run `engine.py status` (the recovery data source)
-2. **Load Context**: Read all artifacts from completed stages
+1. **Detect Existing Project**: Run `engine.py status` (the recovery data source — includes `resume_note`, `recent_events`, `artifact_alerts`)
+2. **Load Context**: Follow the tiered reading protocol in [session-continuity.md](session-continuity.md) — engine output first, then only the current stage's required consumes; do NOT bulk-load all artifacts from completed stages
 3. **Show Status**: Display current stage and next step from the status JSON
 4. **Offer Options**: Continue (`next`), jump to another stage (`jump --stage`), or Start Fresh (`jump --fresh`)
 5. **Log Resume**: Document resume point in `audit.md`

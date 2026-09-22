@@ -100,7 +100,7 @@ Honor the user's verbatim custom instruction for how questions are handled. If t
 
 On detecting a **Pause** intent while Autonomous Mode is active:
 
-1. **Stop immediately**: Do not finish the current step, stage, or any in-progress generation — halt within the current interaction. If a step was interrupted mid-way, note the exact interruption point in `audit.md` (never in the engine-owned state region) so it can be resumed cleanly.
+1. **Stop immediately**: Do not finish the current step, stage, or any in-progress generation — halt within the current interaction. If a step was interrupted mid-way, park it first: run `engine.py park --note "<in-flight step, exact interruption point, next action>"` (see session-continuity.md Park Ritual) so it can be resumed cleanly from `resume_note`; never write breakpoint notes into `audit.md` or the engine-owned state region.
 2. **Audit**: Log the pause trigger with complete raw input.
 3. **Offer adjustment menu**: Call the `question` tool with:
    - **Option A**: 重新选择 question 问题的处理方式 / Re-choose the question-handling mode (re-runs the AM-02 step 2 question)

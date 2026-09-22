@@ -18,6 +18,7 @@ import re
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS_DIR = os.path.dirname(HERE)
@@ -159,6 +160,37 @@ class WorkspaceCase(unittest.TestCase):
         else:
             self.report(slug, "approved")
 
+    def park(self, note):
+        return engine.cmd_park(self.workspace, note)
+
+    def handoff_text(self):
+        path = self._path("aidlc-docs", "handoff.md")
+        if not os.path.isfile(path):
+            return None
+        with open(path, encoding="utf-8") as handle:
+            return handle.read()
+
+    def make_doc(self, rel, content="content\n"):
+        """Create a file under aidlc-docs/ (rel uses / separators)."""
+        path = self._path("aidlc-docs", *rel.split("/"))
+        directory = os.path.dirname(path)
+        if directory and not os.path.isdir(directory):
+            os.makedirs(directory)
+        with open(path, "w", encoding="utf-8", newline="") as handle:
+            handle.write(content)
+
+    def route_to(self, target):
+        """Plan-skip everything except workspace-detection and target."""
+        skip = [
+            slug for slug in STAGE_ORDER
+            if slug not in ("workspace-detection", target)
+        ]
+        self.set_plan_lines(skip=", ".join(skip))
+        self.report("workspace-detection", "completed")
+        directive = self.next()
+        self.assertEqual(directive["kind"], "run-stage")
+        self.assertEqual(directive["stage"], target)
+
 
 # ---------------------------------------------------------------------------
 # init / status
@@ -172,6 +204,17 @@ class InitTests(WorkspaceCase):
         self.assertEqual(result["state"], "none")
         self.assertIsNone(result["current_stage"])
         self.assertEqual(result["completed"], [])
+
+    def test_fresh_init_has_no_resumed_alerts_for_engine_files(self):
+        # Load-bearing: right after init the current stage is
+        # workspace-detection, whose produces are exactly the engine files
+        # (aidlc-state.md, audit.md) — both freshly created. If the
+        # engine-file exclusion were ever removed, resumed-artifacts would
+        # fire here and this assertion would fail.
+        self.init()
+        result = self.status()
+        self.assertEqual(result["artifact_alerts"], [])
+        self.assertFalse(result["alerts_unavailable"])
 
     def test_init_creates_state_and_audit(self):
         result = self.init()
@@ -780,16 +823,7 @@ class JumpTests(WorkspaceCase):
 
 class CliTests(WorkspaceCase):
     def _run(self, argv):
-        import contextlib
-        import io
-
-        buffer = io.StringIO()
-        with contextlib.redirect_stdout(buffer):
-            try:
-                code = engine.main(["engine.py"] + argv)
-            except SystemExit as exc:  # argparse error path exits directly
-                code = exc.code if isinstance(exc.code, int) else 2
-        return code, json.loads(buffer.getvalue())
+        return _run_main(argv)
 
     def test_status_json(self):
         code, payload = self._run(["status", "--workspace", self.workspace])
@@ -859,6 +893,682 @@ class CliTests(WorkspaceCase):
         )
         self.assertEqual(code, 1)
         self.assertEqual(payload["code"], "usage")
+
+    def test_park_requires_note(self):
+        code, payload = self._run(["park", "--workspace", self.workspace])
+        self.assertEqual(code, 1)
+        self.assertEqual(payload["kind"], "error")
+        self.assertEqual(payload["code"], "usage")
+
+    def test_no_subcommand_hint_and_docstring_mention_park(self):
+        code, payload = self._run([])
+        self.assertEqual(code, 1)
+        self.assertIn("park", payload["hint"])
+        self.assertIn("park", engine.__doc__)
+
+
+# ---------------------------------------------------------------------------
+# park (Phase 3.1)
+# ---------------------------------------------------------------------------
+
+
+class ParkTests(WorkspaceCase):
+    def setUp(self):
+        super().setUp()
+        self.init()
+        self.drive_past("workspace-detection")
+
+    def test_park_writes_region_line_and_handoff(self):
+        before = self.marks()
+        ack = self.park("waiting for user input")
+        self.assertEqual(ack["kind"], "parked")
+        self.assertIn(
+            "- **Last Parked**: reverse-engineering"
+            " — waiting for user input",
+            self.state_text(),
+        )
+        handoff = self.handoff_text()
+        self.assertIsNotNone(handoff)
+        self.assertIn("## Park", handoff)
+        self.assertIn("**Stage**: reverse-engineering", handoff)
+        self.assertIn("**Note**: waiting for user input", handoff)
+        self.assertEqual(self.marks(), before)
+        self.assertEqual(self.next()["stage"], "reverse-engineering")
+
+    def test_park_never_touches_audit(self):
+        before = self.audit_text().count("## Engine Transition")
+        self.park("note")
+        self.assertEqual(
+            self.audit_text().count("## Engine Transition"), before
+        )
+
+    def test_park_keeps_digest_consistent(self):
+        self.park("note")
+        self.assertEqual(self.status()["integrity"], "ok")
+
+    def test_note_hygiene(self):
+        ack = self.park("a\nb")
+        self.assertEqual(ack["note"], "a; b")
+        self.assertIn(
+            "- **Last Parked**: reverse-engineering — a; b",
+            self.state_text(),
+        )
+        long_ack = self.park("y" * 400)
+        self.assertEqual(len(long_ack["note"]), 300)
+        self.assertIn(
+            "- **Last Parked**: reverse-engineering — " + "y" * 300,
+            self.state_text(),
+        )
+        self.assert_error(lambda: self.park("   \n   "), "usage")
+
+    def test_park_without_state(self):
+        fresh = tempfile.mkdtemp(prefix="aidlc-park-nostate-")
+        self.addCleanup(shutil.rmtree, fresh, True)
+        self.assert_error(
+            lambda: engine.cmd_park(fresh, "note"), "no-state"
+        )
+
+    def test_park_after_workflow_complete(self):
+        # setUp already drove workspace-detection; plan-skip everything
+        # except it and operations so operations is the last stage.
+        skip = [
+            s for s in STAGE_ORDER
+            if s not in ("workspace-detection", "operations")
+        ]
+        self.set_plan_lines(skip=", ".join(skip))
+        self.drive_past("operations")
+        self.assert_error(lambda: self.park("note"), "workflow-complete")
+
+    def test_park_dedupe_same_tail_note(self):
+        first = self.park("same note")
+        self.assertTrue(first["handoff_appended"])
+        second = self.park("same note")
+        self.assertFalse(second["handoff_appended"])
+        self.assertEqual(self.handoff_text().count("## Park"), 1)
+
+    def test_park_write_order_state_then_handoff(self):
+        calls = []
+        state_path = os.path.join(
+            self.workspace, "aidlc-docs", "aidlc-state.md"
+        )
+        handoff_path = os.path.join(
+            self.workspace, "aidlc-docs", "handoff.md"
+        )
+        with mock.patch.object(
+            engine, "_write_text_atomic",
+            side_effect=lambda path, text: calls.append(path),
+        ), mock.patch.object(
+            engine, "_append_text",
+            side_effect=lambda path, text: calls.append(path),
+        ):
+            self.park("ordered note")
+        self.assertEqual(calls, [state_path, handoff_path])
+
+    def test_park_second_different_note_updates(self):
+        self.park("first note")
+        ack = self.park("second note")
+        self.assertTrue(ack["handoff_appended"])
+        handoff = self.handoff_text()
+        self.assertEqual(handoff.count("## Park"), 2)
+        self.assertIn("**Note**: first note", handoff)
+        self.assertIn("**Note**: second note", handoff)
+        self.assertIn(
+            "- **Last Parked**: reverse-engineering — second note",
+            self.state_text(),
+        )
+
+
+# ---------------------------------------------------------------------------
+# status recovery upgrades (Phase 3.1)
+# ---------------------------------------------------------------------------
+
+
+class StatusRecoveryTests(WorkspaceCase):
+    def setUp(self):
+        super().setUp()
+        self.init()
+
+    def test_resume_note_after_park(self):
+        self.drive_past("workspace-detection")
+        self.park("hold on")
+        self.assertEqual(
+            self.status()["resume_note"],
+            {"stage": "reverse-engineering", "note": "hold on"},
+        )
+
+    def test_resume_note_none_without_park(self):
+        self.assertIsNone(self.status()["resume_note"])
+
+    def test_recent_events_last_five(self):
+        self.drive_past("workspace-detection")
+        self.report("reverse-engineering", "skipped", "greenfield")
+        self.report("requirements-analysis", "approved")
+        self.report("user-stories", "skipped", "not needed")
+        self.report("workflow-planning", "approved")
+        result = self.status()
+        events = result["recent_events"]
+        self.assertEqual(result["audit_entries"], 6)
+        self.assertEqual(len(events), 5)
+        for event in events:
+            self.assertEqual(
+                set(event.keys()),
+                {"event", "stage", "reason", "timestamp"},
+            )
+            self.assertRegex(event["timestamp"], ISO_UTC_RE)
+        self.assertEqual(
+            [e["event"] for e in events],
+            [
+                "STAGE_COMPLETED",
+                "STAGE_SKIPPED",
+                "STAGE_APPROVED",
+                "STAGE_SKIPPED",
+                "STAGE_APPROVED",
+            ],
+        )
+        self.assertEqual(
+            [e["stage"] for e in events],
+            [
+                "workspace-detection",
+                "reverse-engineering",
+                "requirements-analysis",
+                "user-stories",
+                "workflow-planning",
+            ],
+        )
+        self.assertEqual(events[1]["reason"], "greenfield")
+        self.assertEqual(events[3]["reason"], "not needed")
+
+    def test_recent_events_ignore_forged_model_section(self):
+        self.drive_past("workspace-detection")
+        audit = self.audit_text()
+        parts = audit.split("## Engine Transition")
+        self.assertEqual(len(parts), 3)  # preamble + two engine sections
+        forged = (
+            "## Code Generation\n"
+            "**Timestamp**: 2020-01-01T00:00:00Z\n"
+            "**Event**: STAGE_APPROVED\n"
+            "**Stage**: operations\n"
+            "**Reason**: forged by the model\n"
+            "\n---\n\n"
+        )
+        tampered = (
+            parts[0] + "## Engine Transition" + parts[1] + forged
+            + "## Engine Transition" + parts[2]
+        )
+        with open(self._path("aidlc-docs", "audit.md"), "w",
+                  encoding="utf-8", newline="") as handle:
+            handle.write(tampered)
+        result = self.status()
+        self.assertEqual(result["integrity"], "ok")
+        self.assertNotIn(
+            "operations", [e["stage"] for e in result["recent_events"]]
+        )
+
+    def test_timestamp_attribution_is_last_in_section(self):
+        self.drive_past("workspace-detection")
+        manual = (
+            "\n## Engine Transition\n"
+            "**Event**: STAGE_COMPLETED\n"
+            "**Stage**: workspace-detection\n"
+            "**Timestamp**: 2020-05-05T05:05:05Z\n"
+            "**Timestamp**: 2021-06-06T06:06:06Z\n"
+            "\n---\n\n"
+        )
+        with open(self._path("aidlc-docs", "audit.md"), "a",
+                  encoding="utf-8", newline="") as handle:
+            handle.write(manual)
+        events = self.status()["recent_events"]
+        self.assertEqual(
+            events[-1],
+            {
+                "event": "STAGE_COMPLETED",
+                "stage": "workspace-detection",
+                "reason": None,
+                "timestamp": "2021-06-06T06:06:06Z",
+            },
+        )
+
+    def test_no_alert_when_one_of_two_produces_exists(self):
+        self.route_to("requirements-analysis")
+        self.make_doc(
+            "inception/requirements/"
+            "requirement-verification-questions.md"
+        )
+        ack = self.report("requirements-analysis", "approved")
+        self.assertNotIn("produces_missing", ack)
+        alerts = self.status()["artifact_alerts"]
+        self.assertEqual(
+            [a for a in alerts if a["type"] == "missing-produces"], []
+        )
+
+    def test_no_alert_when_some_of_eight_produces_exist(self):
+        self.route_to("build-and-test")
+        for name in (
+            "build-instructions",
+            "unit-test-instructions",
+            "integration-test-instructions",
+            "performance-test-instructions",
+        ):
+            self.make_doc("construction/build-and-test/%s.md" % name)
+        ack = self.report("build-and-test", "approved")
+        self.assertNotIn("produces_missing", ack)
+        alerts = self.status()["artifact_alerts"]
+        self.assertEqual(
+            [a for a in alerts if a["type"] == "missing-produces"], []
+        )
+
+    def test_no_alert_for_single_produce_stage_completed_empty(self):
+        self.route_to("infrastructure-design")
+        self.report("infrastructure-design", "approved")
+        alerts = self.status()["artifact_alerts"]
+        self.assertEqual(
+            [a for a in alerts if a["type"] == "missing-produces"], []
+        )
+
+    def test_no_alert_for_zero_produce_stage_and_engine_files(self):
+        self.route_to("operations")
+        self.drive_past("operations")
+        self.assertEqual(self.status()["artifact_alerts"], [])
+
+    def test_missing_produces_alert_when_all_absent(self):
+        self.route_to("requirements-analysis")
+        self.report("requirements-analysis", "approved")
+        alerts = [
+            a for a in self.status()["artifact_alerts"]
+            if a["type"] == "missing-produces"
+        ]
+        self.assertEqual(len(alerts), 1)
+        alert = alerts[0]
+        self.assertEqual(alert["subject"], "requirements-analysis")
+        self.assertEqual(alert["severity"], "warning")
+        self.assertEqual(
+            set(alert.keys()),
+            {"type", "severity", "subject", "message",
+             "action_discipline"},
+        )
+        self.assertIn(
+            "aidlc-docs/inception/requirements/requirements.md",
+            alert["message"],
+        )
+        self.assertIn(
+            "aidlc-docs/inception/requirements/"
+            "requirement-verification-questions.md",
+            alert["message"],
+        )
+        self.assertEqual(
+            alert["action_discipline"],
+            "Report to the user; do not regenerate or fabricate "
+            "artifacts.",
+        )
+
+    def test_missing_produces_counts_empty_file_as_missing(self):
+        self.route_to("requirements-analysis")
+        self.make_doc("inception/requirements/requirements.md",
+                      content="")
+        self.report("requirements-analysis", "approved")
+        alerts = [
+            a for a in self.status()["artifact_alerts"]
+            if a["type"] == "missing-produces"
+        ]
+        self.assertEqual(len(alerts), 1)
+        self.assertIn(
+            "aidlc-docs/inception/requirements/requirements.md",
+            alerts[0]["message"],
+        )
+
+    def test_resumed_artifacts_via_unit_glob(self):
+        self.route_to("functional-design")
+        self.make_doc(
+            "construction/auth[1]/functional-design/"
+            "business-logic-model.md"
+        )
+        alerts = [
+            a for a in self.status()["artifact_alerts"]
+            if a["type"] == "resumed-artifacts"
+        ]
+        self.assertEqual(len(alerts), 1)
+        self.assertEqual(alerts[0]["subject"], "functional-design")
+        self.assertEqual(alerts[0]["severity"], "info")
+        self.assertIn(
+            "construction/auth[1]/functional-design/"
+            "business-logic-model.md",
+            alerts[0]["message"],
+        )
+
+    def test_resumed_artifacts_for_current_stage(self):
+        self.drive_past("workspace-detection")
+        self.report("reverse-engineering", "skipped", "greenfield")
+        self.make_doc("inception/requirements/requirements.md")
+        alerts = [
+            a for a in self.status()["artifact_alerts"]
+            if a["type"] == "resumed-artifacts"
+        ]
+        self.assertEqual(len(alerts), 1)
+        self.assertEqual(alerts[0]["subject"], "requirements-analysis")
+
+    def test_alert_probe_failure_fails_open(self):
+        self.drive_past("workspace-detection")
+        with mock.patch.object(
+            engine, "_artifact_alerts",
+            side_effect=RuntimeError("boom"),
+        ):
+            result = self.status()
+        self.assertEqual(result["artifact_alerts"], [])
+        self.assertTrue(result["alerts_unavailable"])
+        self.assertEqual(result["integrity"], "ok")
+
+    def test_alerts_still_computed_when_integrity_violated(self):
+        self.drive_past("workspace-detection")
+        self.report("reverse-engineering", "skipped", "greenfield")
+        self.make_doc("inception/requirements/requirements.md")
+        text = self.state_text().replace(
+            "- [ ] operations", "- [x] operations"
+        )
+        self.write_state(text)
+        result = self.status()
+        self.assertEqual(result["integrity"], "violated")
+        self.assertIn(
+            "resumed-artifacts",
+            [a["type"] for a in result["artifact_alerts"]],
+        )
+
+
+# ---------------------------------------------------------------------------
+# report soft warning (Phase 3.1)
+# ---------------------------------------------------------------------------
+
+
+class ReportWarningTests(WorkspaceCase):
+    def setUp(self):
+        super().setUp()
+        self.init()
+        self.drive_past("workspace-detection")
+        self.report("reverse-engineering", "skipped", "greenfield")
+
+    def test_report_approved_flags_missing_produces(self):
+        ack = self.report("requirements-analysis", "approved")
+        self.assertEqual(ack["kind"], "reported")
+        self.assertEqual(ack["current_stage"], "user-stories")
+        self.assertEqual(
+            ack["produces_missing"],
+            [
+                "aidlc-docs/inception/requirements/requirements.md",
+                "aidlc-docs/inception/requirements/"
+                "requirement-verification-questions.md",
+            ],
+        )
+
+    def test_report_warning_fails_open(self):
+        with mock.patch.object(
+            engine, "_stage_missing_produces",
+            side_effect=RuntimeError("boom"),
+        ):
+            ack = self.report("requirements-analysis", "approved")
+        self.assertEqual(ack["kind"], "reported")
+        self.assertNotIn("produces_missing", ack)
+
+    def test_report_rejected_skips_probe(self):
+        ack = self.report("requirements-analysis", "rejected")
+        self.assertNotIn("produces_missing", ack)
+        self.assertEqual(ack["current_stage"], "requirements-analysis")
+
+
+# ---------------------------------------------------------------------------
+# backward compatibility (Phase 3.1)
+# ---------------------------------------------------------------------------
+
+
+class BackwardCompatTests(WorkspaceCase):
+    def setUp(self):
+        super().setUp()
+        self.init()
+
+    def test_state_without_reader_notes_line_still_works(self):
+        text = self.state_text()
+        kept = [
+            line for line in text.split("\n")
+            if not line.startswith("Reader notes")
+        ]
+        self.write_state("\n".join(kept))
+        result = self.status()
+        self.assertEqual(result["state"], "active")
+        self.drive_past("workspace-detection")
+        self.assertIsNone(self.status()["resume_note"])
+        self.assertNotIn("Last Parked", self.state_text())
+
+    def test_rebase_is_byte_idempotent(self):
+        self.report("workspace-detection", "completed")
+        before = self.state_text()
+        self.rebase()
+        self.assertEqual(self.state_text(), before)
+
+
+# ---------------------------------------------------------------------------
+# park interaction matrix (Phase 3.1)
+# ---------------------------------------------------------------------------
+
+
+class InteractionMatrixTests(WorkspaceCase):
+    def setUp(self):
+        super().setUp()
+        self.init()
+        self.drive_past("workspace-detection")
+        self.park("in flight")
+
+    def test_report_clears_park_but_keeps_handoff(self):
+        self.report("reverse-engineering", "skipped", "greenfield")
+        self.assertIsNone(self.status()["resume_note"])
+        self.assertNotIn("Last Parked", self.state_text())
+        self.assertEqual(self.handoff_text().count("## Park"), 1)
+
+    def test_jump_clears_park(self):
+        self.jump(slug="user-stories")
+        self.assertIsNone(self.status()["resume_note"])
+
+    def test_jump_fresh_archives_handoff(self):
+        ack = self.jump(fresh=True)
+        archived = ack["archived"]
+        self.assertIsNotNone(archived)
+        self.assertTrue(
+            os.path.isfile(self._path(archived, "handoff.md"))
+        )
+        self.init()
+        parked = self.park("again")
+        self.assertEqual(parked["kind"], "parked")
+        self.assertIsNotNone(self.handoff_text())
+
+    def test_rebase_preserves_park(self):
+        text = self.state_text().replace(
+            "- [ ] operations", "- [x] operations"
+        )
+        self.write_state(text)
+        self.rebase()
+        result = self.status()
+        self.assertEqual(result["integrity"], "ok")
+        self.assertEqual(
+            result["resume_note"],
+            {"stage": "reverse-engineering", "note": "in flight"},
+        )
+
+
+# ---------------------------------------------------------------------------
+# golden output shapes (Phase 3.1)
+# ---------------------------------------------------------------------------
+
+
+def _run_main(argv):
+    """Run engine.main in-process, capturing JSON stdout (CLI surface)."""
+    import contextlib
+    import io
+
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        try:
+            code = engine.main(["engine.py"] + argv)
+        except SystemExit as exc:  # argparse error path exits directly
+            code = exc.code if isinstance(exc.code, int) else 2
+    return code, json.loads(buffer.getvalue())
+
+
+class GoldenOutputTests(WorkspaceCase):
+    def test_status_active_key_set_exact(self):
+        self.init()
+        result = self.status()
+        self.assertEqual(
+            set(result.keys()),
+            {
+                "engine",
+                "state_version",
+                "workspace",
+                "state",
+                "current_stage",
+                "scope",
+                "depth",
+                "last_completed",
+                "integrity",
+                "completed",
+                "remaining",
+                "resume_note",
+                "recent_events",
+                "audit_entries",
+                "audit_bytes",
+                "artifact_alerts",
+                "alerts_unavailable",
+            },
+        )
+
+    def test_status_corrupt_key_set_has_no_new_keys(self):
+        self.init()
+        text = self.state_text()
+        kept = [
+            line for line in text.split("\n")
+            if not line.startswith("<!-- END ENGINE-STATE")
+        ]
+        self.write_state("\n".join(kept))
+        result = self.status()
+        self.assertEqual(
+            set(result.keys()),
+            {
+                "engine",
+                "state_version",
+                "workspace",
+                "state",
+                "current_stage",
+                "scope",
+                "depth",
+                "last_completed",
+                "integrity",
+                "completed",
+                "remaining",
+                "hint",
+            },
+        )
+
+    def test_status_none_key_set_has_no_new_keys(self):
+        result = self.status()  # no state file at all
+        self.assertEqual(
+            set(result.keys()),
+            {
+                "engine",
+                "state_version",
+                "workspace",
+                "state",
+                "current_stage",
+                "scope",
+                "depth",
+                "last_completed",
+                "integrity",
+                "completed",
+                "remaining",
+            },
+        )
+
+    def test_status_legacy_key_set_has_no_new_keys(self):
+        os.makedirs(self._path("aidlc-docs"))
+        self.write_state("# AI-DLC State Tracking\n\n- old style file\n")
+        result = self.status()
+        self.assertEqual(
+            set(result.keys()),
+            {
+                "engine",
+                "state_version",
+                "workspace",
+                "state",
+                "current_stage",
+                "scope",
+                "depth",
+                "last_completed",
+                "integrity",
+                "completed",
+                "remaining",
+                "hint",
+            },
+        )
+
+    def test_park_ack_key_set_exact(self):
+        self.init()
+        self.drive_past("workspace-detection")
+        ack = self.park("note")
+        self.assertEqual(
+            set(ack.keys()),
+            {"kind", "stage", "note", "handoff_file",
+             "handoff_appended"},
+        )
+
+    def test_cli_status_masked_golden(self):
+        self.init()
+        self.drive_past("workspace-detection")
+        self.park("mid-stage note")
+        code, payload = _run_main(
+            ["status", "--workspace", self.workspace]
+        )
+        self.assertEqual(code, 0)
+        self.assertEqual(
+            payload["audit_bytes"],
+            os.path.getsize(self._path("aidlc-docs", "audit.md")),
+        )
+        payload["timestamp"] = "<TS>"
+        payload["workspace"] = "<WS>"
+        payload["audit_bytes"] = "<BYTES>"
+        for event in payload["recent_events"]:
+            event["timestamp"] = "<TS>"
+        golden = {
+            "engine": "ok",
+            "state_version": 1,
+            "workspace": "<WS>",
+            "state": "active",
+            "current_stage": "reverse-engineering",
+            "scope": "classic",
+            "depth": "standard",
+            "last_completed": "workspace-detection",
+            "integrity": "ok",
+            "completed": ["workspace-detection"],
+            "remaining": STAGE_ORDER[1:],
+            "resume_note": {
+                "stage": "reverse-engineering",
+                "note": "mid-stage note",
+            },
+            "recent_events": [
+                {
+                    "event": "STATE_CREATED",
+                    "stage": "-",
+                    "reason": "-",
+                    "timestamp": "<TS>",
+                },
+                {
+                    "event": "STAGE_COMPLETED",
+                    "stage": "workspace-detection",
+                    "reason": "-",
+                    "timestamp": "<TS>",
+                },
+            ],
+            "audit_entries": 2,
+            "audit_bytes": "<BYTES>",
+            "artifact_alerts": [],
+            "alerts_unavailable": False,
+            "timestamp": "<TS>",
+        }
+        self.assertEqual(payload, golden)
 
 
 if __name__ == "__main__":
