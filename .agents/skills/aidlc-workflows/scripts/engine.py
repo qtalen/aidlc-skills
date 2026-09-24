@@ -12,7 +12,9 @@ to the human. This engine owns the workflow's deterministic mechanics:
 - the bootstrap probe / session-recovery data source (``status``),
 - in-flight parking (``park`` — an annotation, never a transition; it
   keeps marks and current unchanged, writes a handoff note, and never
-  touches the audit log).
+  touches the audit log),
+- the authoritative clock (``stamp`` — zero side effect: prints the
+  engine timestamp without reading or writing anything).
 
 The engine reads ONLY the author-time compiled artifact
 ``scripts/data/stage-graph.json`` (produced by ``scripts/generate.py``). It
@@ -31,6 +33,7 @@ Subcommands:
     park      park in-flight work with a handoff note (annotation)
     jump      change course: --stage <slug> | --fresh
     rebase    re-baseline the State Digest after human confirmation
+    stamp     print the authoritative timestamp (zero side effect)
 
 Every invocation prints exactly one JSON object to stdout. Exit code 0 on
 success, 1 whenever the JSON object is ``{"kind": "error", ...}`` (including
@@ -719,6 +722,90 @@ def _directive_for(graph, state, slug):
 
 
 # ---------------------------------------------------------------------------
+# Model-region reads (model writes, engine reads — the Execution Plan
+# Summary precedent; lenient: never raise, never re-render, never re-own)
+# ---------------------------------------------------------------------------
+
+
+def _parse_autonomous(lines):
+    """Read the model-owned ``## Autonomous Mode`` section (lenient).
+
+    Returns a dict when the section exists and carries a parseable
+    ``**Enabled**`` line; ``None`` when the section is missing or
+    malformed (no Enabled line, or an Enabled value other than Yes/No —
+    surfacing null instead of guessing keeps AM-09's model-side fallback
+    authoritative). Never raises; the section stays model-owned and
+    outside the State Digest.
+    """
+    in_section = False
+    enabled = None
+    question_handling = None
+    review_raw = None
+    last_updated = None
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            in_section = stripped == "## Autonomous Mode"
+            continue
+        if not in_section:
+            continue
+        m = re.match(r"^- \*\*([A-Za-z ]+)\*\*:\s*(.*)$", stripped)
+        if not m:
+            continue
+        key, value = m.group(1), m.group(2).strip()
+        if key == "Enabled":
+            enabled = value
+        elif key == "Question Handling":
+            question_handling = value or None
+        elif key == "Review Stages":
+            review_raw = value
+        elif key == "Last Updated":
+            last_updated = value or None
+    if enabled is None or enabled.lower() not in ("yes", "no"):
+        return None
+    review_stages = []
+    if review_raw and review_raw.strip().lower() != "none":
+        review_stages = [
+            part.strip() for part in review_raw.split(",") if part.strip()
+        ]
+    return {
+        "enabled": enabled.lower() == "yes",
+        "question_handling": question_handling,
+        "review_stages": review_stages,
+        "last_updated": last_updated,
+    }
+
+
+def _ctx_enabled(lines):
+    """True when the model-owned Extension Configuration table marks the
+    Context Checkpointing (CTX) extension Enabled.
+
+    A missing table, or a table without a clearly enabled checkpointing
+    row, counts as NOT enabled (the checkpoint anchors are not checked).
+    Malformed rows are skipped, never raised.
+    """
+    in_section = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            in_section = stripped == "## Extension Configuration"
+            continue
+        if not in_section or not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) < 2 or not cells[0]:
+            continue
+        name = cells[0]
+        if set(name) <= set("-: "):
+            continue  # separator row (|---|---|)
+        if name.lower() == "extension":
+            continue  # header row
+        if "checkpoint" in name.lower() and cells[1].lower() == "yes":
+            return True
+    return False
+
+
+# ---------------------------------------------------------------------------
 # Session recovery sensors (fail-open)
 # ---------------------------------------------------------------------------
 
@@ -777,6 +864,57 @@ def _stage_resumed_artifacts(workspace, stage):
     return unique[:5]
 
 
+def _checkpoint_alert(phase, rel):
+    return {
+        "type": "checkpoint-missing",
+        "severity": "warning",
+        "subject": phase,
+        "message": (
+            "The Context Checkpointing extension is enabled and the %s "
+            "checkpoint anchor is reached, but aidlc-docs/%s is missing "
+            "or empty (CTX-01 phase checkpoint)." % (phase, rel)
+        ),
+        "action_discipline": "Report to the user; do not fabricate the "
+        "checkpoint to silence this alert.",
+    }
+
+
+def _checkpoint_alerts(graph, state, workspace):
+    """checkpoint-missing findings for the two global CTX-01 anchors.
+
+    Checked ONLY when the Extension Configuration table shows the
+    Context Checkpointing extension Enabled (a missing or malformed
+    table means not enabled — nothing is checked). Anchors: every
+    effective inception stage done -> ``checkpoints/inception-
+    checkpoint.md``; build-and-test done -> ``checkpoints/construction-
+    checkpoint.md``. Per-unit anchors are a Phase 4 item (they need the
+    Unit Progress region).
+    """
+    if not _ctx_enabled(state.lines):
+        return []
+    docs = os.path.join(workspace, DOCS_DIR)
+    alerts = []
+    inception = [
+        stage
+        for stage in effective_stages(graph, state.plan)
+        if stage["phase"] == "inception"
+    ]
+    if inception and all(
+        _is_done(state.marks.get(stage["slug"], MARK_PENDING))
+        for stage in inception
+    ):
+        rel = "checkpoints/inception-checkpoint.md"
+        path = os.path.join(docs, rel)
+        if not os.path.isfile(path) or os.path.getsize(path) == 0:
+            alerts.append(_checkpoint_alert("inception", rel))
+    if _is_done(state.marks.get("build-and-test", MARK_PENDING)):
+        rel = "checkpoints/construction-checkpoint.md"
+        path = os.path.join(docs, rel)
+        if not os.path.isfile(path) or os.path.getsize(path) == 0:
+            alerts.append(_checkpoint_alert("construction", rel))
+    return alerts
+
+
 def _artifact_alerts(graph, state, workspace, current):
     """First-generation artifact findings (D14 finding shape, fail-open).
 
@@ -824,6 +962,7 @@ def _artifact_alerts(graph, state, workspace, current):
                     "rejected/revised redo — see session-continuity).",
                 }
             )
+    alerts.extend(_checkpoint_alerts(graph, state, workspace))
     return alerts
 
 
@@ -980,12 +1119,29 @@ def cmd_status(workspace):
             if state.parked
             else None
         ),
+        "autonomous": _parse_autonomous(state.lines),
+        "note_age_seconds": (
+            _note_age_seconds(workspace, expected=state.parked)
+            if state.parked
+            else None
+        ),
         "recent_events": transitions[-5:],
         "audit_entries": len(transitions),
         "audit_bytes": len(audit_text.encode("utf-8")),
         "artifact_alerts": alerts,
         "alerts_unavailable": alerts_unavailable,
     }
+
+
+def cmd_stamp():
+    """Authoritative timestamp, zero side effect.
+
+    Reads nothing and writes nothing (no state, no audit, no handoff) —
+    it exists so an audit entry can carry the engine's clock even in an
+    interaction that runs no other engine subcommand. The timestamp is
+    injected by ``main()`` like every other successful output.
+    """
+    return {"engine": "ok", "kind": "stamp"}
 
 
 def cmd_init(workspace):
@@ -1275,14 +1431,25 @@ def _sanitize_park_note(note):
     return folded[:PARK_NOTE_MAX]
 
 
-def _handoff_tail(workspace):
-    """(stage, note) of the LAST park entry in handoff.md, or None."""
+def _handoff_last_entry(workspace):
+    """(stage, note, timestamp) of the LAST park entry in handoff.md.
+
+    Lenient "last line wins" parsing — handoff.md is never integrity-
+    checked (§5.5 of the engine contract). The timestamp is the last
+    ``**Timestamp**`` line seen, the same attribution convention as
+    ``_audit_transition_events``. None when the file is missing or has
+    no complete (stage, note) pair.
+    """
     path = _handoff_path(workspace)
     if not os.path.isfile(path):
         return None
-    stage = note = None
+    stage = note = timestamp = None
     for line in _read_text(path).split("\n"):
         stripped = line.strip()
+        m = AUDIT_TIMESTAMP_RE.match(stripped)
+        if m:
+            timestamp = m.group(1).strip()
+            continue
         m = AUDIT_STAGE_RE.match(stripped)
         if m:
             stage = m.group(1).strip()
@@ -1292,7 +1459,41 @@ def _handoff_tail(workspace):
             note = m.group(1).strip()
     if stage is None or note is None:
         return None
-    return (stage, note)
+    return (stage, note, timestamp)
+
+
+def _handoff_tail(workspace):
+    """(stage, note) of the LAST park entry in handoff.md, or None."""
+    entry = _handoff_last_entry(workspace)
+    return (entry[0], entry[1]) if entry else None
+
+
+def _note_age_seconds(workspace, expected=None):
+    """Age in seconds of the last park entry's handoff timestamp.
+
+    An objective number only — judging staleness stays with the model.
+    Negative deltas (clock skew) clamp to 0. None when there is no park
+    entry or its timestamp is unparseable. When ``expected`` (the
+    region's parked ``(slug, note)`` pair) is supplied, the handoff tail
+    must match it — a mismatch means the handoff history has drifted
+    from the current note (a crash between the two park writes, or
+    last-writer-wins concurrency), and no age is reported rather than
+    the age of the wrong note.
+    """
+    entry = _handoff_last_entry(workspace)
+    if entry is None or not entry[2]:
+        return None
+    if expected is not None and (entry[0], entry[1]) != expected:
+        return None
+    raw = entry[2].replace("Z", "+00:00")
+    try:
+        then = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if then.tzinfo is None:
+        then = then.replace(tzinfo=timezone.utc)
+    delta = datetime.now(timezone.utc) - then
+    return max(0, int(delta.total_seconds()))
 
 
 def _handoff_append(workspace, stage, note):
@@ -1367,7 +1568,7 @@ class _JsonArgumentParser(argparse.ArgumentParser):
             "code": "usage",
             "message": "Invalid command line: %s" % message,
             "hint": "Usage: python engine.py "
-            "<status|init|next|report|park|jump|rebase> "
+            "<status|init|next|report|park|jump|rebase|stamp> "
             "[--workspace <path>]",
             "timestamp": _now_iso(),
         }
@@ -1411,6 +1612,7 @@ def _build_parser():
     jump.add_argument("--fresh", action="store_true")
 
     add("rebase", help="re-baseline the State Digest")
+    add("stamp", help="print the authoritative timestamp (no side effects)")
     return parser
 
 
@@ -1440,12 +1642,14 @@ def main(argv):
             result = cmd_jump(workspace, args.stage, args.fresh)
         elif args.command == "rebase":
             result = cmd_rebase(workspace)
+        elif args.command == "stamp":
+            result = cmd_stamp()
         else:
             raise EngineError(
                 "usage",
                 "No subcommand given.",
                 "Usage: python engine.py "
-                "<status|init|next|report|park|jump|rebase> "
+                "<status|init|next|report|park|jump|rebase|stamp> "
                 "[--workspace <path>]",
             )
     except EngineError as exc:

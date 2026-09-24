@@ -906,6 +906,22 @@ class CliTests(WorkspaceCase):
         self.assertIn("park", payload["hint"])
         self.assertIn("park", engine.__doc__)
 
+    def test_stamp_json_shape(self):
+        code, payload = self._run(["stamp"])
+        self.assertEqual(code, 0)
+        self.assertEqual(payload["engine"], "ok")
+        self.assertEqual(payload["kind"], "stamp")
+        self.assertEqual(
+            set(payload.keys()), {"engine", "kind", "timestamp"}
+        )
+        self.assertRegex(payload["timestamp"], ISO_UTC_RE)
+
+    def test_stamp_zero_side_effect(self):
+        code, payload = self._run(["stamp", "--workspace", self.workspace])
+        self.assertEqual(code, 0)
+        self.assertEqual(payload["kind"], "stamp")
+        self.assertEqual(os.listdir(self.workspace), [])
+
 
 # ---------------------------------------------------------------------------
 # park (Phase 3.1)
@@ -1272,6 +1288,197 @@ class StatusRecoveryTests(WorkspaceCase):
             [a["type"] for a in result["artifact_alerts"]],
         )
 
+    # -- autonomous key + note age (Phase 3.3) ----------------------------
+
+    def _append_model_text(self, text):
+        """Append model-owned region text after the ENGINE-STATE region."""
+        self.write_state(self.state_text() + text)
+
+    def test_autonomous_key_parses_enabled_section(self):
+        self._append_model_text(
+            "\n## Autonomous Mode\n"
+            "- **Enabled**: Yes\n"
+            "- **Question Handling**: auto-recommended\n"
+            "- **Review Stages**: code-generation, build-and-test\n"
+            "- **Last Updated**: 2026-09-24T08:00:00Z\n"
+        )
+        self.assertEqual(
+            self.status()["autonomous"],
+            {
+                "enabled": True,
+                "question_handling": "auto-recommended",
+                "review_stages": ["code-generation", "build-and-test"],
+                "last_updated": "2026-09-24T08:00:00Z",
+            },
+        )
+
+    def test_autonomous_key_disabled_has_no_review_stages(self):
+        self._append_model_text(
+            "\n## Autonomous Mode\n"
+            "- **Enabled**: No\n"
+            "- **Question Handling**: N/A\n"
+            "- **Review Stages**: None\n"
+            "- **Last Updated**: 2026-09-24T08:00:00Z\n"
+        )
+        autonomous = self.status()["autonomous"]
+        self.assertEqual(autonomous["enabled"], False)
+        self.assertEqual(autonomous["review_stages"], [])
+        self.assertEqual(autonomous["question_handling"], "N/A")
+
+    def test_autonomous_key_null_when_missing_or_malformed(self):
+        # The section is missing entirely.
+        self.assertIsNone(self.status()["autonomous"])
+        # Malformed: Enabled value is neither Yes nor No.
+        self._append_model_text(
+            "\n## Autonomous Mode\n- **Enabled**: sometimes\n"
+        )
+        self.assertIsNone(self.status()["autonomous"])
+        # Malformed: the section exists but carries no Enabled line.
+        self.write_state(
+            self.state_text().replace(
+                "- **Enabled**: sometimes",
+                "- **Question Handling**: manual",
+            )
+        )
+        self.assertIsNone(self.status()["autonomous"])
+
+    def test_note_age_seconds_after_park(self):
+        self.drive_past("workspace-detection")
+        self.park("waiting for user input")
+        age = self.status()["note_age_seconds"]
+        self.assertIsInstance(age, int)
+        self.assertGreaterEqual(age, 0)
+
+    def test_note_age_null_without_a_current_note(self):
+        self.assertIsNone(self.status()["note_age_seconds"])
+        self.drive_past("workspace-detection")
+        self.park("in flight")
+        self.report("reverse-engineering", "skipped", "greenfield")
+        # A transition supersedes the park: there is no current note to
+        # age, even though handoff.md still holds the historical entry.
+        status = self.status()
+        self.assertIsNone(status["resume_note"])
+        self.assertIsNone(status["note_age_seconds"])
+
+    def test_note_age_null_on_unparseable_handoff_timestamp(self):
+        self.drive_past("workspace-detection")
+        self.park("in flight")
+        handoff = re.sub(
+            r"\*\*Timestamp\*\*: .*",
+            "**Timestamp**: garbage",
+            self.handoff_text(),
+            count=1,
+        )
+        with open(
+            self._path("aidlc-docs", "handoff.md"), "w",
+            encoding="utf-8", newline="",
+        ) as handle:
+            handle.write(handoff)
+        self.assertIsNone(self.status()["note_age_seconds"])
+
+    def test_note_age_null_when_handoff_tail_drifted(self):
+        self.drive_past("workspace-detection")
+        self.park("in flight")
+        # Simulate a drifted handoff history (crash between the two park
+        # writes, or last-writer-wins concurrency): the tail no longer
+        # matches the region's parked note. resume_note stays (region is
+        # authoritative) but no age of the WRONG note is reported.
+        handoff = self.handoff_text().replace(
+            "**Stage**: reverse-engineering", "**Stage**: user-stories"
+        )
+        with open(
+            self._path("aidlc-docs", "handoff.md"), "w",
+            encoding="utf-8", newline="",
+        ) as handle:
+            handle.write(handoff)
+        status = self.status()
+        self.assertEqual(
+            status["resume_note"],
+            {"stage": "reverse-engineering", "note": "in flight"},
+        )
+        self.assertIsNone(status["note_age_seconds"])
+
+    # -- checkpoint-missing anchors (Phase 3.3, CTX opt-in) ----------------
+
+    CTX_TABLE = (
+        "## Extension Configuration\n"
+        "| Extension | Enabled | Decided At |\n"
+        "|---|---|---|\n"
+        "| Context Checkpointing | Yes | Requirements Analysis |\n"
+    )
+
+    def _complete_inception(self):
+        text = self.state_text()
+        for slug in STAGE_ORDER[:7]:
+            text = text.replace("- [ ] %s" % slug, "- [x] %s" % slug)
+        self.write_state(text)
+        self.rebase()
+
+    def _checkpoint_alerts(self):
+        return [
+            alert
+            for alert in self.status()["artifact_alerts"]
+            if alert["type"] == "checkpoint-missing"
+        ]
+
+    def test_checkpoint_missing_alert_when_ctx_enabled(self):
+        self._complete_inception()
+        self._append_model_text("\n" + self.CTX_TABLE)
+        alerts = self._checkpoint_alerts()
+        self.assertEqual(len(alerts), 1)
+        self.assertEqual(alerts[0]["subject"], "inception")
+        self.assertEqual(alerts[0]["severity"], "warning")
+        self.assertEqual(
+            set(alerts[0].keys()),
+            {"type", "severity", "subject", "message",
+             "action_discipline"},
+        )
+        self.assertIn(
+            "aidlc-docs/checkpoints/inception-checkpoint.md",
+            alerts[0]["message"],
+        )
+
+    def test_no_checkpoint_alert_when_checkpoint_exists(self):
+        self._complete_inception()
+        self._append_model_text("\n" + self.CTX_TABLE)
+        self.make_doc("checkpoints/inception-checkpoint.md")
+        self.assertEqual(self._checkpoint_alerts(), [])
+
+    def test_no_checkpoint_alert_when_ctx_not_enabled(self):
+        self._complete_inception()
+        # No Extension Configuration table at all: no check.
+        self.assertEqual(self._checkpoint_alerts(), [])
+        # A disabled row also means: no check.
+        self._append_model_text(
+            "\n## Extension Configuration\n"
+            "| Extension | Enabled | Decided At |\n"
+            "|---|---|---|\n"
+            "| Context Checkpointing | No | Requirements Analysis |\n"
+        )
+        self.assertEqual(self._checkpoint_alerts(), [])
+
+    def test_no_checkpoint_alert_on_malformed_table(self):
+        self._complete_inception()
+        self._append_model_text(
+            "\n## Extension Configuration\n"
+            "| Context Checkpointing | maybe |\n"  # not Yes -> not enabled
+        )
+        self.assertEqual(self._checkpoint_alerts(), [])
+
+    def test_construction_checkpoint_anchor(self):
+        self._complete_inception()
+        text = self.state_text().replace(
+            "- [ ] build-and-test", "- [x] build-and-test"
+        )
+        self.write_state(text)
+        self.rebase()
+        self._append_model_text("\n" + self.CTX_TABLE)
+        subjects = {alert["subject"] for alert in self._checkpoint_alerts()}
+        self.assertEqual(subjects, {"inception", "construction"})
+        self.make_doc("checkpoints/inception-checkpoint.md")
+        self.make_doc("checkpoints/construction-checkpoint.md")
+        self.assertEqual(self._checkpoint_alerts(), [])
+
 
 # ---------------------------------------------------------------------------
 # report soft warning (Phase 3.1)
@@ -1429,6 +1636,8 @@ class GoldenOutputTests(WorkspaceCase):
                 "completed",
                 "remaining",
                 "resume_note",
+                "autonomous",
+                "note_age_seconds",
                 "recent_events",
                 "audit_entries",
                 "audit_bytes",
@@ -1530,6 +1739,7 @@ class GoldenOutputTests(WorkspaceCase):
         payload["timestamp"] = "<TS>"
         payload["workspace"] = "<WS>"
         payload["audit_bytes"] = "<BYTES>"
+        payload["note_age_seconds"] = "<AGE>"
         for event in payload["recent_events"]:
             event["timestamp"] = "<TS>"
         golden = {
@@ -1548,6 +1758,8 @@ class GoldenOutputTests(WorkspaceCase):
                 "stage": "reverse-engineering",
                 "note": "mid-stage note",
             },
+            "autonomous": None,
+            "note_age_seconds": "<AGE>",
             "recent_events": [
                 {
                     "event": "STATE_CREATED",

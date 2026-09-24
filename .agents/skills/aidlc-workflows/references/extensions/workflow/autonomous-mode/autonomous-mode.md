@@ -40,12 +40,12 @@ MANDATORY cross-cutting rules for every AI-DLC workflow execution while Autonomo
 On detecting an **Activate** intent, execute ALL of the following in the SAME interaction:
 
 1. **Audit**: Log the trigger in audit.md with complete raw input.
-2. **Ask question-handling preference**: Call the `question` tool with this question (presented in the user's conversation language):
+2. **Ask question-handling preference**: Call the structured question tool (see QT-01) with this question (presented in the user's conversation language):
    - **Question**: "在自主模式下，question 问题将如何处理？" / "How should questions be handled in Autonomous Mode?"
    - **Option A**: workflow 自动选择推荐 (Recommended) 答案并写入文档，然后继续往下进行 / The workflow automatically selects the recommended answer, writes it into the question file, and continues
-   - **Option B**: 用户手动选择答案并写入文档，然后继续往下进行 / The user manually selects answers via the question tool, answers are written into the question file, then the workflow continues
-   - Do NOT add an explicit "Other" option — the tool's built-in custom input covers it. A custom (Other) answer takes effect as the question-handling mode; record the verbatim custom text in state and audit.md.
-   - If the `question` tool is unavailable or errors out, ask via a question file per `../../../common/question-format-guide.md` (fallback per QT-04) and note the fallback in audit.md.
+   - **Option B**: 用户手动选择答案并写入文档，然后继续往下进行 / The user manually selects answers via the structured question tool, answers are written into the question file, then the workflow continues
+   - Do NOT add an explicit "Other" option when the structured question tool has built-in custom input — that covers it. A custom (Other) answer takes effect as the question-handling mode; record the verbatim custom text in state and audit.md. (If the tool has no built-in custom input, add an explicit "Other" option, per QT-01.)
+   - If no structured question tool is available or it errors out, ask via a question file per `../../../common/question-format-guide.md` (fallback per QT-04) and note the fallback in audit.md.
 3. **Auto-approve pending gate**: If a stage approval gate is currently waiting for user confirmation, treat that stage's documents as approved — record the transition with the engine (`engine.py report --stage <slug> --result approved`, never a hand-edit of the stage checkboxes), log `Auto-approved (Autonomous Mode)` in audit.md, and proceed to the next stage automatically.
 4. **Persist state**: Create or update the `## Autonomous Mode` section in aidlc-state.md per AM-08 (Enabled: Yes, Question Handling: `auto-recommended` or `manual` or the verbatim custom text, Review Stages: None).
 5. **Announce**: Briefly confirm activation to the user: autonomous mode is on, the chosen question-handling mode, and that stage documents are treated as approved unless listed as review stages.
@@ -70,7 +70,7 @@ Applies to every `{phase-name}-questions.md` file (including `-clarification-que
 ### Mode `auto-recommended`
 
 1. Create the question file as usual (question-format-guide.md rules unchanged).
-2. **Override QT-01**: Do NOT call the `question` tool to collect user answers. Instead, the AI selects the best answer for each question itself — the option it would have marked "(Recommended)".
+2. **Override QT-01**: Do NOT call the structured question tool to collect user answers. Instead, the AI selects the best answer for each question itself — the option it would have marked "(Recommended)".
 3. **Write back with attribution**: Fill each `[Answer]:` tag as:
 
    ```markdown
@@ -86,15 +86,15 @@ Applies to every `{phase-name}-questions.md` file (including `-clarification-que
    Question text and option lists MUST NOT be altered during write-back (aligns with DOC-04). If the file already contains user-provided answers from before activation, leave them untouched.
 4. **Audit**: Log one audit.md entry listing every auto-selected answer (question number, letter, brief rationale).
 5. **Proceed**: Run the standard validation (completeness check + contradiction/ambiguity detection) and continue directly — do NOT wait for user confirmation. Clarification question files produced by validation are handled by this same mode.
-6. If a question is genuinely undecidable from available context (no defensible recommendation), escalate: pause per AM-05 and ask the user via the `question` tool.
+6. If a question is genuinely undecidable from available context (no defensible recommendation), escalate: pause per AM-05 and ask the user via the structured question tool.
 
 ### Mode `manual`
 
-Follow the standard QT-01~04 flow exactly as if Autonomous Mode were off: question file creation → `question` tool invocation → user answers → write-back → validation → proceed. Only stage approval gates (AM-03) are automated in this mode.
+Follow the standard QT-01~04 flow exactly as if Autonomous Mode were off: question file creation → structured question tool invocation → user answers → write-back → validation → proceed. Only stage approval gates (AM-03) are automated in this mode.
 
 ### Custom (Other) mode
 
-Honor the user's verbatim custom instruction for how questions are handled. If the instruction is ambiguous or unactionable, pause per AM-05 and ask for clarification via the `question` tool.
+Honor the user's verbatim custom instruction for how questions are handled. If the instruction is ambiguous or unactionable, pause per AM-05 and ask for clarification via the structured question tool.
 
 ## AM-05: Pause
 
@@ -102,9 +102,9 @@ On detecting a **Pause** intent while Autonomous Mode is active:
 
 1. **Stop immediately**: Do not finish the current step, stage, or any in-progress generation — halt within the current interaction. If a step was interrupted mid-way, park it first: run `engine.py park --note "<in-flight step, exact interruption point, next action>"` (see session-continuity.md Park Ritual) so it can be resumed cleanly from `resume_note`; never write breakpoint notes into `audit.md` or the engine-owned state region.
 2. **Audit**: Log the pause trigger with complete raw input.
-3. **Offer adjustment menu**: Call the `question` tool with:
+3. **Offer adjustment menu**: Call the structured question tool with:
    - **Option A**: 重新选择 question 问题的处理方式 / Re-choose the question-handling mode (re-runs the AM-02 step 2 question)
-   - **Option B**: 设置需要人工审核的阶段 / Set review stages — present a multi-select (`multiple: true`) question listing ALL stage names (<!-- BEGIN GENERATED: stage-names | do not hand-edit — regenerated by scripts/generate.py -->Workspace Detection, Reverse Engineering, Requirements Analysis, User Stories, Workflow Planning, Application Design, Units Generation, Functional Design, NFR Requirements, NFR Design, Infrastructure Design, Code Generation, Build and Test<!-- END GENERATED: stage-names -->); selected stages go into the Review Stages list (replacing the previous list); the user may also name stages freely via custom input
+   - **Option B**: 设置需要人工审核的阶段 / Set review stages — present a multi-select question listing ALL stage names (<!-- BEGIN GENERATED: stage-names | do not hand-edit — regenerated by scripts/generate.py -->Workspace Detection, Reverse Engineering, Requirements Analysis, User Stories, Workflow Planning, Application Design, Units Generation, Functional Design, NFR Requirements, NFR Design, Infrastructure Design, Code Generation, Build and Test<!-- END GENERATED: stage-names -->); selected stages go into the Review Stages list (replacing the previous list); the user may also name stages freely via custom input
    - **Option C**: 退出自主模式 / Exit Autonomous Mode (execute AM-07)
    - **Option D**: 恢复自主运行 / Resume autonomous execution (continue from the interruption point)
 4. **Persist**: Update the `## Autonomous Mode` section per AM-08 with any changes, then act on the chosen option.

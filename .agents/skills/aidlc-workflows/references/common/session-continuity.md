@@ -19,6 +19,7 @@ Here's your current status:
 - **Current Stage**: [current_stage]
 - **Last Completed**: [last_completed]
 - **Last Parked**: [stage] — [note] (or "none" when `resume_note` is null)
+- **Autonomous Mode**: [off — or "on: question handling [mode], review stages [list]" when the `autonomous` key shows enabled]
 - **Next Step**: [next stage from the `remaining` list, or "none — workflow complete"]
 
 **What would you like to work on today?**
@@ -33,13 +34,14 @@ C) Start Fresh (archive this project's aidlc-docs and reset state)
 ```
 
 ## MANDATORY: Session Continuity Instructions
-1. **Run `engine.py status` first** when an existing project is detected — its JSON is the sole source of truth for `state`, `scope`, `depth`, `current_stage`, `last_completed`, `integrity`, `completed`, `remaining`, **plus the 3.1 recovery keys `resume_note`, `recent_events` (last 5 transitions with timestamps), `artifact_alerts`, and `alerts_unavailable`**. Read all of these from the JSON, never by reading or editing stage checkboxes. Honor the active Scope's SKIP set; if no Scope is recorded, treat it as `classic`. Never hand-edit the engine-owned stage checkboxes. Early-exit branches (`none`/`legacy`/`corrupt`) carry none of the recovery keys — follow the `hint` field in the status output and the bootstrap table in [engine-contract.md](engine-contract.md) §10.
+1. **Run `engine.py status` first** when an existing project is detected — its JSON is the sole source of truth for `state`, `scope`, `depth`, `current_stage`, `last_completed`, `integrity`, `completed`, `remaining`, **plus the recovery keys `resume_note`, `note_age_seconds` (objective age of the parked note), `recent_events` (last 5 transitions with timestamps), `artifact_alerts`, `alerts_unavailable`, and `autonomous`**. Read all of these from the JSON, never by reading or editing stage checkboxes. Honor the active Scope's SKIP set; if no Scope is recorded, treat it as `classic`. Never hand-edit the engine-owned stage checkboxes. Early-exit branches (`none`/`legacy`/`corrupt`) carry none of the recovery keys — follow the `hint` field in the status output and the bootstrap table in [engine-contract.md](engine-contract.md) §10.
 2. **If `integrity` is `violated`**: the engine-owned state region drifted from its State Digest. Do NOT proceed with normal work; present the drift to the user, get explicit confirmation, then run `engine.py rebase` (existing entries are preserved) to re-baseline before resuming.
 3. **Populate the prompt from the status JSON** (never by reading or editing stage checkboxes).
-4. **Recovery briefing**: if `resume_note` is non-null, first state "Last parked at [stage]: [note]" to the user, using `recent_events` as the timeline reference.
+4. **Recovery briefing**: if `resume_note` is non-null, first state "Last parked at [stage]: [note]" to the user, using `recent_events` as the timeline reference; `note_age_seconds` tells you how old the note is (objective number — you judge whether it is stale). If `autonomous` is non-null and `enabled`, announce Autonomous Mode in the briefing (question-handling mode, review stages, last updated) and continue under AM rules per AM-09; `null` means read the section yourself and apply AM-09.
 5. **Respond to `artifact_alerts`**:
    - `missing-produces` (warning — a completed stage's produced artifacts are all missing): report it to the user. **NEVER regenerate or fabricate the missing artifacts yourself.**
    - `resumed-artifacts` (info — the current stage's artifacts already exist): **read the existing files first, then append / continue writing instead of rewriting** (sole exception: a rejected/revised redo cycle explicitly permits a full rewrite).
+   - `checkpoint-missing` (warning — a CTX phase checkpoint anchor is reached but the checkpoint file is missing): report it to the user. **NEVER fabricate the checkpoint just to silence the alert.**
 6. **Tiered reading** (replaces former load-all behavior — it is physically impossible and unnecessary to "read everything"):
    1. Engine output (`status` / `next` JSON);
    2. Only the current stage's **required consumes** — take the `consumes` list from the `next` directive (tier-1 engine output). In the map below, each **upstream** stage's row lists that stage's produces; the map is a lookup map for locating those inputs, not a load list;

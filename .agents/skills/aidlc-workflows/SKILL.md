@@ -43,6 +43,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 1. List all subdirectories under `references/extensions/` (e.g., `references/extensions/security/`, `references/extensions/resiliency/`)
 2. In each subdirectory, load ONLY `*.opt-in.md` files — these contain the extension's opt-in prompt. The corresponding rules file is derived by convention: strip the `.opt-in.md` suffix and append `.md` (e.g., `security-baseline.opt-in.md` → `security-baseline.md`)
 3. Do NOT load full rule files (e.g., `security-baseline.md`) at this stage
+4. **Mandatory extension discovery**: list every rule `.md` in those subdirectories, subtract the ones that have a `*.opt-in.md` companion — the remainder are MANDATORY extensions (currently `workflow-conventions.md`), and their rule files are loaded IMMEDIATELY at workflow start (they are never opt-in deferred)
 
 **Deferred Rule Loading**:
 - During Requirements Analysis, opt-in prompts from the loaded `*.opt-in.md` files are presented to the user
@@ -98,7 +99,7 @@ Only after the probe succeeds may the workflow proceed.
 | `state` / `integrity` | Action |
 |---|---|
 | `none` | New workflow: display the welcome message (next section) → run Workspace Detection → `engine.py init` creates `aidlc-state.md` deterministically |
-| `active` | Resume the session per `references/common/session-continuity.md`; read `resume_note` and `artifact_alerts` from the status JSON first — they are the resumption briefing (last parked context; any missing-artifact alerts). The status JSON is the sole source of truth for recovery |
+| `active` | Resume the session per `references/common/session-continuity.md`; read `resume_note`, `artifact_alerts`, and `autonomous` from the status JSON first — they are the resumption briefing (last parked context; any missing-artifact alerts; whether Autonomous Mode is enabled). The status JSON is the sole source of truth for recovery |
 | `completed` | The workflow is already complete; confirm with the user before starting anything new |
 | `legacy` | A pre-engine state file exists (no `ENGINE-STATE` region): do NOT silently adopt or overwrite it — follow the legacy handling in `references/common/engine-contract.md` |
 | `corrupt` | The `ENGINE-STATE` marker region is present but incomplete or malformed (truncated/hand-edited): do NOT overwrite silently — restore the missing marker line from a backup if available, else get explicit confirmation and Start Fresh (`jump --fresh`) |

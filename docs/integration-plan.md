@@ -30,7 +30,7 @@
 | D10 | 状态/审计归属 | **引擎原子写**（2026-09-14）：Markdown 状态 + 审计转移条目 + State Digest 完整性校验（检测非阻止，详见 §6.3-B8） |
 | D11 | 多 intent / compose | **不排期，仅记录**（2026-09-14）：一版本一产品意图，两件事 = 两个 git 版本；若重启须与 Team Construction 协同设计（§7） |
 | D12 | 引擎分发形态 | **随技能分发**（2026-09-14）：engine.py + stage-graph.json 在 `scripts/` 下随技能目录一起复制；用户侧前提仅"harness 能加载技能 + 能执行 python"，不依赖 AGENTS.md 等任何额外文件；裸项目 dogfood 为验收硬标准 |
-| D13 | 动词三层纪律 + 注记转移不变律（2026-09-21 定，2026-09-22 实施）：引擎动词分三层——读（status/next，无副作用）；**转移（report/jump，封闭集合 = 唯二改变 marks/current 的动词，Phase 4/5 永不新增）**；生命周期（init/park/rebase；park 为注记子类）。注记动词必须保持 marks 与 current 不变（digest 重算不算转移）。Phase 4 的 claim/release 照此办理——实现为 report 的 additive guard，不新增转移动词。新动词入场券 = 与全部既有 mutating 动词的两两交互测试（交互矩阵自此为 CI 法定成本） |
+| D13 | 动词三层纪律 + 注记转移不变律（2026-09-21 定，2026-09-22 实施；2026-09-24 stamp 加入读层）：引擎动词分三层——读（status/next/stamp，无副作用）；**转移（report/jump，封闭集合 = 唯二改变 marks/current 的动词，Phase 4/5 永不新增）**；生命周期（init/park/rebase；park 为注记子类）。注记动词必须保持 marks 与 current 不变（digest 重算不算转移）。Phase 4 的 claim/release 照此办理——实现为 report 的 additive guard，不新增转移动词。新动词入场券 = 与全部既有 mutating 动词的两两交互测试（交互矩阵自此为 CI 法定成本） |
 | D14 | 传感器 fire 点与 finding 接口（2026-09-21 定，2026-09-22 实施）：分叉侧传感器的 fire 点 = 引擎动词（status=恢复时 / report=收单时），永久不变（harness 无关性使然，区别于 v2.0 的 write hook）。finding 对象五字段 `{type, severity, subject, message, action_discipline}` 即 Phase 5 传感器接口；Phase 3.1 交付的 artifact_alerts 为第一代实现（硬编码 manifest）。`type` 集合可增不可删；同一 state_version 内对象 shape 永不破坏性变更；Phase 5 manifest 化须过输出等价测试 |
 
 ---
@@ -387,7 +387,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 
 **新决策（实施时录入 §1 决策表）**：
 
-- **D13（动词三层纪律 + 注记转移不变律）**：引擎动词分三层——读（status/next，无副作用）；**转移（report/jump，封闭集合 = 唯二改变 marks/current 的动词，Phase 4/5 永不新增）**；生命周期（init/park/rebase；park 为注记子类）。"转移不变律"：注记动词必须保持 marks 与 current 不变（digest 重算不算转移）。Phase 4 的 claim/release 照此办理——实现为 report 的 additive guard（如 `report --unit` 校验 claim 归属），不新增转移动词。新动词入场券 = 与全部既有 mutating 动词的两两交互测试（交互矩阵自此为 CI 法定成本）。
+- **D13（动词三层纪律 + 注记转移不变律）**：引擎动词分三层——读（status/next/stamp，无副作用；stamp 于 3.3 加入读层）；**转移（report/jump，封闭集合 = 唯二改变 marks/current 的动词，Phase 4/5 永不新增）**；生命周期（init/park/rebase；park 为注记子类）。"转移不变律"：注记动词必须保持 marks 与 current 不变（digest 重算不算转移）。Phase 4 的 claim/release 照此办理——实现为 report 的 additive guard（如 `report --unit` 校验 claim 归属），不新增转移动词。新动词入场券 = 与全部既有 mutating 动词的两两交互测试（交互矩阵自此为 CI 法定成本）。
 - **D14（传感器 fire 点与 finding 接口）**：分叉侧传感器的 fire 点 = 引擎动词（status=恢复时 / report=收单时），永久不变（harness 无关性使然，区别于 v2.0 的 write hook）。finding 对象五字段 `{type, severity, subject, message, action_discipline}` 即 Phase 5 传感器接口；Phase 3.1 交付的 artifact_alerts 为第一代实现（硬编码 manifest），Phase 5 manifest 化时**须过输出等价测试**（固定夹具工作区，前后输出逐字节一致）。`type` 集合可增不可删；同一 state_version 内对象 shape 永不破坏性变更。
 
 **实施规格**：
@@ -409,7 +409,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 6. **文档同步**（10 处）：engine-contract.md（§1 动词分类列全 8 个——**2026-09-22 审核更正：实际 7 个子命令，"8"系本规格笔误**、转移定义+不变律；:158 枚举补 park；新 §5.5 Park Semantics 含写序/并发/降级/--fresh 归档/引擎文件排除；§6 措辞"**引擎对** audit.md 的写入收窄为转移条目，模型侧用户输入记录与 CTX phase summary 不变"+Last Parked 行与 handoff.md 引擎独占；§9 表加 park；§10 样例含 status 新键形状/early-exit 无新键/violated 时 alerts 照常/park ack/workflow-complete 错误/produces_missing/finding 形状/alerts_unavailable）；session-continuity.md（恢复协议 v2：status→integrity→resume_note+recent_events→响应 alerts→分级阅读①引擎输出②required consumes③按需→增量续作含 rejected/revised 整体重写例外；Park Ritual 含 CTX-01 边界双写；反劝退条；Welcome Back 模板加 "Last parked: [stage] — [note]" 行；生成标记区保留为查阅地图）；checkpointing.md（CTX-02 改"分级阅读第 2 层插入 checkpoint 优先"+always-load 集加 resume_note/artifact_alerts；CTX-03 归属 phase summary 留 audit/park 记 handoff+补"模型侧读纪律不约束引擎全量读"；opt-in 文案补"断点与探测已默认，本扩展只管蒸馏与轻量加载"）；checkpointing.opt-in.md（Session Resumption Trigger 段改写，删 "full-artifact loading" 过期锚点）；error-handling.md（"Missing Artifacts During Resumption" **节头**定序交叉引用覆盖全节：传感器发现→报告用户→用户决定后才进入本节 jump→regenerate 路径）；SKILL.md（bootstrap active 行补 resume_note；Park 触发规则；:534/:554 枚举补 park；Directory 树加 handoff.md；**运行时缺失指引**：engine 调用报 Python 缺失特征（`'python' is not recognized` / `command not found` / `No module named`）时停止重试，向用户转达需 Python 3.8+（纯标准库、免 pip/venv）并给出平台安装命令——Windows `winget install Python.Python.3.12` 或 python.org 安装器、macOS `brew install python3` 或 `xcode-select --install`、Debian/Ubuntu `sudo apt install python3`——装好后重试；零代码，AI 即错误翻译层）；terminology.md（Park/Parked 词条）；AGENTS.md（§3.1 动词列表+park+handoff.md；实施后测试数 102→实际数）；README.md + README_cn.md（运行要求显式化：Python 3.8+ 纯标准库，缺失时附上述平台安装命令一行）；本文件（§1 决策表录 D13/D14；§9 记录实施结果）。
 7. **顺序与验证**：engine.py（region→park/handoff→status→report→头部→CLI/docstring）→ 全部测试全绿 → `generate.py --check` 零漂移（本相位不触 frontmatter/生成物）→ 文档按第 6 条清单 → 终验（二次全绿幂等 + git diff 生成标记区零改动 + AGENTS.md 测试数更新 + CI 绿）。
 8. **不做（八项）**：per-unit missing 精确覆盖（Phase 4 Unit Progress）｜report 硬阻断｜审计分段实现（contingency）｜CTX 转正（维持两层：默认层确定薄/增强层智能厚）｜missing-produces 自动补写｜handoff 模型直读 API（resume_note 是唯一通道）｜per-produce required 标记（gen-2）｜存量项目头部须知迁移。
-9. **负债清单（七条，backlog）**：①N=1 具体产物阶段豁免 missing-produces（gen-2 per-produce required 可解）②per-unit missing 精确覆盖依赖 Phase 4 Unit Progress（`{unit-name}` 逐单元展开）③report 软警告待 dogfood 后议升级④状态文件头部读者须知仅覆盖新项目⑤审计分段 contingency（触发器 512KB 或解析 50ms，度量=新计数字段）⑥未 park 且当前阶段零制品的中断不可探测（park 是自律层非传感器）⑦handoff.md 无模型直读 API。
+9. **负债清单（七条，backlog）**：①N=1 具体产物阶段豁免 missing-produces（gen-2 per-produce required 可解）②per-unit missing 精确覆盖依赖 Phase 4 Unit Progress（`{unit-name}` 逐单元展开）③report 软警告待 dogfood 后议升级——**2026-09-24 已裁决：不升级，关闭（新证据可重开），见 §9 当日条目**④状态文件头部读者须知仅覆盖新项目⑤审计分段 contingency（触发器 512KB 或解析 50ms，度量=新计数字段）⑥未 park 且当前阶段零制品的中断不可探测（park 是自律层非传感器）⑦handoff.md 无模型直读 API。
 
 ### Phase 3.2：Trellis 借鉴立即批（机制移植，零代码复制）【✅ 已完成 2026-09-22】
 
@@ -468,6 +468,38 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 
 **12. 负债清单（并入本节 backlog，WP-7 执行时挂 §9）**：WP-5 通配单列 per-produce 决策（gen-2）/ 5A 触发器跨会话计数 best-effort / WP-4 二分语义随 Phase 4 claim/merge 重审 / 登记表漂移风险（收尾回填对冲）/ 消融无引擎臂违宪（永久，除非契约变更）/ 四档清单状态列初始为"计划中"待收尾刷新。
 
+### Phase 3.3：dogfood 反馈批（fx991 首周期验收产物）【✅ 已完成 2026-09-24】
+
+> **状态：✅ 已完成（2026-09-24，单日内完成，先例同 3.2）**。P0 裁决：用户选 **a) CTX 维持 opt-in 现状**，WP-1-④ 以 warning 级实施。分工：WP-1（engine.py：docstring/stamp/模型区解析器 `_parse_autonomous`+`_ctx_enabled`/checkpoint 锚点探测/status 两新键/handoff 解析重构/CLI）与 WP-2（SKILL.md Loading process 第 4 步）主智能体直做；WP-3 / WP-4+6（同文件合并避免冲突）/ WP-5 三路 executor 并行，全部经主智能体逐 diff 复核（AM 文件两处残留 Other 禁令与 `multiple: true` 参数名由主智能体裁决补修；trace-matrix 继承语义问题裁决后发回原 executor 会话修复）。**实施期裁决（记录在案）**：①`note_age_seconds` = 当前 park 注记的年龄，仅 resume_note 非空时输出——转移清除泊车后即使 handoff 留有历史条目也输出 null（不给无当前注记的历史记年龄）；②锚点语义：inception 锚点 = effective plan 内全部 inception 阶段 done（[x]/[S]），construction 锚点 = build-and-test done；status 时点探测，过期照报（fail-open warning）；③`autonomous` 宽容降级：节缺失或 Enabled 行缺失/非法 → null（不代猜 off，AM-09 模型侧回退仍是权威）；④trace-matrix 继承源限**节级标题**（不含条目 ID token），含 `USxx-x`/`FR-x` 的标题只作用于自身条目不向兄弟传播（US2-24→US2-25 反例单测锁定）；计数口径：占位 story 标题计入 story_total（文档自述"生效 20"与解析 active 21 差 1 即此，属口径非缺陷）；⑤stamp 输出 `{"engine":"ok","kind":"stamp"}` + main() 统一注入 timestamp（Phase 3 全成功输出带 timestamp 先例），终形与规格一致；归类：stamp 落 D13 **读层**（规格原文"注记类扩充"表述不准——stamp 零写入非注记，契约 §1 已按读层记录，D13 条目已同步）。**验收**：205 测试全绿（169 + 引擎 14 + trace-matrix 22）、--check 零漂移、trace-matrix 真实数据冒烟 fr_total=29（24 active + 5 deferred=FR-30~34）与 fx991 文档自述一致、story deferred=4 与修订记录一致；sweep：动词枚举/`question` 工具名绑定/"7 subcommands"/旧计数全树零残留，SKILL.md bootstrap active 行补 `autonomous`，session-continuity 恢复键清单扩展 + checkpoint-missing 响应条款 + welcome-back 模板补 AM 行，engine-contract §1 动词表 8 子命令/§9 表/§10 四样例（stamp ack、autonomous、note_age_seconds、checkpoint finding）+ audit_entries 口径句。**使用约定（非缺陷）**：trace-matrix 对组级 Deferred 标题内引用 FR 编号者（如 fx991 `## 四、TABLE —— **Deferred（…随 FR-30~34 挂起…）**`）不作继承源——组级继承请保持标题无 ID token，或逐条目标记。
+
+**来源**：fx991-dogfood 首周期验收（§9 2026-09-24）+ 验收后三轮讨论（时间戳归因考证 / CTX-AM 引擎整合分层 / CTX 去留）。全部工作项均有 dogfood 实证或考证依据，非想象需求。定位：Phase 4 前的最后一批单会话可靠性加固——多会话会放大本批所修的全部问题（更多恢复、更多审计条目、更多时间戳交叉、更多砍需求场景）。
+
+**批次原则**（验收三轮核验的规律沉淀）：记录表三处定性偏差均为"模型对规则文本的引述失真"——修法优先选择**把正确行为变成最省力路径**（流程步骤/一条命令），而非追加规则条文。
+
+**P0 前置裁决（用户，开工前）**：CTX 扩展去留三选一——a) 维持 opt-in 现状，推迟到 Phase 4 多会话 dogfood 后裁决（**推荐**，理由见 §9 2026-09-24 讨论与 dogfood-records/calculator/acceptance 验收对话）；b) 降级 advisory（去合规负担）；c) 删除（WP-1 第 4 项作废 + 4 处引用清理：session-continuity.md:74 / workflow-conventions.md:31 / RA opt-in / Phase 3.3 候选登记）。WP-1-④ 跟随：a→warning 级实施；b→info 级实施；c→作废。
+
+**WP-1 engine 扩展（主智能体直做，~3h）**——engine.py + 契约 + 测试，四项：
+1. **`stamp` 注解动词**：零副作用子命令，输出 `{"engine":"ok","kind":"stamp","timestamp":"<ISO 8601 UTC>"}`；不写 state/audit/handoff（区别于 park 的注记留痕——stamp 是纯读）。D13 三层不动（注记类扩充）。docstring/usage 同步。
+2. **status 增加 `autonomous` 键**：只读解析 state 模型区 `## Autonomous Mode`（先例：Execution Plan Summary 模型写-引擎读通道）；宽容降级（缺失/畸形 → null，不挂 status）；不参与 digest、不改变该区模型所有权。恢复简报（session-continuity.md）引用此键。
+3. **resume_note 附 note 年龄**：复用 handoff.md 最后 Park 条目的 Timestamp，输出 `note_age_seconds`（int|null）——只输出客观数字，不做 stale 判定（判断留模型）。
+4. **checkpoint-missing finding（视 P0）**：artifact_alerts 新增类型，fail-open 不变，不做硬门（D14）。锚点映射简化为两条全局规则：inception 全部阶段完成 → `checkpoints/inception-checkpoint.md` 存在；build-and-test 完成 → `checkpoints/construction-checkpoint.md` 存在；仅当 Extension Configuration 表显示 CTX 启用时检查（表缺失/畸形视为未启用，不查）。per-unit 锚点留 Phase 4（依赖 Unit Progress）。
+5. **配套同步**：engine-contract.md（§1 动词表补 stamp/§9 表/§10 样例四件：stamp ack、autonomous 键、note_age_seconds、checkpoint finding；顺带 §10 补 audit_entries 口径一句"仅计引擎转移条目"——不改键名）；workflow-conventions.md AUD Timestamp Acquisition 修订（preferred 扩为"同交互引擎输出 timestamp（含 stamp）"；条目 Timestamp 行附来源标注 `(engine|stamp|clock)` 使合规可核验；fallback 收窄为"引擎完全不可用"场景）。
+6. **测试**（169 → 预计 185±5）：CliTests 补 stamp 形状；StatusRecoveryTests 补 autonomous 有/无/畸形三例 + note_age 两例；AlertsTests 补 checkpoint-missing 正反例（启用且缺/启用且在/未启用不查）+ fail-open 保持；GoldenOutput 样例同步。
+
+**WP-2 SKILL.md 强制扩展发现步骤（~0.5h）**：Extensions Loading 的 Loading process 加第 4 步——"列出各子目录全部规则 .md，减去有 `*.opt-in.md` 伴生者，余下为强制扩展，立即加载"（修 09-23 异常 1：规则存在于 :51 但步骤序列未覆盖）。当前事实核对：强制扩展仅 workflow-conventions.md 一个。零 frontmatter 改动、generate.py 不动。
+
+**WP-3 workflow-changes.md 范围变更节（~1h）**：新增类型 "Scope Reduction / Requirement Invalidation"（砍需求/上游制品失效）——APG 分类 change request → 影响分析（FR/story/设计制品/计划清单逐项列）→ `report --result rejected`（当前关卡如实记录）→ `jump --stage <最上游受影响阶段>`（重置其后）→ **redo 通道就地修订**（边界二分：问答/决策历史文本=DOC-04 保护不改写、以追加修订步骤记录更正映射；计划清单行与当前态制品=就地更新）→ **Deferred/Reserved 编号保留不回收**（追溯连续性）→ 逐阶段重走关卡 → 决策树补分支。素材：fx991 迭代 2 audit 实录（rejected→jump RA→12 处修订→重走全链）。与 WP-4 的 DOC-04 判例交叉引用。
+
+**WP-4 workflow-conventions 修订包（~1h，与 WP-3 同批分发）**：①DOC-04 补判例（问答历史 vs 计划清单行的保护边界，源自 fx991 第二次 reviewer 审计）；②DOC-01 sweep 节增句——清扫类审计完成声明必须附所用 grep 模式集与扫描范围（对治自证风险）。
+
+**WP-5 追溯矩阵脚本（~2h）**：`scripts/trace-matrix.py`（纯 stdlib，作者期工具纪律放 scripts/）：输入 aidlc-docs 根，解析 requirements.md 的 FR 编号与 Deferred 标记 + stories.md 的追溯映射表/编号引用，输出 FR 覆盖矩阵、计数核对（声明数 vs 实际数）、Deferred/Reserved 保留核对。docstring 含用法；scripts/tests/ 加最小夹具测试。不进 CI（用户侧按需运行）。
+
+**WP-6 提问工具能力抽象（~1h，2026-09-24 用户补充）**：修 harness 无关性违规——`question` 是 OpenCode 特定工具名，Claude Code 等价物为 `AskUserQuestion`，部分 harness 无结构化提问工具。改动：①workflow-conventions.md QT-01 顶部加 **structured question tool 能力定义**（"凡能在同一交互内呈现一组带选项的问题并收回答案的工具，无论何名；按能力特征识别，不按名字匹配"）；②QT-01 mapping rules 从参数映射改写为**语义映射**（每题一条/短标题/选项短标签+说明/推荐项置首标注/单选多选——语义要求，具体参数名调用时适配）；③能力差异就近补齐条款（不支持多选拆单选；无内置自定义输入则显式补 "Other" 选项行——现 L147 "不加 Other" 改为"仅当工具内置自定义输入时省略"）；④autonomous-mode.md 7 处 "the `question` tool" 同步为能力表述；⑤QT-04 降级链不动（识别不到任何结构化提问工具 → 问题文件手动流）。注意：英文撰写，Examples 处可注明 OpenCode `question` 为参考实现之一（非唯一）。
+
+**顺序与验证**：P0（用户裁决）→ WP-1（主智能体直做——engine.py 多处耦合，参照 3.1 先例）→ WP-2 / WP-3+4 / WP-5 / WP-6 四路并行分发 executor（简报自包含）→ 收尾（全量 unittest + generate.py --check + AGENTS.md 测试数与路线图行 + integration-plan §9 记录 + 全树一致性 sweep：stamp/autonomous/note_age/question-tool 能力表述引用）。总工时 **~9-11h，单日内可完成**（先例：Phase 3.2 同规格一日完成）。
+
+**不做（明确移出，六项）**：AM 专用注记动词（`am --on/off`）→ **Phase 4 与 claim 并发锁一起设计**（避免 engine-contract 改两次；Phase 3.3 的通用 stamp 已止血时间戳问题）；produces_missing 升级硬阻断（负债③已裁决关闭）；checkpoint 硬门（违反 D14 fail-open 哲学）；audit_entries 改键名（无收益契约破坏，只补文档）；SKILL.md 强制扩展清单生成物（generate.py 增强——手工步骤已足够，避免作者期管线触碰）；per-unit checkpoint 锚点（依赖 Phase 4 Unit Progress）。
+
 ### Phase 4：Team Construction
 
 **硬依赖链（顺序不可乱）**：单元清单结构化（Phase 3 ✓ 已排）→ unit-major → claim → merge。Team Construction 的每一步都以 unit-major 为前提：没有引擎感知单元就没有可认领的对象，没有 claim 锁多会话就是状态文件互踩。
@@ -478,6 +510,16 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 4. **swarm 进程内并行**（形态 B：harness 相关，依赖 subagent 能力，工作量最大，可再拆为独立子相位）
 
 **Trellis 设计输入（2026-09-22，源自 §7 Phase 3.2 四档清单③档，进入本相位设计时逐项核对）**：① 上下文策展清单——派遣给 worker 的文件清单须 `{file, reason}` 二元组 + 字节预算 + 禁预注册代码文件（worker 应自己改动代码，派遣方只给规格）；② 派遣三件套——Active task 首行约束 + 递归守卫（子会话禁再派遣）+ 任务注入标记-or-回拉双通道；③ channel 事件日志 vs claim 注册表对照——协调状态放文件而非聊天流（channel 可丢、注册表可审计），与上面 claim/release 设计合并评估；④ 单元依赖显式写在工件（units.md 依赖列），而非图暗示；⑤ spec 移植模式——上游规格可整体移植进单元工件。
+
+**dogfood 反馈移入项（2026-09-24，Phase 3.3 立项时挂档，源自 fx991 验收与 CTX/AM 引擎整合讨论）**——与 Trellis 输入并列，进入本相位设计时逐项核对：
+
+1. **AM 状态注记化（`am --on/off` 或等价机制）**——AM 状态切换走引擎注记动词，获得：权威时间戳（Phase 3.3 通用 stamp 已止血，但专用动词同时解决写路径）、digest 覆盖（当前 `## Autonomous Mode` 区模型手写，两会话并发修改互踩且不可检测）、Review Stages 的 slug 合法性校验（引擎查 stage-graph.json，替代 AM-06.6 模型手工解析）。**必须与 claim 并发锁同批设计**（多会话的开放问题：AM 是全局还是 per-claim？两会话配置不一致时以谁为准？）。三归切分：激活意图识别与授权语义留在规则文本，状态读写/校验下沉引擎。
+2. **per-unit checkpoint 锚点**——`unit-{unit-name}-checkpoint.md` 存在性检测（Phase 3.3 WP-1-④ 只做 inception/construction 两条全局锚点）。依赖本相位第 1 步的 Unit Progress 区启用（单元名才可枚举）。unit checkpoint 同时是跨会话交接的核心载体——worker 会话恢复不能全量读制品。
+3. **checkpoint 契约化（层 2，可选，视证据决定）**——阶段 frontmatter 条件产物声明 → generate.py 编译进 stage-graph.json → 复用 produces_missing 软警告管线。**前置**：Phase 3.3 的 checkpoint-missing finding 跑一个 dogfood 周期，误报率可接受才立项；机制上需要 Extension Configuration 表作为模型写-引擎读通道（引擎判断 CTX 启用与否）或 optional_produces 语义。若误报率高则放弃契约化，维持传感器方案。**误报评估输入（2026-09-24 审核补记）**：construction 锚点以 `_is_done`（[x]/[S]）判定完成，build-and-test 被跳过的场景与 CTX-01 "Build and Test completion" 字面存在张力，届时一并评估。
+4. **CTX 去留最终裁决**——Phase 3.3 P0 的临时裁决（推荐维持 opt-in）之后，在本相位多会话 dogfood 中做最终裁决。届时评估点：跨会话交接里 checkpoint 的实际价值（worker 冷启动上下文成本对比）、与知识树（Phase 5A）的分工（checkpoint=阶段状态蒸馏 vs 知识树=约定沉淀，机制同源但载体不同）。
+5. **多会话范围变更语义（设计期开放问题，非必做）**——WP-3 的单会话规程落地后，多会话下"一个会话砍需求、其他会话有进行中工作"的失效通知/回滚语义（jump 重置与 claim 锁的交互）在本相位 claim 设计时一并考虑，避免规程写两遍。
+
+**架构原则（2026-09-24 讨论沉淀，本相位及以上长期适用）**：扩展的判断与决定留在规则文本，扩展的**精确部分**（状态、时机、存在性、时间戳）才下沉引擎——"扩展进引擎"以此线为准，防止扩展生态逐渐污染引擎纯度（层 3 完全收编明确不做：授权语义与蒸馏是判断/决定，不是精确活）。
 
 ### Phase 5A：单层活知识树与学习闭环（Trellis ②档"单层活树闭环"立项；Phase 4 后、5B 前；完整骨架见 §7 Phase 3.2 第 8 条）
 
@@ -685,3 +727,19 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 **实施后审核（同日，reviewer 全量静态审查）**：裁决"通过，可作为提交依据"，0🔴/1🟡/4🔵；五主张裁决：A 证实（Neo4l 虚惊无残留）、B 部分证实（overconfidence :60/:74/:100 三行无相邻门控，验收条款实质达成/字面未全达）、C 证实（映射表 16 规则无遗漏，30+25=55 与 114 合计 169 精确吻合）、D 实质满足（行内门控约束力强于指针行，意图达成）、E 证实（步号顺移无交叉引用破坏）。审核发现全部当场修复：🟡六条负债挂 §9（本段即修复）；🔵overconfidence 三行补门控半句（B 项字面口径随之达成）、AGENTS.md Phase 3.1 行改"当时 144 例"范式、B&T Commit Protocol 时序句重排（完成消息含计划先呈现→Approve & Continue 即阶段批准+执行授权→report approved→执行，消除"批准后才见计划"的歧读）、§7 第 9 条加"已迁入 §9，以 §9 为准"标记。
 
 **第二轮审核（同日，reviewer 复审修复轮）**：裁决"修复轮通过（0🔴/0🟡/2🔵），可作为提交依据"；五项修复逐条验收属实，新鲜眼光复查未发现第一轮误判（169 计数静态精确复核、门控 sweep 抽查、新术语交叉引用、WP-3/5 本体抽样均过）。四主张裁决：A 部分证实（B&T/§7 时序张力属实且发现 §9 记录内亦有旧序残留——新发现第二处）、B 部分证实（:61 属覆盖度轴无需门控、:62 属边界字面未闭合）、C 证实（§9 记录无美化失真）、D 证实（括注二次修正后干净）。两条 🔵 当场修复：§7 :448 与 §9 旧序两处加"审核更正，以 build-and-test.md 新序为准"指针（对照 :409 行内更正先例）、overconfidence :62 补门控半句（"every included question must still pass the Evidence-First gate"）。命令级验证由主智能体代跑闭合：169 全绿 + --check 零漂移。
+
+### 2026-09-24：fx991 dogfood 首周期验收——负债③裁决关闭，Phase 3.3 候选批次挂档
+
+dogfood-protocol.md 服务的首个完整周期（两迭代，快照 bc04dd7）验收**通过**。验收报告（含证据完整性/事实核验/六度量/消融/逐项裁决）：`docs/dogfood-records/calculator/acceptance-2026-09-24.md`。要点：
+
+- **负债③裁决（关闭）**：produces_missing 软警告**不升级**硬阻断。两迭代触发 0 次；传感器定位 = 灾难检测（N≥2 全缺，engine.py:790-806），正常流程天然不触发；本周期实际观测的制品类缺口（checkpoint 遗漏/audit 误替换/计数失准）全部在传感器管辖外，加严现有警告对已观测问题零解。证据强度声明：0 触发 = 无正例，属"无证据支持升级"的保守裁决，后续周期出现新证据可重开。
+- **记录表两处定性修正**（验收人对照引擎代码核实）：①"强制扩展未说明"不实——SKILL.md:51 已声明，真因是 Loading process 编号步骤（:42-45）未覆盖该段落级规则，属"流程步骤未覆盖"；②"park note 无失效机制"收窄为"长阶段内无转移的多次中断"（转移本就清除 parked，engine.py:1131/1222），与负债⑥同族。
+- **候选批次八项（建议立 Phase 3.3"dogfood 反馈批"，Phase 4 前执行，待用户确认）**：高优先三项——强制扩展发现流程化（SKILL.md 步骤补全或 generate.py 生成清单）、engine 轻量 stamp/now 注解动词（D13 注记类，权威时间源，解审计时序倒挂）、范围变更上游失效显式规程（rejected→jump→就地修订→重走已被实践验证）；中低五项——追溯矩阵脚本（FR↔story 计数校验）、DOC-04 redo 历史文本保护示例 + sweep 声明附模式集（合并为 workflow-conventions 修订）、传感器扩展 checkpoint-missing finding（fail-open 不变，不做硬门）、resume_note 附 note 年龄（低成本对冲 park note 过期）。
+- **度量遗留**：度量 4（换工具稳定）两周期均无样本；引擎内开关对照未执行（全引擎开）。后续周期补。
+- 立项理由：高优先三项均伤单会话可靠性，Phase 4 多会话会放大（更多恢复/更多审计条目/更多时间戳交叉）；"立即批"模式有 Phase 3.2 先例。
+
+**Phase 3.3 立项（同日续）**：规格已落 §7（P0 前置裁决 + WP-1~5 + 不做六项，总工时 ~8-10h）。开工前需用户裁决 P0（CTX 去留三选一，推荐维持现状推迟到 Phase 4 后）。验收后三轮讨论的增量已并入：stamp 动词定性修正（堵偷懒空档而非补规则空白，附时间来源标注）、批次原则（引述失真规律 → 把正确行为变成最省力路径）、AM 专用动词移 Phase 4（与 claim 并发设计）、CTX 去留作为 P0 前置而非仓促删除。Phase 4 移入项五条已挂档 §7 Phase 4 节（AM 注记化/per-unit 锚点/checkpoint 契约化视证据/CTX 终裁/多会话范围变更语义）+ 架构原则一条（扩展的精确部分才下沉引擎）。
+
+**Phase 3.3 实施完成（同日，2026-09-24）**：P0 用户裁决选 a（CTX 维持 opt-in）后开工，单日完成全部 6 个工作包。过程：主智能体先通读 engine.py/engine-contract/QT 与 AM/CTX/状态模板/阶段 frontmatter 事实源并核实基线（169 全绿 + --check 零漂移），WP-1+WP-2 直做后三路 executor 并行（WP-3 / WP-4+6 同文件合并 / WP-5），主智能体逐 diff 复核。executor 复核发现与裁决：①AM 文件两处清单外残留（AM-02 无条件 Other 禁令与 QT-01 新条件规则存在语义张力、AM-05 `multiple: true` 参数名残留）——主智能体裁决为 WP-6 同源问题并直接补修；②trace-matrix 解析把 US2-25 误继承 US2-24 的 Deferred——裁决继承源限节级标题（不含条目 ID token），发回原 executor 会话修复 + 反例单测锁定；③WP-3 简报内一处 DOC-04 相对路径自相矛盾——executor 按磁盘现实取 `../extensions/...` 并验证链接目标存在，裁决正确。验证终态：**205 测试全绿**（169 + 引擎 14 + trace-matrix 22）、`generate.py --check` 零漂移、真实数据冒烟（fr_total=29=24 active+5 deferred、story deferred 4 条与修订记录一致）、全树 sweep 零残留（动词枚举含 stamp、`question` 工具名绑定清零、engine-contract 动词表 8 子命令）。文档同步 8 处：engine-contract（§1/§2/§9/§10×4 样例 + audit_entries 口径）、workflow-conventions（Timestamp Acquisition 修订 + DOC-01 sweep 声明 + DOC-04 判例 + QT-01 能力化 + QT-04/Overview 同步）、session-continuity（恢复键清单 + checkpoint-missing 条款 + AM briefing）、SKILL.md（Loading 第 4 步 + bootstrap autonomous）、autonomous-mode（8+2 处能力化）、AGENTS.md（§3.1 stamp/所有权通道/204 例 + 路线图 3.3 完成行）、integration-plan（§7 状态段 + 本条目）、新增 trace-matrix.py + test_trace_matrix.py。遗留观察（非债务）：组级 Deferred 标题内引用 FR 编号不作继承源（使用约定已写入 §7 状态段）；AM-06.6 的 Review Stages 显示名对齐问题维持原状（Phase 4 AM 注记化时随 slug 校验一并解决）。
+
+**Phase 3.3 独立审核与修复（同日，reviewer 子代理静态全量审查）**：审核对象为本批 12 项制品（引擎/测试×2/新脚本×2/契约/规程×5/文档回填），背景对照 D13/D14、stage-contract、CTX-01、fx991 真实数据。裁决"**有条件通过，可作为提交依据**"：0🔴 / 1🟡 / 6🔵，四条待验证主张全部独立考证（A 部分证实判为可接受权衡并挂 Phase 4 评估输入；B 证实列口径可见性建议；C 证实解读合理；D 三处外推判为恰当非越权）；正向确认 14 项（含 trace-matrix 真实数据手工复现解析全数字一致、204 计数算术自洽、SKILL.md 第 4 步算法目录实证、AM 以冻结 CN v1.0 为基线对比）。审核者无 shell，命令级事实由主智能体代跑并提供（其内部一致性经静态复核）。**发现全部当场修复**：🟡#1 Type 10 缺"最上游受影响阶段=当前阶段"分支（该场景 `jump --stage <当前>` 必被引擎 invalid-jump 拒绝，fx991 实录未暴露）——步骤 4 与决策树补"跳过 jump、就地修订重走本阶段关卡（report revised/approved）"；🔵#2 D13 读层枚举两处补 stamp + 裁决⑤补归类说明（规格"注记类扩充"表述不准，stamp 落读层）；🔵#3 trace-matrix 波浪号范围静默只取首号（fx991 真实追溯行 `FR-30~34`/`FR-40~44` 实证）——改为 span≤50 展开 + 上限外维持旧行为 + 测试更新；🔵#4 占位 story 计数口径补入工具 docstring；🔵#5 `_note_age_seconds` 加 handoff 尾条与当前泊车注记的对应性守卫（不符返回 None，+1 测试）；🔵#6 AUD fallback 触发括注自相矛盾（HARD STOP 场景不可达且 python -c 不可用）——改写为"引擎不可供时戳而会话仍在运行"；🔵#7 QT-02 残留 `Edit` 工具名绑定（既有非本批引入）——能力化表述。修复后 205 全绿（+1 尾条漂移测试）+ --check 零漂移 + 波浪号展开端到端复验。审核建议的主张 A 场景已挂 §7 Phase 4 移入项第 3 条作 CTX 误报评估输入。

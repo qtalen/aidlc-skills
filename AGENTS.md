@@ -43,10 +43,10 @@
 
 ### 3.1 运行时引擎（Phase 3 起）
 
-- 引擎 `scripts/engine.py` 是**必选运行时组件**：独占跨阶段路由（`next`）、状态机转移（`report` 是唯一写入口）、审计转移条目、状态完整性校验（State Digest sha256 + 审计交叉核验 + `rebase`）、改道（`jump`/`jump --fresh`）、会话泊车注记（`park --note`：写状态文件 Last Parked 行 + `aidlc-docs/handoff.md`，不改 marks/current、不写审计）。`aidlc-docs/handoff.md` 为引擎独写，模型不得手改。
+- 引擎 `scripts/engine.py` 是**必选运行时组件**：独占跨阶段路由（`next`）、状态机转移（`report` 是唯一写入口）、审计转移条目、状态完整性校验（State Digest sha256 + 审计交叉核验 + `rebase`）、改道（`jump`/`jump --fresh`）、会话泊车注记（`park --note`：写状态文件 Last Parked 行 + `aidlc-docs/handoff.md`，不改 marks/current、不写审计）、权威时间戳读取（`stamp`，零副作用）。`aidlc-docs/handoff.md` 为引擎独写，模型不得手改。
 - 引擎**只读**作者期编译产物 `scripts/data/stage-graph.json`（generate.py 生成，--check 覆盖其漂移），**永不解析 frontmatter，也永不解析 condition 散文**（CONDITIONAL 阶段照常发射 `conditional: true`，模型判断不适用则 `report --result skipped --reason`）。
-- 状态文件分区所有权（`references/common/engine-contract.md`）：`<!-- BEGIN/END ENGINE-STATE -->` 标记区内（Stage Progress/Current Status/Unit Progress/State Digest）引擎独占、digest 覆盖；区外（Project Information/Execution Plan Summary 等）模型按模板写。Execution Plan Summary 的结构化行（Scope/Depth/Stages to Execute/Skip）是模型写-引擎读的 load-bearing 通道。
-- 引擎测试与生成器测试同套件（`scripts/tests/`，共 169 例）：改引擎后必跑 `python -m unittest discover -s .agents\skills\aidlc-workflows\scripts\tests`。
+- 状态文件分区所有权（`references/common/engine-contract.md`）：`<!-- BEGIN/END ENGINE-STATE -->` 标记区内（Stage Progress/Current Status/Unit Progress/State Digest）引擎独占、digest 覆盖；区外（Project Information/Execution Plan Summary/Autonomous Mode/Extension Configuration 等）模型按模板写。Execution Plan Summary 的结构化行（Scope/Depth/Stages to Execute/Skip）是模型写-引擎读的 load-bearing 通道（Autonomous Mode 区的 `autonomous` 键与 Extension Configuration 表的 checkpoint 探测同属模型写-引擎读，引擎只宽容读取、不改变所有权）。
+- 引擎测试与生成器测试同套件（`scripts/tests/`，共 205 例）：改引擎后必跑 `python -m unittest discover -s .agents\skills\aidlc-workflows\scripts\tests`。
 
 ### 4. 编辑纪律
 
@@ -59,9 +59,10 @@
 ## 路线图速览（详见 docs/integration-plan.md）
 
 - **Phase 0/1/2 ✅ 已完成**：阶段契约化 + 生成器（本文件 §核心架构约定即其成果）；scope 裁剪矩阵（`references/common/scopes/` 6 个 scope：classic[默认]/bugfix/refactor/security-patch/infra/express；阶段 frontmatter 的 `scopes:` 映射转置生成矩阵；Requirements Analysis 选 scope，Workflow Planning 微调）
-- **Phase 3 ✅ 已完成（2026-09-14）**：轻量编排引擎落地——"判断归 LLM，精确归工具，决定归人类"。`scripts/engine.py`（Python stdlib 必选运行时引擎：status/init/next/report/jump/rebase）+ compile-to-JSON（generate.py 编译 `scripts/data/stage-graph.json`，引擎只读 JSON）+ 状态分区所有权（`references/common/engine-contract.md`：ENGINE-STATE 标记区引擎独占 + State Digest 完整性校验 + rebase）+ 全 references/ 手改 state 指令收口 + stdlib unittest 测试套件（CI 同跑 --check 与测试套件；当时 77 例，现累计 169 见 §3.1）+ 裸项目 dogfood 通过
-- **Phase 3.1 ✅ 已完成（2026-09-22）**：会话连续性——park 泊车动词（D13 动词三层纪律：转移=report/jump 封闭集合，park 是注记）+ status 恢复简报（resume_note/recent_events/artifact_alerts/alerts_unavailable，分级阅读取代 Load ALL）+ 传感器第一代（D14 finding 五字段，fail-open）+ report produces_missing 软警告；测试当时 144 例（现累计 169 见 §3.1）
+- **Phase 3 ✅ 已完成（2026-09-14）**：轻量编排引擎落地——"判断归 LLM，精确归工具，决定归人类"。`scripts/engine.py`（Python stdlib 必选运行时引擎：status/init/next/report/jump/rebase）+ compile-to-JSON（generate.py 编译 `scripts/data/stage-graph.json`，引擎只读 JSON）+ 状态分区所有权（`references/common/engine-contract.md`：ENGINE-STATE 标记区引擎独占 + State Digest 完整性校验 + rebase）+ 全 references/ 手改 state 指令收口 + stdlib unittest 测试套件（CI 同跑 --check 与测试套件；当时 77 例，现累计 205 见 §3.1）+ 裸项目 dogfood 通过
+- **Phase 3.1 ✅ 已完成（2026-09-22）**：会话连续性——park 泊车动词（D13 动词三层纪律：转移=report/jump 封闭集合，park 是注记）+ status 恢复简报（resume_note/recent_events/artifact_alerts/alerts_unavailable，分级阅读取代 Load ALL）+ 传感器第一代（D14 finding 五字段，fail-open）+ report produces_missing 软警告；测试当时 144 例（现累计 205 见 §3.1）
 - **Phase 3.2 ✅ 已完成（2026-09-22）**：Trellis 借鉴立即批（机制移植，零代码复制）——Evidence-First 提问纪律（question-format-guide 顶部 Policy+豁免表，9 文件 sweep 指针）+ DOC-06 长制品导航索引（advisory）+ RE 可选产物 working-conventions.md（Phase 5A 知识树种子）+ B&T Commit Protocol（时序定死/AUD-02 先例/AM-03 不自动 commit）+ docs/dogfood-protocol.md（六度量+消融对照，服务 3.1 后首个 dogfood 周期）+ 契约硬规则单测清零（§7 规则 1-16 全覆盖，含保留键夹具；测试 144→169）；登记表见 docs/integration-plan.md §9
+- **Phase 3.3 ✅ 已完成（2026-09-24）**：dogfood 反馈批（fx991 首周期验收产物）——P0 裁决 CTX 维持 opt-in（推迟 Phase 4 终裁）+ WP-1 engine 扩展（stamp 零副作用时间戳动词 / status `autonomous` 键 / `note_age_seconds` / checkpoint-missing finding[warning，仅 CTX 启用时]）+ WP-2 SKILL.md 强制扩展发现步骤（Loading process 第 4 步）+ WP-3 workflow-changes Type 10 范围收缩规程（rejected→jump→就地修订[DOC-04 边界]→Deferred 保留→重走）+ WP-4 DOC-04 保护边界判例 + DOC-01 sweep 声明纪律 + WP-5 `scripts/trace-matrix.py` 追溯矩阵脚本（不进 CI）+ WP-6 QT-01 结构化提问工具能力抽象（去 OpenCode 绑定，AM 文件 8 处同步）；测试 169→205；AM 专用动词明确移 Phase 4；规格见 docs/integration-plan.md §7
 - **Phase 4**：Team Construction（unit-major 波次地基 → claim/release + worktree 多会话团队 → single 重跑 → swarm）
 - **Phase 5A/5B + 不排期**：5A 知识树与学习闭环 / 5B reviewer 及其他；④档三项带触发条件（详见 integration-plan.md）
 

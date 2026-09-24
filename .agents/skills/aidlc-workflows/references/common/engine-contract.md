@@ -23,11 +23,11 @@ The engine is the single authority for the workflow's deterministic mechanics.
 
 **Condition prose never enters the engine.** Because of this, a CONDITIONAL stage is always emitted as a `run-stage` directive with `"conditional": true`. When the model judges the stage does not apply, it records that judgment with `report --stage <slug> --result skipped --reason "<why>"`. A skip without `--reason` is rejected by the engine.
 
-### Verb taxonomy (7 subcommands)
+### Verb taxonomy (8 subcommands)
 
 | Layer | Verbs | Mutates stage marks / current stage? |
 |---|---|---|
-| Read | `status`, `next` | No — pure reads |
+| Read | `status`, `next`, `stamp` | No — pure reads (`stamp` reads nothing at all; it only prints the timestamp) |
 | Transition | `report`, `jump` | **Yes — the only verbs that change marks or the pointer** (a closed set) |
 | Lifecycle | `init`, `park`, `rebase` | No — `init` only creates; `park` is an annotation sub-kind; `rebase` re-renders the region without changing marks or current |
 
@@ -47,7 +47,7 @@ python <skill>/scripts/engine.py <subcommand> [--workspace <path>]
 - `--workspace <path>` overrides the workspace root; it defaults to the current working directory.
 - Python **3.8+** is required. The engine uses only the standard library and ships with the skill — users install nothing.
 - Every subcommand prints **exactly one JSON object to stdout** and nothing else. Parse that object; do not parse logs, stderr, or other side channels.
-- Every printed JSON object — successful output and `error` objects alike — carries a `timestamp` field: ISO 8601 UTC at second precision (e.g. `2026-09-15T05:40:00Z`), taken at output time. Use it directly as the timestamp source for `audit.md` entries in the same interaction; no separate clock reading is needed.
+- Every printed JSON object — successful output and `error` objects alike — carries a `timestamp` field: ISO 8601 UTC at second precision (e.g. `2026-09-15T05:40:00Z`), taken at output time. Use it directly as the timestamp source for `audit.md` entries in the same interaction; no separate clock reading is needed. When an interaction needs the engine's clock but no other subcommand, `engine.py stamp` prints exactly this timestamp with zero side effects — it reads nothing and writes nothing (no state, no audit, no handoff).
 
 ### Bootstrap probe (before ANY workflow action)
 
@@ -250,13 +250,14 @@ When to jump: a user asks to redo, revisit, reorder, or skip ahead — any delib
 
 | Subcommand | Mutates state? | Purpose |
 |---|---|---|
-| `status` | No | Bootstrap probe + session-recovery data source. Returns `state`, `scope`, `depth`, `current_stage`, `last_completed`, `integrity`, `completed`, `remaining`, plus the recovery keys `resume_note`, `recent_events`, `audit_entries`, `audit_bytes`, `artifact_alerts`, `alerts_unavailable` (active/completed states only — see §10). |
+| `status` | No | Bootstrap probe + session-recovery data source. Returns `state`, `scope`, `depth`, `current_stage`, `last_completed`, `integrity`, `completed`, `remaining`, plus the recovery keys `resume_note` (+ `note_age_seconds`), `recent_events`, `audit_entries`, `audit_bytes`, `artifact_alerts`, `alerts_unavailable`, `autonomous` (active/completed states only — see §10). |
 | `init` | Yes (create) | Deterministically create `aidlc-docs/aidlc-state.md` (model-region placeholders + `ENGINE-STATE` region: the 14-stage slug checklist, Current Status, reserved Unit Progress, State Digest) and the `audit.md` header. Errors if the state file already exists. |
 | `next` | No | Pure-read routing. Returns exactly one directive: `run-stage`, `done`, or `error`. |
 | `report` | Yes | The only transition entry point. `--stage <slug> --result <r> [--reason]`. See §5. |
 | `park` | Yes (annotation) | Park in-flight work. `--note <text>` required. Writes the `Last Parked` line into Current Status (inside the digest) and appends to `aidlc-docs/handoff.md`; marks, current stage, and the audit log are untouched. See §5.5. |
 | `jump` | Yes | Change course. `--stage <slug>` (redo/forward) or `--fresh` (Start Fresh). See §8. |
 | `rebase` | Yes | After human confirmation of a detected drift, re-baseline the State Digest. See §7. |
+| `stamp` | No | Print the authoritative engine timestamp. Zero side effect: reads nothing, writes nothing. Use it when an interaction needs the engine's clock but no other subcommand. See §2. |
 
 Consumers must ignore unknown fields in any output (see §4).
 
@@ -281,6 +282,8 @@ Consumers must ignore unknown fields in any output (see §4).
   "completed": ["workspace-detection", "requirements-analysis"],
   "remaining": ["workflow-planning", "application-design", "units-generation", "functional-design", "nfr-requirements", "nfr-design", "infrastructure-design", "code-generation", "build-and-test"],
   "resume_note": null,
+  "autonomous": null,
+  "note_age_seconds": null,
   "recent_events": [
     {"event": "STAGE_COMPLETED", "stage": "workspace-detection", "reason": "-", "timestamp": "2026-09-15T05:36:10Z"},
     {"event": "STAGE_APPROVED", "stage": "requirements-analysis", "reason": "-", "timestamp": "2026-09-15T05:39:44Z"}
@@ -297,8 +300,10 @@ Consumers must ignore unknown fields in any output (see §4).
 **Recovery keys.** The `active` and `completed` states additionally carry:
 
 - `resume_note` — `{stage, note}` when the workflow is parked (the `Last Parked` region line is authoritative), else `null`. Cleared by any `report`/`jump`; preserved by `rebase` (§5.5).
+- `note_age_seconds` — age in seconds (`int`) of the current park note, taken from the `**Timestamp**` of the corresponding `handoff.md` entry; `null` when there is no parked note or that timestamp is missing/unparseable. An objective number only — judging staleness stays with the model; negative deltas (clock skew) clamp to 0.
+- `autonomous` — parsed from the model-owned `## Autonomous Mode` section (a model-writes-engine-reads channel, like Execution Plan Summary): `{enabled, question_handling, review_stages, last_updated}`; `null` when the section is missing or malformed (no `Enabled` line, or a value other than `Yes`/`No` — treat that as "read the section yourself and apply AM-09"). The section's ownership and digest status are unchanged.
 - `recent_events` — the last 5 engine transition entries as `{event, stage, reason, timestamp}`. Parsed **only** from `## Engine Transition` sections of `audit.md`, so model-owned audit entries (which may quote Event-shaped lines) can never forge recovery data; an entry's timestamp is the last `**Timestamp**` line within its section.
-- `audit_entries` / `audit_bytes` — count and byte size of the audit transition log; the measurements feeding the audit-partitioning contingency (512 KB scale). The engine only measures — it never splits the file.
+- `audit_entries` / `audit_bytes` — count and byte size of the audit transition log; the measurements feeding the audit-partitioning contingency (512 KB scale). `audit_entries` counts **engine transition entries only** (model-side entries are not counted); the engine only measures — it never splits the file.
 - `artifact_alerts` — sensor findings, five fixed fields each (shape below).
 - `alerts_unavailable` — `true` only when the sensor probe itself failed unexpectedly (fail-open: it arrives with an empty `artifact_alerts` array, and the probe never blocks).
 
@@ -328,6 +333,17 @@ The early-exit branches (`none`, `legacy`, `corrupt`) return **only** the base k
 
 - **`missing-produces` (warning)** — fires for a *completed* stage only when it declares **N ≥ 2 concrete produces** (no wildcards, and excluding the engine's own `aidlc-state.md`/`audit.md`) and **all** of them are missing or empty on disk. Stages with 0–1 concrete produces are exempt.
 - **`resumed-artifacts` (info)** — fires for the *current* stage when any declared produce already exists on disk. `{unit-name}` templates are globbed as `*` and any single match counts; the path list is capped at 5; engine-owned files are excluded.
+- **`checkpoint-missing` (warning)** — fires only when the model-owned `## Extension Configuration` table marks the Context Checkpointing (CTX) extension **Enabled** (a missing or malformed table means not enabled — nothing is checked). Two global CTX-01 anchors: every effective inception stage is done → `aidlc-docs/checkpoints/inception-checkpoint.md` must exist; `build-and-test` is done → `aidlc-docs/checkpoints/construction-checkpoint.md` must exist. Per-unit anchors are a Phase 4 item (they need the Unit Progress region).
+
+```json
+{
+  "type": "checkpoint-missing",
+  "severity": "warning",
+  "subject": "inception",
+  "message": "The Context Checkpointing extension is enabled and the inception checkpoint anchor is reached, but aidlc-docs/checkpoints/inception-checkpoint.md is missing or empty (CTX-01 phase checkpoint).",
+  "action_discipline": "Report to the user; do not fabricate the checkpoint to silence this alert."
+}
+```
 
 ### `next` → `run-stage`
 
@@ -384,6 +400,18 @@ The same `error` shape covers mutating-verb failures, e.g. parking a completed w
   "timestamp": "2026-09-15T05:40:00Z"
 }
 ```
+
+### `stamp`
+
+```json
+{
+  "engine": "ok",
+  "kind": "stamp",
+  "timestamp": "2026-09-15T05:40:00Z"
+}
+```
+
+Zero side effect: `stamp` reads nothing and writes nothing (no state, no audit, no handoff). It exists so an audit entry can carry the engine's clock even in an interaction that runs no other engine subcommand.
 
 ### Write subcommands
 

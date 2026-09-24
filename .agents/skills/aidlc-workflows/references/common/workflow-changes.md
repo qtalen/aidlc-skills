@@ -218,6 +218,31 @@ Users may request changes to the execution plan or stage execution during the wo
 
 ---
 
+### 10. Scope Reduction / Requirement Invalidation
+
+**Scenario**: User moves a requirement out of scope mid-workflow (dropping a requirement), or an upstream artifact is invalidated so that completed work no longer matches the approved scope
+
+**Example**: "Drop the TABLE mode from this iteration" / "把 TABLE 模式移出本迭代" — the related FRs are already analyzed, stories are written, and the plan checklist steps are checked off
+
+**Handling**:
+1. **Classify the request** as a change request. If it arrives at an approval gate, approval-gate classification (APG-01 in workflow-conventions) handles it as Request Changes.
+2. **Run the impact analysis** and enumerate, item by item: affected functional requirements (`requirements.md`), affected stories (`stories.md`), affected design artifacts (business rules, domain entities, logic models, component methods, ...), and affected plan checklist steps across stage plan files.
+3. **Record the gate outcome honestly**: if the current stage's output is what the user is rejecting (its approval gate is pending), record it through the engine first — `python <skill>/scripts/engine.py report --stage <slug> --result rejected --reason "scope reduction: <what was dropped>"` (fall back to `python3`). Never hand-edit stage checkboxes. If no gate outcome is pending, skip this step — the jump in the next step records the course change itself.
+4. **Jump to the most upstream affected stage** — unless it IS the current stage: `python <skill>/scripts/engine.py jump --stage <slug>` resets that stage and every stage after it; then run `engine.py next` and re-execute the affected stages in order, each with its normal approval gate. **When the most upstream affected stage is the current stage, skip the jump** — the engine rejects jumping to the current stage (`invalid-jump`); instead revise this stage's artifacts in place (step 5) and re-walk its own gate (re-present the revised output, then record the cycle with `report --result revised`, or `--result approved` when the user approves).
+5. **Revise artifacts in place (redo channel) — the protection boundary** ([DOC-04](../extensions/workflow/workflow-conventions/workflow-conventions.md)): split what may be rewritten from what may not:
+   - **Protected (append-only, DOC-04)**: question-and-answer files (`[Answer]:` history), clarification/decision prose inside plan files, and `audit.md` entries. NEVER rewrite them; record corrections as appended, timestamped revision notes that map old → new (e.g. "FR-30~34 moved out of scope, numbers preserved").
+   - **Current-state (update in place)**: plan checklist steps and the current-state artifacts themselves — `requirements.md` FR sections, `stories.md`, design artifacts, and the model-owned plan lines in `aidlc-state.md` (`## Execution Plan Summary`). Where the artifact format has a revision-record block, append the revision note there and then edit the content in place. Checkpoint content made stale is swept in the same interaction (DOC-01 / CTX-01).
+6. **Preserve Deferred / Reserved numbers — never recycle them**: requirement and story identifiers moved out of scope keep their numbers, marked `Deferred` in `requirements.md` and `stories.md` (and noted in their revision records), so existing artifacts and audit entries stay traceable to stable identifiers.
+7. **Log**: append a Change Request entry per the Logging Requirements format at the bottom of this file (the engine additionally appends its own transition entries automatically).
+
+**Considerations**:
+- Deferred items are candidates for later iterations; their numbers are reserved for traceability continuity.
+- The full history of the reduction lives in `audit.md` + appended revision notes; in-place edits must never erase it.
+- Timeline shrinks for this iteration but later iterations re-inherit the deferred backlog.
+- All stages reset by the jump re-run their gates — treat re-approvals as normal, not as rubber stamps.
+
+---
+
 ## General Guidelines for Handling Changes
 
 ### Before Making Changes
@@ -269,6 +294,16 @@ User requests change
     ├─ Is it skipping a planned stage?
     |   ├─ Yes: Warn, get confirmation, then either report skipped first
     |   |        (current CONDITIONAL stage) or write Stages to Skip + next
+    |   └─ No: Go to next question
+    |
+    ├─ Is it dropping a requirement (scope reduction / invalidation)?
+    |   ├─ Yes: impact analysis, report rejected if the current gate is
+    |   |        affected, then jump to the most upstream affected stage
+    |   |        (if that IS the current stage, skip the jump: revise in
+    |   |        place and re-walk this stage's gate),
+    |   |        revise current-state artifacts in place (DOC-04 history
+    |   |        stays append-only), keep Deferred numbers reserved,
+    |   |        re-walk the affected stages
     |   └─ No: Go to next question
     |
     └─ Is it changing depth level?

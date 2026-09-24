@@ -7,7 +7,7 @@ MANDATORY cross-cutting rules for every AI-DLC workflow execution. This file has
 - **DOC-01~06** Documentation Consistency — keep aidlc-docs artifacts synchronized with code after every change
 - **APG-01~05** Approval Gate Semantics — how user responses at stage approval gates are classified and handled
 - **AUD-01~04** Audit Attribution — authorship fields on audit.md entries
-- **QT-01~04** Question Tool Flow — after generating a question file, collect answers via the `question` tool, write them back to the file, then proceed
+- **QT-01~04** Question Tool Flow — after generating a question file, collect answers via the harness's structured question tool, write them back to the file, then proceed
 
 **Enforcement**: At each applicable stage/gate, and after every change request, verify compliance with the applicable rules BEFORE presenting the completion message. Include a compliance summary (compliant / non-compliant / N/A per rule, with brief rationale for N/A).
 
@@ -34,6 +34,8 @@ Typical mapping: functionality → requirements/stories/business rules; enums/ra
 
 **Verification**: grep of `aidlc-docs/` shows no stale pre-change values in maintained artifacts; new concepts appear in every artifact enumerating that category; cross-reference/coverage tables include changed items.
 
+A sweep-completion claim (stating "sweep completed" / "no stale references" in a completion message or audit entry) MUST include the actual grep/search pattern set used and the scanned scope (paths), making the claim verifiable rather than self-attested (guarding against self-attestation).
+
 ### DOC-02: Same-Interaction Plan Tracking
 Every change request — including small fixes and visual tweaks — MUST be appended as a step to the relevant stage plan file and marked `[x]` in the SAME interaction where the work completes.
 
@@ -46,6 +48,8 @@ Completion verification MUST include the DOC-01 sweep in addition to code-level 
 Question-and-answer files, clarification sections of plan files, and `audit.md` entries MUST NOT be retroactively rewritten. Corrections and new decisions are appended as new timestamped entries.
 
 **Verification**: no historical Q&A answer or audit entry edited in place; superseded decisions followed by newer timestamped entries.
+
+**Worked example (protection boundary)**: within a single scope reduction, the two text classes are treated differently. Plan checklist steps and current-state artifacts (requirements/stories, design documents, the state file's model-area plan lines) are updated in place; question-and-answer history (`[Answer]:` records), clarification/decision prose inside plan files, and audit entries are append-only — corrections are recorded as appended timestamped amendment notes mapping old → new. Verified precedent: a scope reduction moved a pattern out of the iteration — the FR subsection of requirements.md was rewritten in place with one explanatory entry appended to the revision-record blockquote at the top of the file, while the Q&A in requirement-verification-questions.md and the audit.md entries were left untouched word-for-word; affected FR numbers were marked Deferred and kept, not recycled. The discriminator in one sentence: **"would a later reader be misled if this text changed?" — history that records what was asked/decided/answered is append-only; state that must reflect the current truth is updated in place, with the change origin noted where the format supports it.**
 
 ### DOC-05: Generic Artifacts, No Cross-Project Leakage
 Shared workflow rule files MUST contain no project-specific identifiers (project names, requirement/story numbering from one project). Project-specific content belongs in the project's `aidlc-docs/`, never in shared rules.
@@ -119,8 +123,9 @@ Resolve dynamically, never hardcoded:
 3. Resolve ONCE per session at workflow start (or session resumption) and cache in memory for all subsequent audit writes in that session; re-resolve during the session ONLY if the initial resolution failed. NEVER cache across sessions
 
 ### Timestamp Acquisition
-- Preferred source: the `timestamp` field carried by the output JSON of any engine subcommand run in the SAME interaction (`status`, `next`, `init`, `report`, `park`, `jump`, `rebase` — successes and errors alike). This costs zero extra commands: reuse the value the engine already printed
-- Fallback ONLY when that interaction invoked no engine subcommand at all: the harness environment provides only the current date, not a clock — obtain the full ISO 8601 timestamp (YYYY-MM-DDTHH:MM:SSZ) from the system clock (e.g. a `python -c` one-liner on Windows cmd)
+- Preferred source: the `timestamp` field carried by the output JSON of any engine subcommand run in the SAME interaction (`status`, `next`, `init`, `report`, `park`, `jump`, `rebase`, `stamp` — successes and errors alike). This costs zero extra commands: reuse the value the engine already printed. When the interaction needs the engine's clock but no other subcommand, `engine.py stamp` is the dedicated zero-side-effect way to obtain it
+- Annotate the source on each entry's `**Timestamp**` line so compliance is checkable: append `(engine)` for a subcommand-output value, `(stamp)` for a `stamp`-obtained value, or `(clock)` for the fallback — e.g. `**Timestamp**: 2026-09-24T08:00:00Z (stamp)`
+- Fallback ONLY when the engine cannot supply a timestamp while the session is otherwise running (every engine invocation errors): obtain the full ISO 8601 timestamp (YYYY-MM-DDTHH:MM:SSZ) from the system clock (e.g. a `python -c` one-liner on Windows cmd — this presumes a working Python). At a bootstrap HARD STOP the workflow never starts and no audit entries are written, so no timestamp is ever needed
 - ONE timestamp acquisition per interaction suffices: multiple audit entries written in the same interaction MAY share it
 - Batch the fallback acquisition with the AUD-02 git config resolution in a single command at workflow start
 
@@ -139,27 +144,32 @@ Applies to every `{phase-name}-questions.md` file (including `-clarification-que
 **Autonomous Mode override**: When Autonomous Mode is active with question handling `auto-recommended` (see `../autonomous-mode/autonomous-mode.md` AM-04), QT-01's tool-based collection is suspended — the AI selects recommended answers and writes them back with attribution. Modes `manual` and custom follow QT-01~04 normally.
 
 ### QT-01: Immediate Question Tool Invocation
-After creating a question file, call the `question` tool with the file's questions in the SAME interaction. Do NOT stop and wait for the user to manually edit the file.
+**Structured question tool**: any tool that, within the SAME interaction, presents a set of option-bearing questions to the user and returns the answers qualifies for this rule, whatever its name — identify it by capability signature, not by name. Reference implementations include OpenCode's `question` and Claude Code's `AskUserQuestion` (each is one example, not the only one); concrete parameter names at call time follow the harness's tool schema — the mapping requirements below are semantic.
 
-Mapping rules:
-- Each markdown question → one tool entry: question text → `question`; short topic (e.g., "Q3 Database") → `header` (≤30 chars).
-- Options A/B/C/... → `options` array: condensed 1-5 word `label`, full option text in `description`.
-- Do NOT add an explicit "Other" option — the tool's built-in custom input covers it.
+After creating a question file, invoke the structured question tool with the file's questions in the SAME interaction. Do NOT stop and wait for the user to manually edit the file.
+
+Mapping rules (semantic):
+- Each markdown question → one tool entry: the question text as written, plus a short topic of ≤30 characters (e.g., "Q3 Database").
+- Each option → a condensed 1-5 word short label, with the full option text placed in the description slot.
 - If a recommended option exists, place it first with "(Recommended)" in its label.
-- Single-choice questions use `multiple: false`; multi-select questions use `multiple: true`.
+- Declare single-choice vs multi-select per the question's own semantics.
 
-**Verification**: no question file is left with "fill in the file and let me know when you're done" as the stopping point; the tool is invoked in the same interaction as file creation.
+Capability-gap handling:
+- The tool does not support multi-select → split into multiple single-choice questions (or rephrase as per-item confirmation); never silently downgrade a multi-select question to single-choice semantics.
+- The tool has no built-in custom input → add an explicit "Other" option row; omit the explicit "Other" option ONLY when the tool has built-in custom input.
+
+**Verification**: no question file is left with "fill in the file and let me know when you're done" as the stopping point; the structured question tool is invoked in the same interaction as file creation.
 
 ### QT-02: Answer Write-Back
 Write the tool's answers back into the question file immediately: fill the matching letter after each `[Answer]:` tag (e.g., `[Answer]: C`). For custom answers, write the "Other" option's letter plus the user's verbatim custom text. Question text and option lists MUST NOT be altered during write-back (aligns with DOC-04).
 
-Do the write-back with the `Edit` tool, anchoring each edit on a unique context string that contains the question title or the adjacent option text in the same block, so that each `[Answer]:` line is matched unambiguously. Do NOT generate a temporary script file to perform the write-back.
+Do the write-back with your harness's file-edit tool (the same capability class QT-01 assumes for tools), anchoring each edit on a unique context string that contains the question title or the adjacent option text in the same block, so that each `[Answer]:` line is matched unambiguously. Do NOT generate a temporary script file to perform the write-back.
 
 ### QT-03: Proceed Without Manual Confirmation
 After write-back, run the standard validation from `question-format-guide.md` (completeness check + contradiction/ambiguity detection) and proceed to the next step directly — do NOT wait for the user to say "done". If validation produces clarification questions, the clarification file also follows QT-01.
 
 ### QT-04: Tool Fallback
-If the `question` tool is unavailable, errors out, or returns without answers, fall back to the base manual flow (inform the user, wait for completion confirmation per `question-format-guide.md`) and note the fallback in `aidlc-docs/audit.md`.
+If no structured question tool is available (none recognized for this harness), or it errors out, or it returns without answers, fall back to the base manual flow (inform the user, wait for completion confirmation per `question-format-guide.md`) and note the fallback in `aidlc-docs/audit.md`.
 
 ---
 
