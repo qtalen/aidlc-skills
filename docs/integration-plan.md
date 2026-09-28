@@ -529,6 +529,8 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 - knowledge_refs（③档）：按 `task`/阶段声明需要加载的知识引用；完整设计见 `docs/result-oriented-delegation-design.md`（现为"讨论记录待并入"状态，Phase 4 设计输入第 6 项处理并入/延后）；空树期回退引用 RE working-conventions（WP-5 交付）与既有规则文件
 - 种子关系：RE working-conventions.md = 知识树初始种子/导入源，唯一"约定"存储为知识树（防两套分叉，R4 裁决）
 
+**观察项：活文档单文件单调增长与 rollup 规程（2026-09-28 挂档，dogfood 实证后再设计，讨论全录见 §9 当日条目）**——D15 单树活文档模式的代价面。`stories.md` / `requirements.md` 类 current-state 制品按契约**只增不减**：Type 10 步骤 5 原地更新（workflow-changes.md:247）、步骤 6 Deferred 编号保留不回收（:248）、DOC-04 修订记录与 Q&A append-only——增长 = O(历史上出现过的功能总数，含 Deferred)，粗估 15-20 个故事即过 DOC-06 的 300 行阈值（且 DOC-06 为全库唯一 advisory，无硬触发），而 user-stories 再入与 application-design 的 tier-2 消费清单要求全量读 stories.md（session-continuity.md:52、application-design.md:17）。姊妹线索：build-and-test 的 consumes 为**全单元** `construction/{unit-name}/code/*`（build-and-test.md:17），是唯一输入随产品规模线性增长的阶段。**触发条件**：dogfood 中核心活文档过 500 行，或再入/设计场景全量读 stories.md 产生可感知的上下文压力。届时方向（与 Deferred 编号纪律同构）：shipped-stable 条目 rollup 为一行索引（编号 + 标题 + 一句话 + git commit 指针），全文由 git 历史承载，编号永不回收；DOC-06 升"超线必做"评估。知识树（5A 本体）即长期解——沉淀过的知识蒸馏进树，原文档降级为参考。
+
 ### Phase 5B：reviewer 及其他（逐项独立可交付，纯增量无返工，路径见 §6.5）
 
 - reviewer 状态机（启用契约 §5 预留字段 reviewer/review_artifact/reviewer_max_iterations；READY/NOT-READY 回路由 report 分支承接）
@@ -768,3 +770,35 @@ dogfood-protocol.md 服务的首个完整周期（两迭代，快照 bc04dd7）�
 **与既有决策的关系**：D11（一版本一意图）不变——同产品多迭代 = 同一意图下的多个版本，版本边界由 git 提交承载（B&T Commit Protocol）；aidlc-docs 为跨迭代活文档，与 fx991 单树两迭代先例、Type 10 / Deferred 编号纪律的既有立场一致。`--fresh` 语义不变，仅定位收缩为"新产品意图 / 显式干净重启"。
 
 **独立审核与修复（2026-09-28，reviewer 子代理静态全量审查）**：审核对象为 D15 变更集 8 文件（engine.py 为主，diff 全文随简报提供），背景对照 D11/D13/D15、裁决③、stage-graph.json。裁决"**有条件通过，无阻断项，代码与测试本体可作提交依据**"：0🔴 / 1🟡 / 6🔵；四条待验证主张独立裁决——主张1 证实无缺陷（`slug==current` 检查在 current 非空时必经，全仓 `cmd_jump` 仅 main 与测试两个调用点，`slug=None` 被 unknown-stage 拦截）；主张2 部分证实（"计划行先改→自行复活"语义真实，Re-Entering 节指引基本充分但有一处次序歧义）；主张3 证实（断言过弱，语义回归仍可绿）；主张4 部分证实（真实残留 1 处类别 + 2 处弱形式；legacy/corrupt 场景的 fresh 指引属正当）。正向确认 10 项（活跃态逐行等价、再入语义与 §8 吻合、完整性交叉核验兼容、`from_label` 仅进 Detail 无伪造面、D13 交互、park hint 与契约 §10 逐字一致、四环修复全树落地、生成物标记区零触碰、测试前提与算术 209）。发现全部当场修复：🟡#1 error-handling.md "When to Suggest Starting Over" 将"需求大变/架构反转"列为 Fresh Start 触发条件（与 D15 相抵的同源失效第 5 现场）——移出清单、限定为"新产品意图/引擎不可恢复"，加 same-product 从不 fresh-start 条款并指向 workflow-changes；弱形式 :342 Resumption 选项同步。🔵#2 计划外目标测试补三断言（current_stage=下一路由待办 / 勾选重置 / next 落点）钉死裁决③落点语义，注释说明 Skip 行才是触发路径（bugfix scope 非必要条件）；🔵#3 契约 §8 再入条补"不绕过计划过滤：重置照常发生、指针落其后第一个路由内待办阶段（无则保持 completed）+ ack 带 note"；🔵#4 Re-Entering 步骤 1 补次序分支（计划行先改→工作流自行复活→勿 jump 直接 `next`，对已成 current 的目标 jump 会被拒）；🔵#5 engine jump 的 note 文案补"若在 Stages to Skip 行则先删——Skip 恒胜 Execute"前提（活跃态 forward jump 同样受益）；🔵#6 AGENTS.md :5 决策区间 D1-D14→D1-D15；🔵#7 本条目自述计数修正（文档同步 6 文件 8 处；测试辅助为两个）。修复后终态：209 全绿（测试数不变——🔵#2 为既有测试加断言）+ --check 零漂移；变更集扩为 9 文件（+error-handling.md）。
+
+### 2026-09-28：D15 代价面讨论——活文档单文件增长挂 Phase 5 观察项
+
+**背景**：D15（完成态再入、单树活文档）落地次日，用户提出设计追问：所有迭代的制品集中于同一 `aidlc-docs/`，文件与文档长度会不会随迭代数"爆炸"并拖累上下文（尤其 stories.md 这类文档）。
+
+**分析结论**（查证各阶段 produces/consumes + session-continuity 分级阅读 + workflow-conventions DOC-04/DOC-06）：
+
+- 文件数增长 = O(功能/单元数)，**非** O(迭代数)：固定路径活文档（requirements.md、build-and-test 8 个固定文件等）跨迭代原地更新、文件数恒定；仅 per-unit 树（`construction/{unit-name}/*`）随单元数增长。对比之下，D15 之前"归档旧树 + 新建"模式才是 O(迭代数 × 全文件) 的爆炸路径——D15 恰是消除文件爆炸的决策；版本历史由 git 提交承载（D11 + B&T Commit Protocol），磁盘不留快照。
+- 上下文与目录大小解耦（三道闸门）：① status 恢复简报只返回异常发现而非目录清单；② tier-2 只加载当前阶段 required consumes 且圈定细到单元（code-generation 只读当前单元设计目录，code-generation.md:13）；③ tier-3 按需 + DOC-06 导航索引 + CTX checkpoint（≤200 行、引用路径不复制内容）。fx991 两迭代单树先例未现目录形态恶化。
+- **真实残余风险（本次挂档对象）**：① **单文件单调增长**——stories.md 类 current-state 制品按契约只增不减（Type 10 :247 原地更新 / :248 Deferred 永久保留 / DOC-04 修订记录 append-only），增长 = O(历史功能总数，含 Deferred)，粗估 15-20 个故事过 DOC-06 300 行阈值，而 DOC-06 是全库唯一 advisory（workflow-conventions.md:21）无硬触发，user-stories 再入与 application-design 的 tier-2 消费要求全量读（session-continuity.md:52 / application-design.md:17）；② **build-and-test 全单元 consumes**（build-and-test.md:17）——唯一输入随产品规模线性增长的阶段，单元数大时最先痛。
+
+**裁决（用户）**：不立即设计压缩规程（避免过早设计未被实证的规则），挂 **Phase 5A 观察项**（见 §7 Phase 5A 节末）。触发条件：核心活文档过 500 行或全量读产生可感知上下文压力。届时方向：rollup 约定（shipped-stable 条目压缩为一行索引 + git commit 指针，编号永不回收——与 Deferred 编号纪律同构）+ DOC-06 升"超线必做"评估；知识树（5A 本体）为长期解。
+
+### 2026-09-28：v1.0 备份遗产考古——立项"备份遗产清理批"（待实施）
+
+**背景**：接 Phase 5A 观察项讨论，追问原始亚马逊 v1.0（基线 `fc17ad5`，migrated from awslabs/aidlc-workflows）对历史制品的处理。git 考古结论：**v1.0 没有归档机制，只有文件级 `.backup` 备份**——全库 6 处 archive 提法全部是"备份放原文件旁边"（`{artifact}.backup` / `{artifact}.backup.{timestamp}`），无集中归档目录、无清理规则、无迭代概念（"iteration" 仅 1 次无关命中）、无 start fresh（零命中，"重来"靠模型手改 state）。另考实三点：v1.0 恢复是 load-all（Phase 3.1 分级阅读明确标注取代的就是它）；完成态无路由（D15 四环链路的上游原始形态是真空）；error-handling "Consider Fresh Start If: User requirements have changed significantly / Architectural decision needs to be reversed" 逐字为 v1.0 原文——D15 审核轮 🟡#1 修的第 5 现场即上游原始缺陷。
+
+**遗产现状**：`.backup` 惯例在分叉中残留 5 处——error-handling.md:217（Restart Stage 恢复步骤）、:262（Before Starting Over 步骤 1，与步骤 6 引擎 `jump --fresh` 自动归档重复且为手动版）；workflow-changes.md:83（Type 3 重启当前阶段）、:106（Type 4 重启先前阶段）、:353（Best Practices "Archive First"）。相抵点：① 与 D11 冲突——版本历史已由 git 提交承载（B&T Commit Protocol 定死时序），`.backup.{timestamp}` 是并行第二历史层且无生命周期管理，v1.0 的目录污染原样潜伏；② 引擎传感器交互——`_stage_resumed_artifacts`（engine.py:841）对 wildcard produces（`construction/{unit-name}/code/*` 等）按 glob 展开且"any single match counts"（契约 §7 resumed-artifacts 条），glob 树内的 `.backup` 文件会被计入命中、挤占 5 条上限；③ 无任何清扫规则。
+
+**裁决（用户，2026-09-28）**：立项单独修复批。**校准立场（非全盘废除）**：AUD-02 / B&T R4 已有先例——非 git 工作区（no git → 标注 unknown、不阻塞）下破坏性重做前做轻量备份有真实价值，故条款改**条件式**而非删除。
+
+**实施清单（待实施）**：
+
+1. **文档 5 处改条件式**（git 工作区→当前状态先 commit 承载历史[对齐 AUD-02/B&T R4]；非 git 工作区→保留 `.backup.{timestamp}` 手动备份）：workflow-changes.md:83 / :106 / :353、error-handling.md:217；error-handling.md:262 特殊——改写为"归档交给引擎（见步骤 6 `jump --fresh` 自动归档整树），勿手动"，消除与步骤 6 的重复。
+2. **engine.py `_stage_resumed_artifacts` glob 分支排除 `.backup`**：命中过滤 basename 含 `.backup` 的路径（精确事实：`_stage_missing_produces` 为精确路径匹配、免疫，不改动）。
+3. **engine-contract.md §7 resumed-artifacts 条目**同步补一句排除规则说明。
+4. **测试 +1**（209→210）：wildcard produces 树内放置 `.backup.{ts}` 文件，断言不计入 resumed 命中；同场景下正常文件仍命中。
+5. **AGENTS.md** 测试数与路线图行随实施同步。
+
+**验收**：全量测试全绿 + `generate.py --check` 零漂移 + 全树 grep 无"无条件 `.backup`"残留（`Archive existing artifacts` / `Archive First` 等短语均带 git/非 git 分支）。
+
+**与既有决策的关系**：D11（git 承载版本边界）不动摇，本批是其一致性收尾；D14 传感器语义微调（fail-open 不变，仅排除噪声源）；`jump --fresh` 树级归档行为不变。
