@@ -32,6 +32,7 @@
 | D12 | 引擎分发形态 | **随技能分发**（2026-09-14）：engine.py + stage-graph.json 在 `scripts/` 下随技能目录一起复制；用户侧前提仅"harness 能加载技能 + 能执行 python"，不依赖 AGENTS.md 等任何额外文件；裸项目 dogfood 为验收硬标准 |
 | D13 | 动词三层纪律 + 注记转移不变律（2026-09-21 定，2026-09-22 实施；2026-09-24 stamp 加入读层）：引擎动词分三层——读（status/next/stamp，无副作用）；**转移（report/jump，封闭集合 = 唯二改变 marks/current 的动词，Phase 4/5 永不新增）**；生命周期（init/park/rebase；park 为注记子类）。注记动词必须保持 marks 与 current 不变（digest 重算不算转移）。Phase 4 的 claim/release 照此办理——实现为 report 的 additive guard，不新增转移动词。新动词入场券 = 与全部既有 mutating 动词的两两交互测试（交互矩阵自此为 CI 法定成本） |
 | D14 | 传感器 fire 点与 finding 接口（2026-09-21 定，2026-09-22 实施）：分叉侧传感器的 fire 点 = 引擎动词（status=恢复时 / report=收单时），永久不变（harness 无关性使然，区别于 v2.0 的 write hook）。finding 对象五字段 `{type, severity, subject, message, action_discipline}` 即 Phase 5 传感器接口；Phase 3.1 交付的 artifact_alerts 为第一代实现（硬编码 manifest）。`type` 集合可增不可删；同一 state_version 内对象 shape 永不破坏性变更；Phase 5 manifest 化须过输出等价测试 |
+| D15 | 完成态再入语义（2026-09-27 定）：同一产品的功能演进（新功能/修复/需求变更）**不是**新产品意图——工作流完成态下 `jump --stage <slug>` 放行为**再入**（目标及其后重置 `[ ]`，语义同 backward redo，ack.from=null，审计记 re-entry；"jump 不绕过计划过滤"对再入同样生效），是同产品新迭代的正规通道；`jump --fresh` 保留给新产品意图/显式干净重启。修复 dogfood 实证的"completed → 被引向 --fresh"四环链路。D11 不因本决策变化：同产品多迭代 = 同一意图的多个版本，版本边界由 git 提交承载 |
 
 ---
 
@@ -743,3 +744,27 @@ dogfood-protocol.md 服务的首个完整周期（两迭代，快照 bc04dd7）�
 **Phase 3.3 实施完成（同日，2026-09-24）**：P0 用户裁决选 a（CTX 维持 opt-in）后开工，单日完成全部 6 个工作包。过程：主智能体先通读 engine.py/engine-contract/QT 与 AM/CTX/状态模板/阶段 frontmatter 事实源并核实基线（169 全绿 + --check 零漂移），WP-1+WP-2 直做后三路 executor 并行（WP-3 / WP-4+6 同文件合并 / WP-5），主智能体逐 diff 复核。executor 复核发现与裁决：①AM 文件两处清单外残留（AM-02 无条件 Other 禁令与 QT-01 新条件规则存在语义张力、AM-05 `multiple: true` 参数名残留）——主智能体裁决为 WP-6 同源问题并直接补修；②trace-matrix 解析把 US2-25 误继承 US2-24 的 Deferred——裁决继承源限节级标题（不含条目 ID token），发回原 executor 会话修复 + 反例单测锁定；③WP-3 简报内一处 DOC-04 相对路径自相矛盾——executor 按磁盘现实取 `../extensions/...` 并验证链接目标存在，裁决正确。验证终态：**205 测试全绿**（169 + 引擎 14 + trace-matrix 22）、`generate.py --check` 零漂移、真实数据冒烟（fr_total=29=24 active+5 deferred、story deferred 4 条与修订记录一致）、全树 sweep 零残留（动词枚举含 stamp、`question` 工具名绑定清零、engine-contract 动词表 8 子命令）。文档同步 8 处：engine-contract（§1/§2/§9/§10×4 样例 + audit_entries 口径）、workflow-conventions（Timestamp Acquisition 修订 + DOC-01 sweep 声明 + DOC-04 判例 + QT-01 能力化 + QT-04/Overview 同步）、session-continuity（恢复键清单 + checkpoint-missing 条款 + AM briefing）、SKILL.md（Loading 第 4 步 + bootstrap autonomous）、autonomous-mode（8+2 处能力化）、AGENTS.md（§3.1 stamp/所有权通道/204 例 + 路线图 3.3 完成行）、integration-plan（§7 状态段 + 本条目）、新增 trace-matrix.py + test_trace_matrix.py。遗留观察（非债务）：组级 Deferred 标题内引用 FR 编号不作继承源（使用约定已写入 §7 状态段）；AM-06.6 的 Review Stages 显示名对齐问题维持原状（Phase 4 AM 注记化时随 slug 校验一并解决）。
 
 **Phase 3.3 独立审核与修复（同日，reviewer 子代理静态全量审查）**：审核对象为本批 12 项制品（引擎/测试×2/新脚本×2/契约/规程×5/文档回填），背景对照 D13/D14、stage-contract、CTX-01、fx991 真实数据。裁决"**有条件通过，可作为提交依据**"：0🔴 / 1🟡 / 6🔵，四条待验证主张全部独立考证（A 部分证实判为可接受权衡并挂 Phase 4 评估输入；B 证实列口径可见性建议；C 证实解读合理；D 三处外推判为恰当非越权）；正向确认 14 项（含 trace-matrix 真实数据手工复现解析全数字一致、204 计数算术自洽、SKILL.md 第 4 步算法目录实证、AM 以冻结 CN v1.0 为基线对比）。审核者无 shell，命令级事实由主智能体代跑并提供（其内部一致性经静态复核）。**发现全部当场修复**：🟡#1 Type 10 缺"最上游受影响阶段=当前阶段"分支（该场景 `jump --stage <当前>` 必被引擎 invalid-jump 拒绝，fx991 实录未暴露）——步骤 4 与决策树补"跳过 jump、就地修订重走本阶段关卡（report revised/approved）"；🔵#2 D13 读层枚举两处补 stamp + 裁决⑤补归类说明（规格"注记类扩充"表述不准，stamp 落读层）；🔵#3 trace-matrix 波浪号范围静默只取首号（fx991 真实追溯行 `FR-30~34`/`FR-40~44` 实证）——改为 span≤50 展开 + 上限外维持旧行为 + 测试更新；🔵#4 占位 story 计数口径补入工具 docstring；🔵#5 `_note_age_seconds` 加 handoff 尾条与当前泊车注记的对应性守卫（不符返回 None，+1 测试）；🔵#6 AUD fallback 触发括注自相矛盾（HARD STOP 场景不可达且 python -c 不可用）——改写为"引擎不可供时戳而会话仍在运行"；🔵#7 QT-02 残留 `Edit` 工具名绑定（既有非本批引入）——能力化表述。修复后 205 全绿（+1 尾条漂移测试）+ --check 零漂移 + 波浪号展开端到端复验。审核建议的主张 A 场景已挂 §7 Phase 4 移入项第 3 条作 CTX 误报评估输入。
+
+### 2026-09-27：完成态再入修复（D15）——dogfood 反馈：completed 工作流上的同产品新需求被推向 jump --fresh
+
+**触发**（用户 dogfood 实报）：计算器 MVP 全流程完成后，新开会话加一个新功能，模型选择 `jump --fresh`（整树归档重建），而非就地迭代。
+
+**根因诊断**（四环链路，逐处代码考证）：
+1. engine `cmd_jump` 在 current=None 时直接 invalid-jump，**hint 亲口指路 jump --fresh**；park 的 workflow-complete 错误同款 hint（两处"教唆现场"）。
+2. SKILL.md bootstrap 表 completed 行只有一句 "confirm with the user before starting anything new"，无路由指引。
+3. 恢复菜单 A 空转（"none — workflow complete"）、B 是导航框架、C 是唯一写着"开始"的选项。
+4. workflow-changes.md 标题与 Overview 域限定 "Mid-Workflow"，严谨的模型不会把完成态新需求往其上套。
+
+四环合流：模型无论主动选择还是试错（先试 B 被拒、按 hint 走 C），必然收敛到 `--fresh`——不是模型不守规矩，是系统把它推过去的。`--fresh` 的实际代价：FR 编号重置（跨迭代追溯链断）、迭代一 requirements/stories 上下文被封存（新流程默认不读归档）、RE 产物被一起搬走（迭代二大概率重跑逆向工程）。
+
+**用户裁决**：同产品的功能演进不是产品意图变化，应走就地再入（路径一）。
+
+**实施**（主智能体直做，引擎多耦合）：
+- engine.py：`cmd_jump` 完成态分支由拒绝改放行——direction=backward、目标及其后重置 `[ ]`、from_label="complete"、审计 detail 记 "re-entry; stages from X onward reset"、ack.from=null；裁决③（jump 不绕过计划过滤、目标在计划外时 note 提示）对再入同样生效；park 的 workflow-complete hint 改写为"同产品→`jump --stage` 再入；新意图→`--fresh`"。完整性交叉核验天然兼容（重置产生的 `[ ]` 不在核验范围，此前的完成事件仍匹配未重置阶段的 `[x]`）。
+- **实施中发现的真实语义**（测试首跑失败实证，记录在案）：若模型先清掉 Skip 行，工作流会经既有 Type 1 通道**自行复活**（current 重算为第一个待办阶段）——再入分支覆盖的是"全做完"场景；两条通道并存，规程均已收录（Re-Entering 节步骤 1 提示按需更新计划行）。
+- 文档同步 6 文件 8 处：engine-contract（§8 再入条目 / §9 jump 行 / §10 park 样例 hint）；SKILL.md completed 行（同产品→jump 就地修订并明示禁止对同产品用 Start Fresh 及理由）；session-continuity（菜单 C 定位收缩 "for a new product intent … NOT for a new iteration" + Menu Execution 补完成态同产品请求指 B 的条款）；workflow-changes（Overview 域扩展至完成态 + 新增 "Re-Entering a Completed Workflow" 节：分类→jump 最上游受影响阶段→就地修订[resumed-artifacts / DOC-04 / Deferred 编号不回收]→重走；新意图→--fresh 或新 git 版本）；AGENTS.md（§3.1 jump 描述补 D15、测试数 209、路线图修复批行）；本文件（§1 D15 + 本条目）。
+- 测试：205 → **209** 全绿。新增 4 例——再入主路径（from=null / direction=backward / current=目标 / 目标前后勾选分界 / 审计含 re-entry / integrity ok / next 重发目标）、再入首阶段（全重置）、再入计划外目标（note 提示，裁决③）、再入后 park 可用（D13 交互）；辅助两个：`_drive_to_done`（计划行裁剪快速到 done）与 `_drive_all_classic_to_done`（经典全流程驱动到 done）。
+
+**与既有决策的关系**：D11（一版本一意图）不变——同产品多迭代 = 同一意图下的多个版本，版本边界由 git 提交承载（B&T Commit Protocol）；aidlc-docs 为跨迭代活文档，与 fx991 单树两迭代先例、Type 10 / Deferred 编号纪律的既有立场一致。`--fresh` 语义不变，仅定位收缩为"新产品意图 / 显式干净重启"。
+
+**独立审核与修复（2026-09-28，reviewer 子代理静态全量审查）**：审核对象为 D15 变更集 8 文件（engine.py 为主，diff 全文随简报提供），背景对照 D11/D13/D15、裁决③、stage-graph.json。裁决"**有条件通过，无阻断项，代码与测试本体可作提交依据**"：0🔴 / 1🟡 / 6🔵；四条待验证主张独立裁决——主张1 证实无缺陷（`slug==current` 检查在 current 非空时必经，全仓 `cmd_jump` 仅 main 与测试两个调用点，`slug=None` 被 unknown-stage 拦截）；主张2 部分证实（"计划行先改→自行复活"语义真实，Re-Entering 节指引基本充分但有一处次序歧义）；主张3 证实（断言过弱，语义回归仍可绿）；主张4 部分证实（真实残留 1 处类别 + 2 处弱形式；legacy/corrupt 场景的 fresh 指引属正当）。正向确认 10 项（活跃态逐行等价、再入语义与 §8 吻合、完整性交叉核验兼容、`from_label` 仅进 Detail 无伪造面、D13 交互、park hint 与契约 §10 逐字一致、四环修复全树落地、生成物标记区零触碰、测试前提与算术 209）。发现全部当场修复：🟡#1 error-handling.md "When to Suggest Starting Over" 将"需求大变/架构反转"列为 Fresh Start 触发条件（与 D15 相抵的同源失效第 5 现场）——移出清单、限定为"新产品意图/引擎不可恢复"，加 same-product 从不 fresh-start 条款并指向 workflow-changes；弱形式 :342 Resumption 选项同步。🔵#2 计划外目标测试补三断言（current_stage=下一路由待办 / 勾选重置 / next 落点）钉死裁决③落点语义，注释说明 Skip 行才是触发路径（bugfix scope 非必要条件）；🔵#3 契约 §8 再入条补"不绕过计划过滤：重置照常发生、指针落其后第一个路由内待办阶段（无则保持 completed）+ ack 带 note"；🔵#4 Re-Entering 步骤 1 补次序分支（计划行先改→工作流自行复活→勿 jump 直接 `next`，对已成 current 的目标 jump 会被拒）；🔵#5 engine jump 的 note 文案补"若在 Stages to Skip 行则先删——Skip 恒胜 Execute"前提（活跃态 forward jump 同样受益）；🔵#6 AGENTS.md :5 决策区间 D1-D14→D1-D15；🔵#7 本条目自述计数修正（文档同步 6 文件 8 处；测试辅助为两个）。修复后终态：209 全绿（测试数不变——🔵#2 为既有测试加断言）+ --check 零漂移；变更集扩为 9 文件（+error-handling.md）。

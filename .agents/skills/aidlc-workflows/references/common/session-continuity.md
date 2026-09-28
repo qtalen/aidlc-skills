@@ -28,7 +28,7 @@ A) Continue where you left off ([Next step description])
 
 B) Jump to another stage ([Show available stages])
 
-C) Start Fresh (archive this project's aidlc-docs and reset state)
+C) Start Fresh (archive this project's aidlc-docs and reset state — for a new product intent or an explicit clean restart, NOT for a new iteration on the same product)
 
 [Answer]: 
 ```
@@ -85,6 +85,7 @@ The Markdown menu is presentation only. Execute the chosen option with the match
 - **A) Continue** → `engine.py next` (follow the returned directive)
 - **B) Jump to another stage** → `engine.py jump --stage <slug>` (always pass the **slug**, never the display name). A backward jump resets the target stage **and every stage after it** to `[ ]` — warn the user about this before executing; full semantics in `engine-contract.md` §8
 - **C) Start Fresh** → `engine.py jump --fresh` (archives `aidlc-docs/` to `aidlc-docs-archive-<timestamp>/` and resets state)
+- **Completed workflow + same-product request**: prefer **B** — `jump --stage <most upstream affected slug>` (typically `requirements-analysis`) re-enters the workflow, resetting that stage and everything after it while keeping the artifact tree, FR numbering, and Deferred records continuous (see `workflow-changes.md`, Re-Entering a Completed Workflow). Start Fresh archives the tree and severs cross-iteration traceability; reserve it for a new product intent or an explicit clean restart.
 
 ## Error Handling
 If artifacts are missing or corrupted during session resumption, see [error-handling.md](error-handling.md) for guidance on recovery procedures. 

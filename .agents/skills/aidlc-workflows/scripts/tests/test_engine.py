@@ -795,6 +795,77 @@ class JumpTests(WorkspaceCase):
         self.assertEqual(self.marks()["workspace-detection"], " ")
         self.assertEqual(self.next()["stage"], "workspace-detection")
 
+    def _drive_to_done(self):
+        """Plan-skip everything but workspace-detection and build-and-test,
+        drive both, and reach the done state."""
+        skip = [
+            s for s in STAGE_ORDER
+            if s not in ("workspace-detection", "build-and-test")
+        ]
+        self.set_plan_lines(skip=", ".join(skip))
+        self.report("workspace-detection", "completed")
+        self.drive_past("build-and-test")
+        self.assertEqual(self.next()["kind"], "done")
+
+    def _drive_all_classic_to_done(self):
+        """Drive every classic-effective stage to done with no plan lines."""
+        for stage in self.graph["stages"]:
+            self.drive_past(stage["slug"])
+        self.assertEqual(self.next()["kind"], "done")
+
+    def test_reentry_jump_from_completed_workflow(self):
+        # A completed workflow re-enters via jump --stage: same mark
+        # semantics as a backward redo; the ack's `from` is null.
+        self._drive_all_classic_to_done()
+        ack = self.jump(slug="requirements-analysis")
+        self.assertEqual(ack["kind"], "jumped")
+        self.assertIsNone(ack["from"])
+        self.assertEqual(ack["direction"], "backward")
+        self.assertEqual(ack["current_stage"], "requirements-analysis")
+        marks = self.marks()
+        self.assertEqual(marks["workspace-detection"], "x")
+        self.assertEqual(marks["reverse-engineering"], "x")
+        self.assertEqual(marks["requirements-analysis"], " ")
+        self.assertEqual(marks["build-and-test"], " ")
+        directive = self.next()
+        self.assertEqual(directive["kind"], "run-stage")
+        self.assertEqual(directive["stage"], "requirements-analysis")
+        self.assertIn("re-entry", self.audit_text())
+        self.assertEqual(self.status()["integrity"], "ok")
+
+    def test_reentry_jump_to_first_stage_resets_all(self):
+        self._drive_all_classic_to_done()
+        ack = self.jump(slug="workspace-detection")
+        self.assertEqual(ack["current_stage"], "workspace-detection")
+        marks = self.marks()
+        self.assertEqual(marks["workspace-detection"], " ")
+        self.assertEqual(marks["build-and-test"], " ")
+        self.assertEqual(self.next()["stage"], "workspace-detection")
+        self.assertEqual(self.status()["integrity"], "ok")
+
+    def test_reentry_jump_out_of_plan_stage_notes(self):
+        # Ruling ③ holds for re-entry too: jump never bypasses the plan
+        # filter — a target outside the routed plan gets the note. Covered
+        # via the plan Skip lines left by _drive_to_done (the bugfix scope
+        # line is incidental); the reset still happens and the pointer
+        # lands on the next routed pending stage.
+        self._drive_to_done()
+        self.set_plan_lines(scope="bugfix")
+        ack = self.jump(slug="user-stories")
+        self.assertIn("note", ack)
+        self.assertEqual(ack["current_stage"], "build-and-test")
+        self.assertEqual(self.marks()["build-and-test"], " ")
+        self.assertEqual(self.next()["stage"], "build-and-test")
+
+    def test_reentry_jump_then_park_succeeds(self):
+        # D13 interaction: re-entry is a transfer; it re-enables park by
+        # giving the workflow a current stage again.
+        self._drive_all_classic_to_done()
+        self.jump(slug="requirements-analysis")
+        ack = self.park("clarifying FR additions with the user")
+        self.assertEqual(ack["kind"], "parked")
+        self.assertEqual(ack["stage"], "requirements-analysis")
+
     def test_jump_fresh_archives(self):
         self.drive_past("workspace-detection")
         ack = self.jump(fresh=True)

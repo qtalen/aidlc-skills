@@ -2,9 +2,22 @@
 
 ## Overview
 
-Users may request changes to the execution plan or stage execution during the workflow. This document provides guidance on handling these requests safely and effectively.
+Users may request changes to the execution plan or stage execution during the workflow **or after it has completed** (a new iteration on the same product — see Re-Entering a Completed Workflow below). This document provides guidance on handling these requests safely and effectively.
 
 **Convergence rule — judgment in conventions, execution in the engine**: which change type applies, its dependency impact, and whether a change is safe remain **model judgment** per the protocols below. Every *execution* of a change — moving the pointer, redoing or skipping a stage, reordering, re-basing the plan — runs through the runtime engine (`scripts/engine.py`; prefer `python`, fall back to `python3`). Never hand-edit the engine-owned region of `aidlc-state.md` or move the stage pointer manually.
+
+---
+
+## Re-Entering a Completed Workflow (New Iteration, Same Product)
+
+When the workflow has reached `done` and the user brings new work, classify it first:
+
+- **Same product** — a new feature, a fix, a requirement change on the existing product. Re-enter in place:
+  1. Run `engine.py jump --stage <most upstream affected slug>` (typically `requirements-analysis`). This resets the target stage and everything after it; stages before it keep their marks. The plan lines from the previous iteration remain — update them (e.g., via Type 1/2/9) if the new iteration's task shape differs. If you update the plan lines first and `status` already shows the workflow active again (removing Skip lines self-reactivates it — the pointer is recomputed from the plan lines on every call), do not jump: just run `next` (jumping to a stage that has become the current stage is rejected with `invalid-jump`).
+  2. Revise artifacts **in place**: read the existing files first (the `resumed-artifacts` alert says the same), append rather than rewrite. Q&A and decision history text is DOC-04 protected — record corrections as appended revision notes, never rewrite history.
+  3. **Deferred/Reserved numbering is never recycled** — postponed FRs keep their IDs; new requirements continue after the highest used number (Type 10 discipline).
+  4. Re-walk the stages through their gates as usual.
+- **New product intent** — a different product or an explicit clean restart. Confirm with the user, then `engine.py jump --fresh` (archives `aidlc-docs/`) or start a new git version. Do NOT use Start Fresh for same-product iterations: it archives the tree and severs cross-iteration traceability (FR numbering, Deferred records, audit continuity).
 
 ---
 

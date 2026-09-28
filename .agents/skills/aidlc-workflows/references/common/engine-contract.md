@@ -239,6 +239,7 @@ engine.py jump --fresh
 
 - **Backward (redo)**: jumping to an earlier stage resets the target stage **and every stage after it** back to `[ ]`.
 - **Forward**: jumping past stages that have not executed marks the skipped intermediates as `[S]`.
+- **Re-entry from completion**: when the workflow is complete (`current` is `null`), `jump --stage <slug>` re-enters the workflow — the target and every stage after it reset to `[ ]` (identical mark semantics to a backward redo), stages before the target keep their marks, and the ack's `from` is `null` (direction is `backward`). This is the sanctioned path for a **new iteration on the same product** (new features, fixes, requirement changes); `jump --fresh` remains the path for a **new product intent**. Re-entry never bypasses the plan filter: if the target is outside the routed plan, the reset still happens, the pointer lands on the first routed pending stage after it (the workflow stays completed if none remains), and the ack carries the usual `note`.
 - A `STAGE_JUMPED` audit entry is recorded.
 - **`jump --fresh`** is Start Fresh: it archives `aidlc-docs/` to `aidlc-docs-archive-<timestamp>/` and resets state. It is the execution path behind the resume menu's "Start Fresh" option.
 
@@ -255,7 +256,7 @@ When to jump: a user asks to redo, revisit, reorder, or skip ahead — any delib
 | `next` | No | Pure-read routing. Returns exactly one directive: `run-stage`, `done`, or `error`. |
 | `report` | Yes | The only transition entry point. `--stage <slug> --result <r> [--reason]`. See §5. |
 | `park` | Yes (annotation) | Park in-flight work. `--note <text>` required. Writes the `Last Parked` line into Current Status (inside the digest) and appends to `aidlc-docs/handoff.md`; marks, current stage, and the audit log are untouched. See §5.5. |
-| `jump` | Yes | Change course. `--stage <slug>` (redo/forward) or `--fresh` (Start Fresh). See §8. |
+| `jump` | Yes | Change course. `--stage <slug>` (redo/forward/re-entry from completion) or `--fresh` (Start Fresh). See §8. |
 | `rebase` | Yes | After human confirmation of a detected drift, re-baseline the State Digest. See §7. |
 | `stamp` | No | Print the authoritative engine timestamp. Zero side effect: reads nothing, writes nothing. Use it when an interaction needs the engine's clock but no other subcommand. See §2. |
 
@@ -396,7 +397,7 @@ The same `error` shape covers mutating-verb failures, e.g. parking a completed w
   "kind": "error",
   "code": "workflow-complete",
   "message": "The workflow is complete; there is no in-flight work to park.",
-  "hint": "To restart, use: python <skill>/scripts/engine.py jump --fresh",
+  "hint": "To iterate on the same product, re-enter the workflow first: python <skill>/scripts/engine.py jump --stage <slug> (resets that stage and everything after it); for a new product intent, use jump --fresh.",
   "timestamp": "2026-09-15T05:40:00Z"
 }
 ```

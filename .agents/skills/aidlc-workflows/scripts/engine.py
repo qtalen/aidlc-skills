@@ -1338,43 +1338,50 @@ def cmd_jump(workspace, slug, fresh):
             "scripts/data/stage-graph.json.",
         )
     current = current_stage(graph, state)
-    if current is None:
-        raise EngineError(
-            "invalid-jump",
-            "The workflow is complete; there is no current stage to jump "
-            "from.",
-            "To restart, use: python <skill>/scripts/engine.py jump --fresh",
-        )
-    if slug == current:
-        raise EngineError(
-            "invalid-jump",
-            "Stage %r is already the current stage." % slug,
-            "Nothing to do. To redo it, jump to itself is unnecessary — "
-            "report a revision cycle instead.",
-        )
     ordered = [s["slug"] for s in graph["stages"]]
-    from_index = ordered.index(current)
-    to_index = ordered.index(slug)
-    if to_index < from_index:
+    if current is None:
+        # Re-entry into a completed workflow (e.g., a new iteration on the
+        # same product). Mark semantics are identical to a backward redo:
+        # the target and every stage after it reset to [ ]; stages before
+        # the target keep their marks. jump --fresh remains the path for a
+        # new product intent.
         direction = "backward"
         for stage in graph["stages"]:
-            if ordered.index(stage["slug"]) >= to_index:
+            if ordered.index(stage["slug"]) >= ordered.index(slug):
                 state.marks[stage["slug"]] = MARK_PENDING
-        detail = "redo from %s; stages from %s onward reset" % (current, slug)
+        detail = "re-entry; stages from %s onward reset" % slug
+        from_label = "complete"
     else:
-        direction = "forward"
-        skipped = []
-        for stage in graph["stages"]:
-            index = ordered.index(stage["slug"])
-            if from_index <= index < to_index and not _is_done(
-                state.marks.get(stage["slug"], MARK_PENDING)
-            ):
-                state.marks[stage["slug"]] = MARK_SKIPPED
-                skipped.append(stage["slug"])
-        detail = "forward to %s; intermediates marked [S]: %s" % (
-            slug,
-            ", ".join(skipped) if skipped else "none",
-        )
+        if slug == current:
+            raise EngineError(
+                "invalid-jump",
+                "Stage %r is already the current stage." % slug,
+                "Nothing to do. To redo it, jump to itself is unnecessary — "
+                "report a revision cycle instead.",
+            )
+        from_index = ordered.index(current)
+        to_index = ordered.index(slug)
+        if to_index < from_index:
+            direction = "backward"
+            for stage in graph["stages"]:
+                if ordered.index(stage["slug"]) >= to_index:
+                    state.marks[stage["slug"]] = MARK_PENDING
+            detail = "redo from %s; stages from %s onward reset" % (current, slug)
+        else:
+            direction = "forward"
+            skipped = []
+            for stage in graph["stages"]:
+                index = ordered.index(stage["slug"])
+                if from_index <= index < to_index and not _is_done(
+                    state.marks.get(stage["slug"], MARK_PENDING)
+                ):
+                    state.marks[stage["slug"]] = MARK_SKIPPED
+                    skipped.append(stage["slug"])
+            detail = "forward to %s; intermediates marked [S]: %s" % (
+                slug,
+                ", ".join(skipped) if skipped else "none",
+            )
+        from_label = current
     state.parked = None  # a course change supersedes any parked note
     new_current = current_stage(graph, state)
     text = _splice_region(state, graph, new_current, new_current is None)
@@ -1383,7 +1390,7 @@ def cmd_jump(workspace, slug, fresh):
         workspace,
         EV_JUMPED,
         stage=slug,
-        detail="from %s (%s); %s" % (current, direction, detail),
+        detail="from %s (%s); %s" % (from_label, direction, detail),
     )
     ack = {
         "kind": "jumped",
@@ -1397,7 +1404,9 @@ def cmd_jump(workspace, slug, fresh):
         ack["note"] = (
             "Stage %r is outside the routed plan (scope %r or plan lists "
             "exclude it). Add it to the 'Stages to Execute' line in "
-            "aidlc-state.md for the router to emit it." % (slug, state.plan.scope)
+            "aidlc-state.md for the router to emit it; if it is listed on "
+            "'Stages to Skip', remove it there first — Skip wins over "
+            "Execute." % (slug, state.plan.scope)
         )
     return ack
 
@@ -1533,7 +1542,10 @@ def cmd_park(workspace, note):
         raise EngineError(
             "workflow-complete",
             "The workflow is complete; there is no in-flight work to park.",
-            "To restart, use: python <skill>/scripts/engine.py jump --fresh",
+            "To iterate on the same product, re-enter the workflow first: "
+            "python <skill>/scripts/engine.py jump --stage <slug> (resets "
+            "that stage and everything after it); for a new product intent, "
+            "use jump --fresh.",
         )
     state.parked = (current, note)
     # Write order is fixed: region first (authoritative), then handoff.

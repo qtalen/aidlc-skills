@@ -250,13 +250,13 @@
 
 ### When to Suggest Starting Over
 
-**Consider Fresh Start If**:
+**Consider Fresh Start If** (a *new product intent*, or damage the engine cannot recover from):
 - Multiple stages have errors
 - State file is severely corrupted
-- User requirements have changed significantly
-- Architectural decision needs to be reversed
 - User cannot provide missing information
 - Artifacts are inconsistent across phases
+
+**Never fresh-start triggers**: significant requirement changes and architectural reversals are **same-product evolution** — handle them in place per `references/common/workflow-changes.md` (Re-Entering a Completed Workflow when the workflow has completed; Type 7 / Type 10 mid-workflow). Do not archive a working tree for these.
 
 **Before Starting Over**:
 1. Archive all existing work
@@ -339,7 +339,7 @@
 2. **Load incrementally**: Load artifacts stage-by-stage, validate each
 3. **Fail fast**: Stop immediately if critical artifacts are missing
 4. **Communicate clearly**: Tell user exactly what's missing and why it's needed
-5. **Offer options**: Regenerate, provide manually, or start fresh
+5. **Offer options**: Regenerate, provide manually, or start fresh (same-product iteration → re-enter via `jump --stage`, not fresh — see `workflow-changes.md`)
 6. **Document recovery**: Log all recovery actions in audit.md
 
 ## Logging Requirements
