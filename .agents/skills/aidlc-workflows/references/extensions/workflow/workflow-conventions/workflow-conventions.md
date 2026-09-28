@@ -184,5 +184,5 @@ If no structured question tool is available (none recognized for this harness), 
 | Every approval gate (all stages, inception + construction) | APG-01 ~ APG-05 |
 | Every audit.md write | AUD-01, AUD-02, AUD-03 |
 | Every question file creation (requirements, stories, design, clarification) | QT-01 ~ QT-04 |
-| Autonomous Mode trigger / gates / questions / pause / resume | AM-01 ~ AM-09 (see `../autonomous-mode/autonomous-mode.md`) |
+| Autonomous Mode trigger / gates / questions / pause / resume / round expiry | AM-01 ~ AM-10 (see `../autonomous-mode/autonomous-mode.md`) |
 | This file's own maintenance | DOC-05, AUD-04 |

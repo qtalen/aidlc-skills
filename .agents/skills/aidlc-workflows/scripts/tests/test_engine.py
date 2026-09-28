@@ -1556,6 +1556,227 @@ class StatusRecoveryTests(WorkspaceCase):
 # ---------------------------------------------------------------------------
 
 
+class AutonomousExpiryTests(WorkspaceCase):
+    """AM-10 round-boundary expiry (completing report / re-entry /
+    round-completing jump)."""
+
+    def setUp(self):
+        super().setUp()
+        self.init()
+
+    def _append_model_text(self, text):
+        """Append model-owned region text after the ENGINE-STATE region."""
+        self.write_state(self.state_text() + text)
+
+    AM_SECTION = (
+        "\n## Autonomous Mode\n"
+        "- **Enabled**: Yes\n"
+        "- **Question Handling**: auto-recommended\n"
+        "- **Review Stages**: code-generation, build-and-test\n"
+        "- **Last Updated**: 2026-09-24T08:00:00Z\n"
+    )
+
+    def _skip_all_but(self, keep):
+        skip = [s for s in STAGE_ORDER if s not in keep]
+        self.set_plan_lines(skip=", ".join(skip))
+
+    def _finish_round_with_am_on(self, enabled_line="- **Enabled**: Yes"):
+        self._skip_all_but(("workspace-detection", "build-and-test"))
+        self.report("workspace-detection", "completed")
+        self._append_model_text(
+            self.AM_SECTION.replace("- **Enabled**: Yes", enabled_line)
+        )
+
+    def test_completing_report_flips_enabled_yes_to_no(self):
+        self._finish_round_with_am_on()
+        ack = self.report("build-and-test", "approved")
+        self.assertTrue(ack["autonomous_expired"])
+        autonomous = self.status()["autonomous"]
+        self.assertFalse(autonomous["enabled"])
+        self.assertEqual(autonomous["question_handling"], "auto-recommended")
+        self.assertEqual(
+            autonomous["review_stages"], ["code-generation", "build-and-test"]
+        )
+        self.assertNotEqual(autonomous["last_updated"], "2026-09-24T08:00:00Z")
+        self.assertIn("- **Enabled**: No", self.state_text())
+        self.assertIn(
+            "autonomous mode expired (workflow complete)", self.audit_text()
+        )
+        self.assertEqual(self.status()["integrity"], "ok")
+
+    def test_completing_report_lowercase_yes_variant(self):
+        self._finish_round_with_am_on(enabled_line="- **Enabled**: yes")
+        ack = self.report("build-and-test", "approved")
+        self.assertTrue(ack["autonomous_expired"])
+        self.assertFalse(self.status()["autonomous"]["enabled"])
+        self.assertIn("- **Enabled**: No", self.state_text())
+
+    def test_completing_report_noop_when_section_missing(self):
+        self._skip_all_but(("workspace-detection", "build-and-test"))
+        self.report("workspace-detection", "completed")
+        ack = self.report("build-and-test", "approved")
+        self.assertNotIn("autonomous_expired", ack)
+        self.assertIsNone(self.status()["autonomous"])
+        self.assertNotIn("autonomous mode expired", self.audit_text())
+
+    def test_completing_report_noop_when_malformed(self):
+        self._skip_all_but(("workspace-detection", "build-and-test"))
+        self.report("workspace-detection", "completed")
+        self._append_model_text(
+            "\n## Autonomous Mode\n- **Enabled**: sometimes\n"
+        )
+        ack = self.report("build-and-test", "approved")
+        self.assertNotIn("autonomous_expired", ack)
+        self.assertIsNone(self.status()["autonomous"])
+        self.assertIn("- **Enabled**: sometimes", self.state_text())
+
+    def test_completing_report_noop_when_already_no(self):
+        self._finish_round_with_am_on(enabled_line="- **Enabled**: No")
+        ack = self.report("build-and-test", "approved")
+        self.assertNotIn("autonomous_expired", ack)
+        autonomous = self.status()["autonomous"]
+        self.assertFalse(autonomous["enabled"])
+        self.assertEqual(autonomous["last_updated"], "2026-09-24T08:00:00Z")
+
+    def test_completing_report_without_last_updated_line(self):
+        self._skip_all_but(("workspace-detection", "build-and-test"))
+        self.report("workspace-detection", "completed")
+        self._append_model_text(
+            "\n## Autonomous Mode\n"
+            "- **Enabled**: Yes\n"
+            "- **Question Handling**: manual\n"
+        )
+        ack = self.report("build-and-test", "approved")
+        self.assertTrue(ack["autonomous_expired"])
+        self.assertNotIn("- **Last Updated**", self.state_text())
+
+    def test_completing_report_via_skipped_result(self):
+        self._skip_all_but(("workspace-detection", "reverse-engineering"))
+        self.report("workspace-detection", "completed")
+        self._append_model_text(self.AM_SECTION)
+        ack = self.report("reverse-engineering", "skipped", reason="greenfield")
+        self.assertTrue(ack["autonomous_expired"])
+        self.assertFalse(self.status()["autonomous"]["enabled"])
+
+    def test_non_completing_report_leaves_section_untouched(self):
+        self._append_model_text(self.AM_SECTION)
+        ack = self.report("workspace-detection", "completed")
+        self.assertNotIn("autonomous_expired", ack)
+        self.assertTrue(self.status()["autonomous"]["enabled"])
+        self.assertIn("- **Enabled**: Yes", self.state_text())
+
+    def test_backward_jump_leaves_section_untouched(self):
+        self.drive_past("workspace-detection")
+        self.drive_past("reverse-engineering")
+        self._append_model_text(self.AM_SECTION)
+        ack = self.jump(slug="workspace-detection")
+        self.assertNotIn("autonomous_expired", ack)
+        self.assertTrue(self.status()["autonomous"]["enabled"])
+
+    def test_forward_jump_leaves_section_untouched(self):
+        self._append_model_text(self.AM_SECTION)
+        ack = self.jump(slug="requirements-analysis")
+        self.assertNotIn("autonomous_expired", ack)
+        self.assertTrue(self.status()["autonomous"]["enabled"])
+
+    def test_reentry_jump_expires_stale_yes(self):
+        for stage in self.graph["stages"]:
+            self.drive_past(stage["slug"])
+        self.assertEqual(self.next()["kind"], "done")
+        self._append_model_text(self.AM_SECTION)
+        ack = self.jump(slug="requirements-analysis")
+        self.assertTrue(ack["autonomous_expired"])
+        self.assertFalse(self.status()["autonomous"]["enabled"])
+        self.assertIn("- **Enabled**: No", self.state_text())
+        self.assertIn(
+            "autonomous mode expired (re-entry)", self.audit_text()
+        )
+        self.assertEqual(self.status()["integrity"], "ok")
+
+    def test_reentry_jump_noop_when_no_section(self):
+        for stage in self.graph["stages"]:
+            self.drive_past(stage["slug"])
+        ack = self.jump(slug="requirements-analysis")
+        self.assertNotIn("autonomous_expired", ack)
+
+    def test_reentry_jump_noop_when_already_no(self):
+        for stage in self.graph["stages"]:
+            self.drive_past(stage["slug"])
+        self._append_model_text(
+            self.AM_SECTION.replace("- **Enabled**: Yes", "- **Enabled**: No")
+        )
+        ack = self.jump(slug="requirements-analysis")
+        self.assertNotIn("autonomous_expired", ack)
+        self.assertFalse(self.status()["autonomous"]["enabled"])
+
+    def test_reentry_jump_out_of_plan_target_still_expires(self):
+        self._skip_all_but(("workspace-detection", "build-and-test"))
+        self.report("workspace-detection", "completed")
+        self.report("build-and-test", "approved")
+        # Workflow complete; user-stories is outside the routed plan
+        # (the plan Skip lines remain) — the flip still happens. The
+        # reset covers build-and-test (after the target), so the round
+        # re-activates with build-and-test as the current stage.
+        self._append_model_text(self.AM_SECTION)
+        ack = self.jump(slug="user-stories")
+        self.assertTrue(ack["autonomous_expired"])
+        self.assertIn("note", ack)
+        self.assertEqual(ack["current_stage"], "build-and-test")
+        self.assertEqual(self.status()["state"], "active")
+        self.assertFalse(self.status()["autonomous"]["enabled"])
+
+    def test_forward_jump_completing_round_expires(self):
+        # B-1 (review round 2): a forward jump to an out-of-plan target
+        # past the last routed pending stage marks the intermediates
+        # [S] and leaves the workflow completed — that is a round
+        # boundary too, so a live section expires.
+        self._skip_all_but(("workspace-detection", "requirements-analysis"))
+        self.report("workspace-detection", "completed")
+        self._append_model_text(self.AM_SECTION)
+        ack = self.jump(slug="infrastructure-design")
+        self.assertTrue(ack["autonomous_expired"])
+        self.assertIn("note", ack)
+        self.assertIsNone(ack["current_stage"])
+        self.assertFalse(self.status()["autonomous"]["enabled"])
+        self.assertEqual(self.status()["state"], "completed")
+        self.assertIn(
+            "autonomous mode expired (jump completed the round)",
+            self.audit_text(),
+        )
+        self.assertEqual(self.status()["integrity"], "ok")
+
+    def test_reentry_jump_staying_completed_expires(self):
+        # The (re-entry, stays-completed) corner of the hook matrix: the
+        # out-of-plan target leaves no routed pending stage after the
+        # reset, so the workflow REMAINS completed — the flip still
+        # fires, with the re-entry audit note.
+        self._skip_all_but(("workspace-detection",))
+        self.report("workspace-detection", "completed")
+        self._append_model_text(self.AM_SECTION)
+        ack = self.jump(slug="user-stories")
+        self.assertTrue(ack["autonomous_expired"])
+        self.assertIn("note", ack)
+        self.assertIsNone(ack["current_stage"])
+        self.assertEqual(self.status()["state"], "completed")
+        self.assertIn(
+            "autonomous mode expired (re-entry)", self.audit_text()
+        )
+        self.assertFalse(self.status()["autonomous"]["enabled"])
+
+    def test_rebase_preserves_expiry_result(self):
+        self._finish_round_with_am_on()
+        self.report("build-and-test", "approved")
+        engine.cmd_rebase(self.workspace)
+        self.assertIn("- **Enabled**: No", self.state_text())
+        self.assertEqual(self.status()["integrity"], "ok")
+
+    def test_fresh_jump_with_live_section_archives_everything(self):
+        self._append_model_text(self.AM_SECTION)
+        self.jump(fresh=True)
+        result = self.status()
+        self.assertEqual(result["state"], "none")
+
+
 class ReportWarningTests(WorkspaceCase):
     def setUp(self):
         super().setUp()

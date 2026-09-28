@@ -722,8 +722,11 @@ def _directive_for(graph, state, slug):
 
 
 # ---------------------------------------------------------------------------
-# Model-region reads (model writes, engine reads — the Execution Plan
-# Summary precedent; lenient: never raise, never re-render, never re-own)
+# Model-region access (model writes, engine reads — the Execution Plan
+# Summary precedent; lenient: never raise, never re-render). One narrow
+# engine WRITE window exists: the AM-10 round-boundary expiry flip in
+# _expire_autonomous (completing report / re-entry jump / jump that
+# leaves the workflow completed).
 # ---------------------------------------------------------------------------
 
 
@@ -735,7 +738,8 @@ def _parse_autonomous(lines):
     malformed (no Enabled line, or an Enabled value other than Yes/No —
     surfacing null instead of guessing keeps AM-09's model-side fallback
     authoritative). Never raises; the section stays model-owned and
-    outside the State Digest.
+    outside the State Digest (the sole exception is the AM-10
+    round-boundary expiry flip — see ``_expire_autonomous``).
     """
     in_section = False
     enabled = None
@@ -774,6 +778,55 @@ def _parse_autonomous(lines):
         "review_stages": review_stages,
         "last_updated": last_updated,
     }
+
+
+def _expire_autonomous(lines, timestamp):
+    """Flip a live ``## Autonomous Mode`` section to ``Enabled: No``.
+
+    AM-10 round-boundary expiry: called only from the deterministic
+    boundaries that end a workflow round — the completing ``report``,
+    a re-entry ``jump``, and a ``jump`` that leaves the workflow
+    completed. Lenient, like
+    ``_parse_autonomous``: when the section is missing, carries no
+    Enabled line, holds a value other than Yes/No, or is already No,
+    the text is returned unchanged. Only the ``Enabled`` line (any
+    case-insensitive Yes spelling normalizes to ``No``) and an
+    existing non-empty ``Last Updated`` line are rewritten; a missing
+    ``Last Updated`` line is never added; every other line is
+    preserved verbatim. Returns ``(new_lines, flipped)``.
+    """
+    in_section = False
+    live = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            in_section = stripped == "## Autonomous Mode"
+            continue
+        if not in_section:
+            continue
+        m = re.match(r"^- \*\*Enabled\*\*:\s*(.*)$", stripped)
+        if m and m.group(1).strip().lower() == "yes":
+            live = True
+            break
+    if not live:
+        return list(lines), False
+    out = list(lines)
+    in_section = False  # second pass starts outside any section
+    for i, line in enumerate(out):
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            in_section = stripped == "## Autonomous Mode"
+            continue
+        if not in_section:
+            continue
+        m = re.match(r"^- \*\*(Enabled|Last Updated)\*\*:\s*(.*)$", stripped)
+        if not m:
+            continue
+        if m.group(1) == "Enabled":
+            out[i] = "- **Enabled**: No"
+        elif m.group(2).strip():
+            out[i] = "- **Last Updated**: %s" % timestamp
+    return out, True
 
 
 def _ctx_enabled(lines):
@@ -1287,14 +1340,32 @@ def cmd_report(workspace, slug, result, reason):
     state.parked = None  # a transition supersedes any parked note
     new_current = current_stage(graph, state)
     text = _splice_region(state, graph, new_current, new_current is None)
+    am_expired = False
+    if new_current is None:
+        # AM-10 round-boundary expiry: the completing transition ends
+        # the workflow round Autonomous Mode was scoped to.
+        lines, am_expired = _expire_autonomous(
+            text.split("\n"), _now_iso()
+        )
+        text = "\n".join(lines)
     _write_text_atomic(_state_path(workspace), text)
-    _audit_append(workspace, EV_FOR_RESULT[result], stage=slug, reason=reason)
+    _audit_append(
+        workspace,
+        EV_FOR_RESULT[result],
+        stage=slug,
+        reason=reason,
+        detail="autonomous mode expired (workflow complete)"
+        if am_expired
+        else None,
+    )
     ack = {
         "kind": "reported",
         "stage": slug,
         "result": result,
         "current_stage": new_current,
     }
+    if am_expired:
+        ack["autonomous_expired"] = True
     if result in ("completed", "approved"):
         try:  # soft warning, fail-open: never block the only write entry
             missing = _stage_missing_produces(workspace, stage)
@@ -1385,12 +1456,33 @@ def cmd_jump(workspace, slug, fresh):
     state.parked = None  # a course change supersedes any parked note
     new_current = current_stage(graph, state)
     text = _splice_region(state, graph, new_current, new_current is None)
+    am_expired = False
+    if current is None or new_current is None:
+        # AM-10: this jump is a round boundary — a re-entry from the
+        # completed state (starts a new round; self-heals workspaces
+        # completed before AM-10 existed), or a jump that leaves the
+        # workflow completed (e.g. a forward jump to an out-of-plan
+        # target past the last routed pending stage). Expire a live
+        # Autonomous Mode section either way.
+        lines, am_expired = _expire_autonomous(
+            text.split("\n"), _now_iso()
+        )
+        text = "\n".join(lines)
     _write_text_atomic(_state_path(workspace), text)
     _audit_append(
         workspace,
         EV_JUMPED,
         stage=slug,
-        detail="from %s (%s); %s" % (from_label, direction, detail),
+        detail="from %s (%s); %s%s"
+        % (
+            from_label,
+            direction,
+            detail,
+            "; autonomous mode expired (%s)"
+            % ("re-entry" if current is None else "jump completed the round")
+            if am_expired
+            else "",
+        ),
     )
     ack = {
         "kind": "jumped",
@@ -1408,6 +1500,8 @@ def cmd_jump(workspace, slug, fresh):
             "'Stages to Skip', remove it there first — Skip wins over "
             "Execute." % (slug, state.plan.scope)
         )
+    if am_expired:
+        ack["autonomous_expired"] = True
     return ack
 
 

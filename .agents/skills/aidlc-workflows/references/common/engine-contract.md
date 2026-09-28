@@ -149,6 +149,7 @@ Usage notes:
 - **`rejected`** — use when the human requests changes at the gate. The pointer stays on the current stage so it can be revised and re-presented.
 - **`revised`** — use after performing a revision cycle and re-submitting the stage output. The pointer stays on the current stage.
 - **`skipped`** — use only for a CONDITIONAL stage the model judged not applicable (per its Execute-IF / Skip-IF prose), or a stage the plan marked SKIP. Always supply `--reason`; the engine rejects a reasonless skip.
+- **Autonomous Mode expiry on the completing transition** — the `report` that completes the workflow (the pointer becomes `null`) additionally performs the AM-10 round-boundary expiry: a live `## Autonomous Mode` section is flipped to `Enabled: No` (the narrow engine write window, §6). The ack carries `autonomous_expired: true` and the transition's audit entry gains a `Detail` line — both only when a flip actually happened. A missing/malformed/already-off section is a no-op.
 
 ---
 
@@ -192,6 +193,7 @@ Discipline:
 - The model maintains the model-owned regions normally, following the templates in the stage rules.
 - **Engine writes to `audit.md` are narrowed to transition entries.** The engine appends one entry per recorded transition only — `park` writes no audit entry. **User input records in `audit.md` remain model-owned**: the model is the sole visible source of user input, and the model's CTX phase summaries are unchanged. Never let an engine transition entry substitute for logging the user's raw input.
 - **The `Last Parked` line (inside the engine region) and `aidlc-docs/handoff.md` are engine-exclusive.** The model never writes or reformats either (§5.5).
+- **AM-10 narrow write window — the sole engine write into a model-owned region**: the round-boundary Autonomous Mode expiry. The engine, and only the engine, may rewrite the `## Autonomous Mode` section's `Enabled` line to `No` (plus refresh an existing non-empty `Last Updated` line) at exactly two kinds of deterministic boundary: transitions that complete the workflow (the completing `report`, or a `jump` that leaves the workflow completed), and a `jump --stage` re-entry from the completed state (self-heal for workspaces completed before AM-10). Everything else in that section, at every other time, stays model-owned. The trigger disjointness (the model writes user-intent events; the engine writes round-boundary expiries) is a **discipline convention, not an enforced guarantee** — the section sits outside the State Digest and holds no lock; multi-session concurrent AM edits remain a Phase 4 open question. Lenient by design: a missing/malformed/already-off section is a no-op, never an error.
 
 **Execution Plan Summary is a load-bearing channel.** After the Workflow Planning gate is approved, the model writes the coverage decision as structured lines in the Execution Plan Summary region of the state file:
 
@@ -239,7 +241,7 @@ engine.py jump --fresh
 
 - **Backward (redo)**: jumping to an earlier stage resets the target stage **and every stage after it** back to `[ ]`.
 - **Forward**: jumping past stages that have not executed marks the skipped intermediates as `[S]`.
-- **Re-entry from completion**: when the workflow is complete (`current` is `null`), `jump --stage <slug>` re-enters the workflow — the target and every stage after it reset to `[ ]` (identical mark semantics to a backward redo), stages before the target keep their marks, and the ack's `from` is `null` (direction is `backward`). This is the sanctioned path for a **new iteration on the same product** (new features, fixes, requirement changes); `jump --fresh` remains the path for a **new product intent**. Re-entry never bypasses the plan filter: if the target is outside the routed plan, the reset still happens, the pointer lands on the first routed pending stage after it (the workflow stays completed if none remains), and the ack carries the usual `note`.
+- **Re-entry from completion**: when the workflow is complete (`current` is `null`), `jump --stage <slug>` re-enters the workflow — the target and every stage after it reset to `[ ]` (identical mark semantics to a backward redo), stages before the target keep their marks, and the ack's `from` is `null` (direction is `backward`). This is the sanctioned path for a **new iteration on the same product** (new features, fixes, requirement changes); `jump --fresh` remains the path for a **new product intent**. Re-entry never bypasses the plan filter: if the target is outside the routed plan, the reset still happens, the pointer lands on the first routed pending stage after it (the workflow stays completed if none remains), and the ack carries the usual `note`. A re-entry also performs the AM-10 expiry: a stale live `## Autonomous Mode` section is flipped to `Enabled: No` (self-heal), the ack carries `autonomous_expired: true`, and the audit entry notes it. The same expiry fires on a **forward jump that leaves the workflow completed** (a forward jump to an out-of-plan target past the last routed pending stage marks the intermediates `[S]` and completes the round) — any `jump` that ends with the workflow completed is a round boundary.
 - A `STAGE_JUMPED` audit entry is recorded.
 - **`jump --fresh`** is Start Fresh: it archives `aidlc-docs/` to `aidlc-docs-archive-<timestamp>/` and resets state. It is the execution path behind the resume menu's "Start Fresh" option.
 
@@ -254,9 +256,9 @@ When to jump: a user asks to redo, revisit, reorder, or skip ahead — any delib
 | `status` | No | Bootstrap probe + session-recovery data source. Returns `state`, `scope`, `depth`, `current_stage`, `last_completed`, `integrity`, `completed`, `remaining`, plus the recovery keys `resume_note` (+ `note_age_seconds`), `recent_events`, `audit_entries`, `audit_bytes`, `artifact_alerts`, `alerts_unavailable`, `autonomous` (active/completed states only — see §10). |
 | `init` | Yes (create) | Deterministically create `aidlc-docs/aidlc-state.md` (model-region placeholders + `ENGINE-STATE` region: the 14-stage slug checklist, Current Status, reserved Unit Progress, State Digest) and the `audit.md` header. Errors if the state file already exists. |
 | `next` | No | Pure-read routing. Returns exactly one directive: `run-stage`, `done`, or `error`. |
-| `report` | Yes | The only transition entry point. `--stage <slug> --result <r> [--reason]`. See §5. |
+| `report` | Yes | The only transition entry point. `--stage <slug> --result <r> [--reason]`. See §5. On the completing transition, the AM-10 expiry ack field `autonomous_expired` (§5/§6). |
 | `park` | Yes (annotation) | Park in-flight work. `--note <text>` required. Writes the `Last Parked` line into Current Status (inside the digest) and appends to `aidlc-docs/handoff.md`; marks, current stage, and the audit log are untouched. See §5.5. |
-| `jump` | Yes | Change course. `--stage <slug>` (redo/forward/re-entry from completion) or `--fresh` (Start Fresh). See §8. |
+| `jump` | Yes | Change course. `--stage <slug>` (redo/forward/re-entry from completion) or `--fresh` (Start Fresh). See §8. A jump that re-enters or otherwise completes the round performs the AM-10 expiry (ack `autonomous_expired`). |
 | `rebase` | Yes | After human confirmation of a detected drift, re-baseline the State Digest. See §7. |
 | `stamp` | No | Print the authoritative engine timestamp. Zero side effect: reads nothing, writes nothing. Use it when an interaction needs the engine's clock but no other subcommand. See §2. |
 
@@ -302,7 +304,7 @@ Consumers must ignore unknown fields in any output (see §4).
 
 - `resume_note` — `{stage, note}` when the workflow is parked (the `Last Parked` region line is authoritative), else `null`. Cleared by any `report`/`jump`; preserved by `rebase` (§5.5).
 - `note_age_seconds` — age in seconds (`int`) of the current park note, taken from the `**Timestamp**` of the corresponding `handoff.md` entry; `null` when there is no parked note or that timestamp is missing/unparseable. An objective number only — judging staleness stays with the model; negative deltas (clock skew) clamp to 0.
-- `autonomous` — parsed from the model-owned `## Autonomous Mode` section (a model-writes-engine-reads channel, like Execution Plan Summary): `{enabled, question_handling, review_stages, last_updated}`; `null` when the section is missing or malformed (no `Enabled` line, or a value other than `Yes`/`No` — treat that as "read the section yourself and apply AM-09"). The section's ownership and digest status are unchanged.
+- `autonomous` — parsed from the model-owned `## Autonomous Mode` section (a model-writes-engine-reads channel, like Execution Plan Summary): `{enabled, question_handling, review_stages, last_updated}`; `null` when the section is missing or malformed (no `Enabled` line, or a value other than `Yes`/`No` — treat that as "read the section yourself and apply AM-09"). The section's ownership carries the single AM-10 narrow write window (§6); the digest still excludes it. After workflow completion the engine has flipped a live section to `Enabled: No`, so a completed workflow reports `enabled: false` (a pre-AM-10 stale `Yes` is healed at re-entry).
 - `recent_events` — the last 5 engine transition entries as `{event, stage, reason, timestamp}`. Parsed **only** from `## Engine Transition` sections of `audit.md`, so model-owned audit entries (which may quote Event-shaped lines) can never forge recovery data; an entry's timestamp is the last `**Timestamp**` line within its section.
 - `audit_entries` / `audit_bytes` — count and byte size of the audit transition log; the measurements feeding the audit-partitioning contingency (512 KB scale). `audit_entries` counts **engine transition entries only** (model-side entries are not counted); the engine only measures — it never splits the file.
 - `artifact_alerts` — sensor findings, five fixed fields each (shape below).
@@ -448,3 +450,5 @@ A `report` acknowledgment may carry a soft, non-blocking `produces_missing` warn
   "timestamp": "2026-09-15T05:40:00Z"
 }
 ```
+
+A completing transition may additionally carry `autonomous_expired: true` (AM-10 round-boundary expiry — a flip happened; absent when no flip was needed). The same field appears on a `jump` ack whose jump re-enters or otherwise completes the round (§8).

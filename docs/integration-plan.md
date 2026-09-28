@@ -33,6 +33,7 @@
 | D13 | 动词三层纪律 + 注记转移不变律（2026-09-21 定，2026-09-22 实施；2026-09-24 stamp 加入读层）：引擎动词分三层——读（status/next/stamp，无副作用）；**转移（report/jump，封闭集合 = 唯二改变 marks/current 的动词，Phase 4/5 永不新增）**；生命周期（init/park/rebase；park 为注记子类）。注记动词必须保持 marks 与 current 不变（digest 重算不算转移）。Phase 4 的 claim/release 照此办理——实现为 report 的 additive guard，不新增转移动词。新动词入场券 = 与全部既有 mutating 动词的两两交互测试（交互矩阵自此为 CI 法定成本） |
 | D14 | 传感器 fire 点与 finding 接口（2026-09-21 定，2026-09-22 实施）：分叉侧传感器的 fire 点 = 引擎动词（status=恢复时 / report=收单时），永久不变（harness 无关性使然，区别于 v2.0 的 write hook）。finding 对象五字段 `{type, severity, subject, message, action_discipline}` 即 Phase 5 传感器接口；Phase 3.1 交付的 artifact_alerts 为第一代实现（硬编码 manifest）。`type` 集合可增不可删；同一 state_version 内对象 shape 永不破坏性变更；Phase 5 manifest 化须过输出等价测试 |
 | D15 | 完成态再入语义（2026-09-27 定）：同一产品的功能演进（新功能/修复/需求变更）**不是**新产品意图——工作流完成态下 `jump --stage <slug>` 放行为**再入**（目标及其后重置 `[ ]`，语义同 backward redo，ack.from=null，审计记 re-entry；"jump 不绕过计划过滤"对再入同样生效），是同产品新迭代的正规通道；`jump --fresh` 保留给新产品意图/显式干净重启。修复 dogfood 实证的"completed → 被引向 --fresh"四环链路。D11 不因本决策变化：同产品多迭代 = 同一意图的多个版本，版本边界由 git 提交承载 |
+| D16 | AM 生命周期绑定工作流轮次（2026-09-28 定）：激活后持续到本轮完成转移或用户显式停止（**暂停=彻底关闭**，恢复需全新 AM-02 重问配置）；三个轮次边界确定性过期——完成转移（引擎翻转 Enabled→No + ack `autonomous_expired` + 审计 detail）、再入 jump（同翻转，自愈存量 completed+Yes 工作区）、fresh（归档即消失，无状态可翻）；计划行自复活路径（不经转移动词，见 workflow-changes）由模型兜底翻转。引擎由此获得契约 §6 所有权矩阵**唯一模型区窄写窗口**（触发互斥=纪律约定非机制保证，区不在 digest、无锁）；重启激活=双问（问题处理方式+审核阶段预选旧值），绝不静默复用。与 Phase 4"AM 状态注记化"的关系：本批为止血窄写，通解（显式动词/digest 覆盖/slug 校验/并发语义）仍留 Phase 4 收编 |
 
 ---
 
@@ -514,7 +515,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 
 **dogfood 反馈移入项（2026-09-24，Phase 3.3 立项时挂档，源自 fx991 验收与 CTX/AM 引擎整合讨论）**——与 Trellis 输入并列，进入本相位设计时逐项核对：
 
-1. **AM 状态注记化（`am --on/off` 或等价机制）**——AM 状态切换走引擎注记动词，获得：权威时间戳（Phase 3.3 通用 stamp 已止血，但专用动词同时解决写路径）、digest 覆盖（当前 `## Autonomous Mode` 区模型手写，两会话并发修改互踩且不可检测）、Review Stages 的 slug 合法性校验（引擎查 stage-graph.json，替代 AM-06.6 模型手工解析）。**必须与 claim 并发锁同批设计**（多会话的开放问题：AM 是全局还是 per-claim？两会话配置不一致时以谁为准？）。三归切分：激活意图识别与授权语义留在规则文本，状态读写/校验下沉引擎。
+1. **AM 状态注记化（`am --on/off` 或等价机制）**——AM 状态切换走引擎注记动词，获得：权威时间戳（Phase 3.3 通用 stamp 已止血，但专用动词同时解决写路径）、digest 覆盖（当前 `## Autonomous Mode` 区模型手写，两会话并发修改互踩且不可检测）、Review Stages 的 slug 合法性校验（引擎查 stage-graph.json，替代 AM-06.6 模型手工解析）。**必须与 claim 并发锁同批设计**（多会话的开放问题：AM 是全局还是 per-claim？两会话配置不一致时以谁为准？）。三归切分：激活意图识别与授权语义留在规则文本，状态读写/校验下沉引擎。**（2026-09-28 补记：完成/再入两个轮次边界的确定性过期已由"AM 生命周期批"[D16]先行落地为引擎窄写——见 §9 当日条目；届时本项收编该窄窗口并二次修订契约 §6 为完整机制，剩余范围：显式动词覆盖全部切换路径 / digest 覆盖 / slug 校验 / per-claim 并发语义。）**
 2. **per-unit checkpoint 锚点**——`unit-{unit-name}-checkpoint.md` 存在性检测（Phase 3.3 WP-1-④ 只做 inception/construction 两条全局锚点）。依赖本相位第 1 步的 Unit Progress 区启用（单元名才可枚举）。unit checkpoint 同时是跨会话交接的核心载体——worker 会话恢复不能全量读制品。
 3. **checkpoint 契约化（层 2，可选，视证据决定）**——阶段 frontmatter 条件产物声明 → generate.py 编译进 stage-graph.json → 复用 produces_missing 软警告管线。**前置**：Phase 3.3 的 checkpoint-missing finding 跑一个 dogfood 周期，误报率可接受才立项；机制上需要 Extension Configuration 表作为模型写-引擎读通道（引擎判断 CTX 启用与否）或 optional_produces 语义。若误报率高则放弃契约化，维持传感器方案。**误报评估输入（2026-09-24 审核补记）**：construction 锚点以 `_is_done`（[x]/[S]）判定完成，build-and-test 被跳过的场景与 CTX-01 "Build and Test completion" 字面存在张力，届时一并评估。
 4. **CTX 去留最终裁决**——Phase 3.3 P0 的临时裁决（推荐维持 opt-in）之后，在本相位多会话 dogfood 中做最终裁决。届时评估点：跨会话交接里 checkpoint 的实际价值（worker 冷启动上下文成本对比）、与知识树（Phase 5A）的分工（checkpoint=阶段状态蒸馏 vs 知识树=约定沉淀，机制同源但载体不同）。
@@ -787,7 +788,7 @@ dogfood-protocol.md 服务的首个完整周期（两迭代，快照 bc04dd7）�
 
 **背景**：接 Phase 5A 观察项讨论，追问原始亚马逊 v1.0（基线 `fc17ad5`，migrated from awslabs/aidlc-workflows）对历史制品的处理。git 考古结论：**v1.0 没有归档机制，只有文件级 `.backup` 备份**——全库 6 处 archive 提法全部是"备份放原文件旁边"（`{artifact}.backup` / `{artifact}.backup.{timestamp}`），无集中归档目录、无清理规则、无迭代概念（"iteration" 仅 1 次无关命中）、无 start fresh（零命中，"重来"靠模型手改 state）。另考实三点：v1.0 恢复是 load-all（Phase 3.1 分级阅读明确标注取代的就是它）；完成态无路由（D15 四环链路的上游原始形态是真空）；error-handling "Consider Fresh Start If: User requirements have changed significantly / Architectural decision needs to be reversed" 逐字为 v1.0 原文——D15 审核轮 🟡#1 修的第 5 现场即上游原始缺陷。
 
-**遗产现状**：`.backup` 惯例在分叉中残留 5 处——error-handling.md:217（Restart Stage 恢复步骤）、:262（Before Starting Over 步骤 1，与步骤 6 引擎 `jump --fresh` 自动归档重复且为手动版）；workflow-changes.md:83（Type 3 重启当前阶段）、:106（Type 4 重启先前阶段）、:353（Best Practices "Archive First"）。相抵点：① 与 D11 冲突——版本历史已由 git 提交承载（B&T Commit Protocol 定死时序），`.backup.{timestamp}` 是并行第二历史层且无生命周期管理，v1.0 的目录污染原样潜伏；② 引擎传感器交互——`_stage_resumed_artifacts`（engine.py:841）对 wildcard produces（`construction/{unit-name}/code/*` 等）按 glob 展开且"any single match counts"（契约 §7 resumed-artifacts 条），glob 树内的 `.backup` 文件会被计入命中、挤占 5 条上限；③ 无任何清扫规则。
+**遗产现状**：`.backup` 惯例在分叉中残留 5 处——error-handling.md:217（Restart Stage 恢复步骤）、:262（Before Starting Over 步骤 1，与步骤 6 引擎 `jump --fresh` 自动归档重复且为手动版）；workflow-changes.md:83（Type 3 重启当前阶段）、:106（Type 4 重启先前阶段）、:353（Best Practices "Archive First"）。相抵点：① 与 D11 冲突——版本历史已由 git 提交承载（B&T Commit Protocol 定死时序），`.backup.{timestamp}` 是并行第二历史层且无生命周期管理，v1.0 的目录污染原样潜伏；② 引擎传感器交互——`_stage_resumed_artifacts`（engine.py，`_expire_autonomous` 插入后位于 :891 附近，引用以函数名为准）对 wildcard produces（`construction/{unit-name}/code/*` 等）按 glob 展开且"any single match counts"（契约 §7 resumed-artifacts 条），glob 树内的 `.backup` 文件会被计入命中、挤占 5 条上限；③ 无任何清扫规则。
 
 **裁决（用户，2026-09-28）**：立项单独修复批。**校准立场（非全盘废除）**：AUD-02 / B&T R4 已有先例——非 git 工作区（no git → 标注 unknown、不阻塞）下破坏性重做前做轻量备份有真实价值，故条款改**条件式**而非删除。
 
@@ -796,9 +797,41 @@ dogfood-protocol.md 服务的首个完整周期（两迭代，快照 bc04dd7）�
 1. **文档 5 处改条件式**（git 工作区→当前状态先 commit 承载历史[对齐 AUD-02/B&T R4]；非 git 工作区→保留 `.backup.{timestamp}` 手动备份）：workflow-changes.md:83 / :106 / :353、error-handling.md:217；error-handling.md:262 特殊——改写为"归档交给引擎（见步骤 6 `jump --fresh` 自动归档整树），勿手动"，消除与步骤 6 的重复。
 2. **engine.py `_stage_resumed_artifacts` glob 分支排除 `.backup`**：命中过滤 basename 含 `.backup` 的路径（精确事实：`_stage_missing_produces` 为精确路径匹配、免疫，不改动）。
 3. **engine-contract.md §7 resumed-artifacts 条目**同步补一句排除规则说明。
-4. **测试 +1**（209→210）：wildcard produces 树内放置 `.backup.{ts}` 文件，断言不计入 resumed 命中；同场景下正常文件仍命中。
+4. **测试 +1**（基线已因 AM 生命周期批先行落地变为 227，实施时 227→228——2026-09-28 对齐）：wildcard produces 树内放置 `.backup.{ts}` 文件，断言不计入 resumed 命中；同场景下正常文件仍命中。
 5. **AGENTS.md** 测试数与路线图行随实施同步。
 
 **验收**：全量测试全绿 + `generate.py --check` 零漂移 + 全树 grep 无"无条件 `.backup`"残留（`Archive existing artifacts` / `Archive First` 等短语均带 git/非 git 分支）。
 
 **与既有决策的关系**：D11（git 承载版本边界）不动摇，本批是其一致性收尾；D14 传感器语义微调（fail-open 不变，仅排除噪声源）；`jump --fresh` 树级归档行为不变。
+
+### 2026-09-28（其二）：AM 生命周期批——D16 自主模式绑定工作流轮次（✅ 已完成）
+
+**背景与需求（用户）**：dogfood 实证 AM 持久化缺陷——`## Autonomous Mode` 区的 `Enabled: Yes` 在工作流完成后无人翻转，下一迭代（再入/新会话）经 opt-in stub 条件 2 与 AM-09 无询问地恢复 AM 并**沿用旧 question_handling**（"开启一次、代代相传"）。期望语义：AM 持续到当前工作流完成或用户显式停止；新迭代默认关闭；重新开启必须重问问题处理方式。
+
+**三项用户裁决**：① 过期动作放**引擎侧**（完成转移确定性翻转，不依赖模型合规——Phase 3"精确归工具"哲学的直接应用）；② 存量自愈放在**再入 jump 分支**一并翻转（覆盖"已完成 + Yes"旧工作区）；③ **暂停即彻底关闭**（恢复需全新 AM-02 重问，废除"挂起可恢复"旧语义）。
+
+**独立审核（reviewer，实施前）**：三条待验证主张全部证实（stage-names 生成块位置无关 / AM-05 菜单 Option B 是 Review Stages 唯一编辑入口 / `jump --fresh` 归档整树无需引擎处理）。三个阻断项及处置：
+- **B1 自复活路径绕过**：workflow-changes.md:16 官方指引"计划行先改 → status 自行复活 → 勿 jump 直接 next"不经任何转移动词，两个引擎翻转点都不触发。裁决=**模型侧兜底**（AM-10 要求任何方式开启新轮前确保 Enabled: No，模型翻转+审计；不改 D15 审核轮专门修正过的次序指引，不接受残余风险）。
+- **B2 与 Phase 4 移出项张力**：§7"不做"清单曾以"避免 engine-contract 改两次"为由将 AM 专用动词整体移 Phase 4。处置：本批定位为止血窄写（两边界幂等翻转，无新动词/digest/并发），收编路径与剩余范围已补记至本文件 Phase 4 设计输入第 1 条；接受契约 §6 二次修订，理由=当下用户痛点优先。
+- **B3 残留引用清单**：AM-04 custom 模式 "pause per AM-05"（:97）、AM-07 "AM-05 menu Option C"（:124）、索引 AM-05 描述（:11）、opt-in "AM-01~AM-09"（:10）、AM-02 step 4 写死 "Review Stages: None"（:50）——全部入实施清单。
+
+**实施（4 路并行 executor，文件互不重叠）**：
+1. **引擎**（engine.py）：`_expire_autonomous(lines, timestamp)` 宽容翻转（凡解析为 enabled 的行[大小写不敏感]置 No + 既存非空 Last Updated 更新，缺失不添加；区缺失/畸形/已 No → no-op）挂入 `cmd_report`（`new_current is None` 时，写前应用、搭车既有原子写）与 `cmd_jump` 再入分支（`current is None`，含越界目标工作流保持 completed 的子情形——仍翻转，再入=轮次意图）；ack `autonomous_expired: true` 仅实际翻转时携带；完成转移与 STAGE_JUMPED 审计条目附 detail（EV_FRESH 先例，不新增条目类型）；区头横幅与 `_parse_autonomous` docstring 所有权表述同步。
+2. **契约**（engine-contract.md §5/§6/§8/§9/§10）：§6 新增"AM-10 narrow write window——唯一引擎写模型区"条款（**触发互斥=纪律约定非机制保证**：区不在 digest、无锁、多会话并发仍属 Phase 4 开放问题）；§10 `autonomous` 键补"completed 态报 enabled:false，存量 Yes 在再入时自愈"。
+3. **AM 规则**（autonomous-mode.md + opt-in）：新增 **AM-10**（三边界：completion=引擎翻转+closing summary 宣告 / re-entry=jump 翻转+自复活路径模型兜底 / fresh=归档即消失；过期后规则休眠；重启=全新 AM-02，持久化旧值仅作预选参考绝不静默复用；同轮内跨会话保持不变[AM-09]）；**AM-05 重写**（暂停=彻底关闭：停止/按需 park→审计→Enabled: No→宣告→二选一[标准继续 / 立即重激活=重走 AM-02]；原 A/B/C/D 菜单废止）；**AM-02 双问**（一次结构化调用两问：问题处理方式 + 审核阶段多选**预选**当前列表[无历史默认 None]；宣告含 completed 态激活将在再入时过期的警示）；Review Stages 编辑入口迁至激活流+轮内用户显式请求（模型不得自行增删，AM-06.4 保留生效时序子句）；AM-04 两处升级改"单题结构化提问、AM 保持活动"（一题卡住不再全关）；AM-08 补引擎写窗口（勿恢复 Yes）；AM-09 插入 completed=expired 条；`stage-names` 生成块随迁 AM-02（generate.py 注册表不动，--check 零漂移）。
+4. **外围**（4 文件 7 处）：session-continuity 简报行/指令 4/菜单执行节、SKILL.md completed 行与 State Ownership、workflow-conventions 映射行（AM-01~AM-10 + round expiry）、workflow-changes 再入节 AM-off 注记（含自复活兜底）。
+
+**验收**：全量 unittest **224 例全绿**（209 基线 + AutonomousExpiryTests 15 例：完成翻转[approved/skipped 两种收尾]/小写变体/四类 no-op/Last Updated 两态/无翻转无 ack 字段/非完成转移与双向 jump 不碰/再入自愈[含越界目标]/rebase 保留/fresh 归档）；`generate.py --check` 零漂移；全树 grep 陈旧引用（"AM-01 ~ AM-09"/"AM-05 menu"/"pause per AM-05"/"offer adjustment menu"）零命中。reviewer 三条规格歧义钉死：翻转匹配=解析语义（大小写不敏感）非精确字符串；无操作时 ack **无**字段（键集断言对齐 park 先例）；审计 detail 与 ack 同条件。
+
+**语义净效果**（验收口径）：新轮起点 status 报 `autonomous.enabled=false` → stub 不加载规则，标准模式；"开启自主模式"必经一次结构化双问；生效范围恰好覆盖当前轮，轮次终点由引擎确定性收口；completed 空档期激活在再入时被引擎过期（AM-02 宣告已警示）。
+
+**与既有决策/批次的关系**：D13 动词封闭集不动（过期是 report/jump 转移的确定性副作用，非新动词）；D14 fire 点不动（status 保持纯读）；D15 再入语义增强（翻转搭车）；Phase 4"AM 状态注记化"收编路径见上文 B2 处置；备份遗产清理批测试基线随本批对齐（其 §9 条目已注明）。
+
+**二轮实施审核（reviewer，2026-09-28 实施后）与修复**：静态等价核验 + 逐字节比对 + 正则扫描（审核者环境无 shell，命令级验证由主智能体代跑——先例 :682）；首轮三主张（224 全绿/--check 零漂移/陈旧引用零命中）经主智能体命令复跑证实，审核者静态核验亦支持。发现并已修复：
+- **B-1 前向 jump 完成漏触（阻断）**：前向 jump 越界终末目标可把活跃工作流置为 completed（中间体标 [S]），但挂钩条件 `current is None` 为假 → AM 不翻转，与再入分支"保持 completed 仍翻转"不对称，契约 §10"完成态必报 enabled:false"在该路径失真。修复=挂钩条件放宽为 `current is None or new_current is None`（"跳转后处于完成态"即轮次边界），审计注记分流（re-entry / jump completed the round），补测试 `test_forward_jump_completing_round_expires`，契约 §8/§10 与 AM-10 第 1 条同步。
+- 加固：`_expire_autonomous` 第二趟扫描显式复位 `in_section`（消除对"首个 `## ` 标题行复位"的隐含依赖，防手写畸形状态误改写）；AM-10"预选"范围修正（仅 Review Stages 预选，Question Handling 永远重问——消除与 AM-02 的表述不一致）。
+- 文档失步修正：AGENTS.md 决策区间 D1-D15→D1-D16、"现累计 209"活指针 ×2→226；integration-plan 备份批规格内 `engine.py:841` 行号失效→函数名引用。
+- 审核建议① 的原断言假设有误（越界再入用例结束态实为 active 而非 completed——目标之后的 build-and-test 被重置为待办且仍在计划内），按实际语义钉死为 `current_stage == "build-and-test"` + `state == "active"`；"保持 completed"子情形由新增的前向完成测试覆盖。
+- 测试 209→**226**（AutonomousExpiryTests 15→17 例：+前向完成过期、+再入已 No 无字段）。
+
+**三轮终审（reviewer，2026-09-28 修复后）**：对二轮修复本体判定"运行时无缺陷"——jump 分支 × (current, new_current) 取值矩阵独立推导证实挂钩条件恰好覆盖"跳转前/后处于完成态"两支、无过度触达（backward 从活跃态不可能使 new_current 为 None）与漏触（B1/B2/E3/E4 全命中）；审计注记分流求值、断言纠正、加固复位、计数体系、生成物、无回归均核验通过。发现并已修复：契约 **§6 窄写窗口条款残留"两边界"枚举**（B-1 修复时同步了 §8/§10/AM-10 却漏改 §6，与同文件 §8 相抵）→ 改类别表述（"完成工作流的转移[完成 report 或使工作流完成的 jump]＋再入 jump"两类边界）；engine.py 区头注释与测试类 docstring 两处同步残留；§9 jump 行摘要对齐 §10 措辞；补 (再入, 保持完成态) 矩阵格用例 `test_reentry_jump_staying_completed_expires`（断言翻转 + current_stage=None + state=completed + 审计 "(re-entry)"——即二轮误诊子情形的显式钉死）。存疑待议项（AM-08/AGENTS/D16 的类别级"两边界"措辞）经 D13 术语考证判为可接受，不改。测试 209→**227**（AutonomousExpiryTests 18 例）。
