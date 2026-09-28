@@ -224,3 +224,6 @@ node_modules/
 aidlc-workflows-cn/
 
 opencode-cn/
+
+# Dogfood run records (local, not tracked)
+docs/dogfood-records/
