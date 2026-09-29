@@ -759,7 +759,6 @@ def _parse_autonomous(lines):
     """
     in_section = False
     enabled = None
-    question_handling = None
     last_updated = None
     for line in lines:
         stripped = line.strip()
@@ -774,15 +773,12 @@ def _parse_autonomous(lines):
         key, value = m.group(1), m.group(2).strip()
         if key == "Enabled":
             enabled = value
-        elif key == "Question Handling":
-            question_handling = value or None
         elif key == "Last Updated":
             last_updated = value or None
     if enabled is None or enabled.lower() not in ("yes", "no"):
         return None
     return {
         "enabled": enabled.lower() == "yes",
-        "question_handling": question_handling,
         "last_updated": last_updated,
     }
 

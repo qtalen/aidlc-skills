@@ -144,7 +144,7 @@ Every NEW `audit.md` entry is appended at the END of the file (after the last ex
 
 Applies to every `{phase-name}-questions.md` file (including `-clarification-questions.md` variants) created under `aidlc-docs/`. Does NOT apply to stage completion approval gates — those remain in-chat, template-bound, per APG-05.
 
-**Autonomous Mode override**: When Autonomous Mode is active with question handling `auto-recommended` (see `../autonomous-mode/autonomous-mode.md` AM-04), QT-01's tool-based collection is suspended — the AI selects recommended answers and writes them back with attribution. Modes `manual` and custom follow QT-01~04 normally.
+**Autonomous Mode override**: When Autonomous Mode is active (see `../autonomous-mode/autonomous-mode.md` AM-04), QT-01's tool-based collection is suspended — the AI selects recommended answers and writes them back with attribution (fixed behavior; sole exception: a single undecidable question escalated per AM-04 point 6).
 
 ### QT-01: Immediate Question Tool Invocation
 **Structured question tool**: any tool that, within the SAME interaction, presents a set of option-bearing questions to the user and returns the answers qualifies for this rule, whatever its name — identify it by capability signature, not by name. Reference implementations include OpenCode's `question` and Claude Code's `AskUserQuestion` (each is one example, not the only one); concrete parameter names at call time follow the harness's tool schema — the mapping requirements below are semantic.

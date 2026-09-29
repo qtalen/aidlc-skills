@@ -122,7 +122,7 @@ aidlc-state.md
 
 model-writes -> engine-reads channels (tolerant, junk degrades to null):
   _parse_plan()       engine.py:308   scope/depth/skip drive effective_stages()
-  _ctx_enabled()      engine.py:839   gates the checkpoint-missing sensor
+  _ctx_enabled()      engine.py:835   gates the checkpoint-missing sensor
   _parse_autonomous() engine.py:749   feeds the status "autonomous" key
 ```
 
@@ -137,7 +137,7 @@ model-writes -> engine-reads channels (tolerant, junk degrades to null):
 **三条特殊的"模型写、引擎读"通道**（图下方的注释）：模型在上半区写的三个结构化信息，引擎会读：
 
 1. `_parse_plan()`（engine.py:308）：读"选了哪个 scope、哪些阶段跳过"——这是引擎算出"接下来该做哪个阶段"的依据。
-2. `_ctx_enabled()`（engine.py:839）：读扩展配置表里 CTX（上下文检查点扩展）开没开——决定要不要做 checkpoint 检查。
+2. `_ctx_enabled()`（engine.py:835）：读扩展配置表里 CTX（上下文检查点扩展）开没开——决定要不要做 checkpoint 检查。
 3. `_parse_autonomous()`（engine.py:749）：读自主模式区——喂给 `status` 输出的 `autonomous` 键。
 
 注意"tolerant, junk degrades to null"（宽容解析，坏数据降级为空）：这三条通道读取时**不挑刺**——格式不对、缺字段、写了乱码，引擎不报错，当作"没配置"处理。因为这些区归模型所有，引擎若因区外内容报错，就等于侵犯了自己不该管的辖区。
@@ -203,7 +203,7 @@ model-writes -> engine-reads channels (tolerant, junk degrades to null):
 report --stage <slug> --result <R> --reason <why>
    |
    v
-_validate_transition()                                   engine.py:1276
+_validate_transition()                                   engine.py:1272
    |-- [1] slug in graph? ..................... no -> EngineError unknown-stage
    |-- [2] gate coupling:
    |       gate != "none"  and R == completed .......... -> error (use approved)
@@ -236,7 +236,7 @@ JSON ack {"kind":"reported", "current_stage": <next pending>}
 
 `report` 是整个系统**唯一**的常规进度写入口，全部逻辑是一条流水线：
 
-**四道验证关卡**（`_validate_transition()`，engine.py:1276）：
+**四道验证关卡**（`_validate_transition()`，engine.py:1272）：
 
 1. **查票**：阶段名（slug，如 `requirements-analysis`）必须在图里存在。
 2. **票种匹配**：带审批门禁（gate）的阶段**必须**用 `approved`/`rejected`/`revised`——不允许用 `completed` 蒙混过关；没门禁的阶段正好相反。这把"该让人拍板的事必须让人拍板"焊死在代码里：AI 想跳过用户审批？引擎直接拒绝。
@@ -288,7 +288,7 @@ JSON ack {"kind":"reported", "current_stage": <next pending>}
          both pass                        mismatch
       integrity: ok                  tampered / out-of-band edit
                                             |
-                                   repair: rebase (engine.py:1515)
+                                   repair: rebase (engine.py:1511)
                                    replay audit transitions back
                                    into the region + new digest
 ```
@@ -381,18 +381,18 @@ status -> resume_note + note_age_seconds:6 + autonomous{...}
 | engine.py:686 | `effective_stages()` | 按 scope/计划裁剪后的有效阶段序列 |
 | engine.py:704/:713 | `pending_stages()` / `current_stage()` | 第一个 `[ ]` 阶段 = 当前阶段 |
 | engine.py:749 | `_parse_autonomous()` | 读自主模式区（宽容解析） |
-| engine.py:790 | `_expire_autonomous()` | AM-10 轮次边界把自主模式 Enabled 翻转为 No（宽容 no-op） |
-| engine.py:839 | `_ctx_enabled()` | 读扩展配置表判断 CTX 开关 |
-| engine.py:978 | `_artifact_alerts()` | 传感器：半成品/缺产出/缺 checkpoint 警报 |
-| engine.py:1090 | `cmd_status()` | 恢复简报（resume_note / recent_events / …） |
-| engine.py:1196 | `cmd_stamp()` | 权威时间戳，零副作用 |
-| engine.py:1276 | `_validate_transition()` | report 的四道验证关卡 |
-| engine.py:1334 | `cmd_report()` | 唯一转移写入口 |
-| engine.py:1386 | `cmd_jump()` | 改道（--fresh 归档重来） |
-| engine.py:1515 | `cmd_rebase()` | 按审计流水重放修复 |
-| engine.py:1629 | `cmd_park()` | 泊车注记（不碰进度、不写审计） |
-| engine.py:1675 | `_JsonArgumentParser` | 连命令行用法错误都输出 JSON |
-| engine.py:1732 | `main()` | 命令分发入口 |
+| engine.py:786 | `_expire_autonomous()` | AM-10 轮次边界把自主模式 Enabled 翻转为 No（宽容 no-op） |
+| engine.py:835 | `_ctx_enabled()` | 读扩展配置表判断 CTX 开关 |
+| engine.py:974 | `_artifact_alerts()` | 传感器：半成品/缺产出/缺 checkpoint 警报 |
+| engine.py:1086 | `cmd_status()` | 恢复简报（resume_note / recent_events / …） |
+| engine.py:1192 | `cmd_stamp()` | 权威时间戳，零副作用 |
+| engine.py:1272 | `_validate_transition()` | report 的四道验证关卡 |
+| engine.py:1330 | `cmd_report()` | 唯一转移写入口 |
+| engine.py:1382 | `cmd_jump()` | 改道（--fresh 归档重来） |
+| engine.py:1511 | `cmd_rebase()` | 按审计流水重放修复 |
+| engine.py:1625 | `cmd_park()` | 泊车注记（不碰进度、不写审计） |
+| engine.py:1671 | `_JsonArgumentParser` | 连命令行用法错误都输出 JSON |
+| engine.py:1728 | `main()` | 命令分发入口 |
 
 ## 附 B：延伸阅读
 

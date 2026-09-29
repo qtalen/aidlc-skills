@@ -1404,7 +1404,6 @@ class StatusRecoveryTests(WorkspaceCase):
             self.status()["autonomous"],
             {
                 "enabled": True,
-                "question_handling": "auto-recommended",
                 "last_updated": "2026-09-24T08:00:00Z",
             },
         )
@@ -1420,7 +1419,7 @@ class StatusRecoveryTests(WorkspaceCase):
         autonomous = self.status()["autonomous"]
         self.assertEqual(autonomous["enabled"], False)
         self.assertNotIn("review_stages", autonomous)
-        self.assertEqual(autonomous["question_handling"], "N/A")
+        self.assertNotIn("question_handling", autonomous)
 
     def test_autonomous_key_null_when_missing_or_malformed(self):
         # The section is missing entirely.
@@ -1619,7 +1618,7 @@ class AutonomousExpiryTests(WorkspaceCase):
         self.assertTrue(ack["autonomous_expired"])
         autonomous = self.status()["autonomous"]
         self.assertFalse(autonomous["enabled"])
-        self.assertEqual(autonomous["question_handling"], "auto-recommended")
+        self.assertNotIn("question_handling", autonomous)
         self.assertNotEqual(autonomous["last_updated"], "2026-09-24T08:00:00Z")
         self.assertIn("- **Enabled**: No", self.state_text())
         # Unknown section lines (a legacy Review Stages line here) survive
