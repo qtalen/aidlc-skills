@@ -879,5 +879,27 @@ class IntegrationTests(unittest.TestCase):
         self.assertIn("All generated sections up to date.", result.stdout)
 
 
+class RenderMapCoverageTests(unittest.TestCase):
+    """Anti-regression: render_map keys and MARKERS keys must stay in sync.
+
+    A renderer whose MARKERS entry is deleted (e.g. a consumer file removed)
+    silently becomes dead code unless its render_map entry goes too, and vice
+    versa. This test makes both directions of that drift visible.
+    """
+
+    def test_render_map_keys_match_markers(self):
+        markers_keys = set()
+        for keys in generate.MARKERS.values():
+            markers_keys.update(keys)
+        # build_render_map only constructs closures at build time; passing
+        # empty inputs never invokes a renderer, so this is safe.
+        render_map = generate.build_render_map([], [])
+        self.assertEqual(
+            markers_keys,
+            set(render_map.keys()),
+            "render_map and MARKERS key sets diverged",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

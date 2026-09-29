@@ -21,7 +21,7 @@
 
 - 每个阶段规则文件（`references/<phase>/*.md`）顶部的 **YAML frontmatter 是阶段清单的唯一事实源**（slug/phase/execution/condition/gate/produces/consumes/requires_stage/for_each/workspace_writes/depth/scopes）。
 - 字段定义与校验规则见 `references/common/stage-contract.md`。
-- SKILL.md、process-overview、welcome-message、terminology、session-continuity、workflow-planning 中的阶段清单全部是 **`<!-- BEGIN/END GENERATED: <key> -->` 标记区内的生成物——严禁手改**。
+- SKILL.md、welcome-message、session-continuity、workflow-planning 中的阶段清单全部是 **`<!-- BEGIN/END GENERATED: <key> -->` 标记区内的生成物——严禁手改**。
 
 ### 2. 作者期生成器
 

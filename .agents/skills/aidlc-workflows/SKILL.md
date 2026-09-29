@@ -24,10 +24,9 @@ The AI model intelligently assesses what stages are needed based on:
 
 **CRITICAL**: When performing any phase, you MUST read and use relevant content from the rule detail files located in the `references/` directory next to this SKILL.md.
 
-All rule detail file references below (e.g., `references/common/process-overview.md`, `references/inception/workspace-detection.md`) are relative to this skill's directory.
+All rule detail file references below (e.g., `references/inception/workspace-detection.md`) are relative to this skill's directory.
 
 **Common Rules**: ALWAYS load common rules at workflow start:
-- Load `references/common/process-overview.md` for workflow overview
 - Load `references/common/session-continuity.md` for session resumption guidance
 - Load `references/common/content-validation.md` for content validation requirements
 - Load `references/common/question-format-guide.md` for question formatting rules

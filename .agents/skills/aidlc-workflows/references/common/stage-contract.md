@@ -6,9 +6,8 @@
 > derived stage-inventory sections from it.
 >
 > **Purpose**: Stage frontmatter is the **single source of truth** for the stage
-> inventory. Human-readable lists elsewhere (SKILL.md, process-overview,
-> welcome-message, terminology, session-continuity,
-> workflow-planning templates) are **generated artifacts** between
+> inventory. Human-readable lists elsewhere (SKILL.md, welcome-message,
+> session-continuity, workflow-planning templates) are **generated artifacts** between
 > `<!-- BEGIN GENERATED: <key> -->` / `<!-- END GENERATED -->` markers — never
 > hand-edit them.
 >
@@ -266,7 +265,6 @@ frontmatter is unchanged from v1.0.
 ## 10. Cross-references
 
 - `docs/integration-plan.md` — the overall fork/integration roadmap (Phases 0–4+)
-- `references/common/process-overview.md` — stage inventory (generated)
 - `references/common/scopes/` — scope registry (§6)
 - `references/common/depth-levels.md` — depth semantics
 - v2.0 reference (read-only): `opencode/.aidlc/aidlc-common/protocols/stage-definition.md`

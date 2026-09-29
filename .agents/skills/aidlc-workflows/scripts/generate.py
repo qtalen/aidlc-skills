@@ -105,19 +105,8 @@ MARKERS = {
         "stage-list-construction",
         "stage-list-operations",
     ],
-    "references/common/process-overview.md": [
-        "canon-lists",
-        "stage-flowchart",
-        "stage-descriptions",
-    ],
     "references/common/welcome-message.md": [
         "ascii-diagram",
-    ],
-    "references/common/terminology.md": [
-        "stages-inception",
-        "stages-construction",
-        "stages-operations",
-        "stage-classification",
     ],
     "references/common/session-continuity.md": [
         "artifact-loading",
@@ -875,56 +864,6 @@ def build_render_map(ordered, scope_order):
             lines.append("- %s (%s)" % (stage.name, tag(stage)))
         return "\n".join(lines)
 
-    def render_stages_construction_flat():
-        lines = []
-        for stage in ps("construction"):
-            per_unit = ", per-unit" if stage.for_each else ""
-            lines.append("- %s (%s%s)" % (stage.name, tag(stage), per_unit))
-        return "\n".join(lines)
-
-    def render_canon_lists():
-        always = [s.name for s in ordered if s.execution == "ALWAYS"]
-        conditional = [
-            s.name
-            for s in ordered
-            if s.execution == "CONDITIONAL" and s.phase != "operations"
-        ]
-        return (
-            "\u2022 **These stages always execute**: %s\n"
-            "\u2022 **All other stages are conditional**: %s"
-            % (", ".join(always), ", ".join(conditional))
-        )
-
-    def render_stage_descriptions():
-        blocks = []
-        for phase in PHASE_ORDER:
-            meta = PHASE_META[phase]
-            lines = [
-                "**%s %s** - %s"
-                % (meta["emoji"], meta["title"], meta["desc_subtitle"])
-            ]
-            for stage in ps(phase):
-                per_unit = ", per-unit" if stage.for_each else ""
-                lines.append(
-                    "- %s: %s (%s%s)"
-                    % (stage.name, stage.condition, tag(stage), per_unit)
-                )
-            blocks.append("\n".join(lines))
-        return "\n\n".join(blocks)
-
-    def render_stage_classification():
-        always = [s for s in ordered if s.execution == "ALWAYS"]
-        conditional = [
-            s
-            for s in ordered
-            if s.execution == "CONDITIONAL" and s.phase != "operations"
-        ]
-        lines = ["- **%s**: %s" % (s.name, s.condition) for s in always]
-        lines.append("")
-        lines.append("### Conditional Stages")
-        lines.extend("- **%s**: %s" % (s.name, s.condition) for s in conditional)
-        return "\n".join(lines)
-
     def render_artifact_loading():
         lines = []
         for stage in ordered:
@@ -1147,14 +1086,7 @@ def build_render_map(ordered, scope_order):
         "stage-list-inception": lambda: render_stage_list("inception"),
         "stage-list-construction": render_stage_list_construction,
         "stage-list-operations": lambda: render_stage_list("operations"),
-        "canon-lists": render_canon_lists,
-        "stage-flowchart": lambda: render_mermaid(False),
-        "stage-descriptions": render_stage_descriptions,
         "ascii-diagram": render_ascii,
-        "stages-inception": lambda: render_stage_list("inception"),
-        "stages-construction": render_stages_construction_flat,
-        "stages-operations": lambda: render_stage_list("operations"),
-        "stage-classification": render_stage_classification,
         "artifact-loading": render_artifact_loading,
         "execution-plan-mermaid": lambda: render_mermaid(True),
         "execution-plan-stages": render_execution_plan_stages,
