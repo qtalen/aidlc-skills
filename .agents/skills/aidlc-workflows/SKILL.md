@@ -570,6 +570,7 @@ The Operations stage will eventually include:
 - **MANDATORY**: Record every user response with timestamp after receiving it
 - **CRITICAL**: ALWAYS append changes to EDIT audit.md file, NEVER use tools and commands that completely overwrite its contents
 - **CRITICAL**: NEVER use file writing tools and commands that overwrite the entire contents of audit.md, as this causes duplication
+- **CRITICAL**: Append every new audit entry at the END of audit.md in one edit; never anchor an insertion on an existing entry's `##` heading line, and never insert entries between historical ones (AUD-05 in workflow-conventions)
 - Use ISO 8601 format for timestamps (YYYY-MM-DDTHH:MM:SSZ)
 - Include stage context for each entry
 

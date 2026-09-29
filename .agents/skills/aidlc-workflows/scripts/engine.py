@@ -290,6 +290,21 @@ def _is_placeholder(value):
     return "[" in value or "]" in value
 
 
+def _strip_inline_note(value):
+    """Cut an inline parenthesised note (half- or full-width) from a value.
+
+    Used only for the Depth plan line: Depth is display-only (no validation
+    vocabulary), so a trailing note such as 'standard（scope default）' is
+    tolerated and the bare token before the first bracket is kept. The
+    routing-critical lines (Scope / Execute / Skip) never use this — their
+    strict validation is the guard.
+    """
+    positions = [p for p in (value.find("("), value.find("（")) if p >= 0]
+    if positions:
+        value = value[: min(positions)]
+    return value.strip()
+
+
 def _parse_plan(graph, lines):
     """Read the model-owned Execution Plan Summary structured lines."""
     scope = None
@@ -324,7 +339,8 @@ def _parse_plan(graph, lines):
         if key == "Scope":
             scope = value.split()[0] if value.split() else None
         elif key == "Depth":
-            depth = value.split()[0] if value.split() else None
+            bare = _strip_inline_note(value)
+            depth = bare.split()[0] if bare.split() else None
         elif key == "Stages to Execute":
             execute = set(_slug_list(value, known))
         elif key == "Stages to Skip":
@@ -1049,7 +1065,7 @@ def _initial_state_text(graph):
         "",
         "## Execution Plan Summary",
         "- **Scope**: [selected at Requirements Analysis]",
-        "- **Depth**: [scope default]",
+        "- **Depth**: [minimal|standard|comprehensive]",
         "- **Stages to Execute**: [filled at Workflow Planning approval]",
         "- **Stages to Skip**: [filled at Workflow Planning approval]",
         "",

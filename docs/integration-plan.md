@@ -403,10 +403,10 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
    - `audit_entries` / `audit_bytes` 计数（单次读顺带，零成本；为审计分段 contingency 提供 512KB/50ms 触发器度量）。
    - **artifact_alerts（不对称语义——缺失断言零误报，存在信号低成本）**：
      - 通用排除：引擎自有文件 `aidlc-state.md` / `audit.md` 不参与任何检查（init 保证存在、零信号价值；WD 阶段因此自然豁免）。
-     - **missing-produces**（completed `[x]` 阶段）：N = 非通配具体产物数（`{unit-name}`/`*` 跳过）；**N≥2 且全部缺失/为空才告警**（列出全部路径）；N=0/1 豁免。依据（一轮审查 🔴-1 + 二轮 🟡-A 考证）：RA questions 条件创建（requirements-analysis.md:174）、B&T 4/8 产物 As-Needed（build-and-test.md:192/252/256）、infra-design 唯一具体产物 shared-infrastructure.md 亦条件产物（infrastructure-design.md:89）、operations produces 为空、WD produces 恰为引擎文件——N=1 时"条件缺席"与"真没写"不可区分，语义鸿沟留待 gen-2 per-produce required。action_discipline: "Report to the user; do not regenerate or fabricate artifacts."（防 Goodhart：模型自作主张补制品）。
+     - **missing-produces**（completed `[x]` 阶段）：N = 非通配具体产物数（`{unit-name}`/`*` 跳过）；**N≥2 且全部缺失/为空才告警**（列出全部路径）；N=0/1 豁免。依据（一轮审查 🔴-1 + 二轮 🟡-A 考证）：RA questions 条件创建（requirements-analysis.md Step 6）、B&T 4/8 产物 As-Needed（build-and-test.md:192/252/256）、infra-design 唯一具体产物 shared-infrastructure.md 亦条件产物（infrastructure-design.md:89）、operations produces 为空、WD produces 恰为引擎文件——N=1 时"条件缺席"与"真没写"不可区分，语义鸿沟留待 gen-2 per-produce required。action_discipline: "Report to the user; do not regenerate or fabricate artifacts."（防 Goodhart：模型自作主张补制品）。
      - **resumed-artifacts**（current 阶段）：覆盖全部 produces 条目（引擎文件除外）；具体路径=退化 glob 精确存在；`{unit-name}` → `*` 翻译后 glob 展开；**任一匹配存在即告警**（封顶 5，message 注明可能是半成品）。存在信号=中断残留，误报代价低（"先读后写"恰为正确指引），且恰好覆盖 per-unit 阶段中断半成品（用户真实场景近邻）。action_discipline: "Read existing files before writing; append rather than regenerate (unless in a rejected/revised redo — see session-continuity)."
      - 整体 fail-open：探测异常 → `alerts_unavailable: true` + 空数组（不响亮但可见）；写动词照旧 fail-loud。
-4. **`report` 软警告**：completed/approved 时对当前阶段按 N≥2 全缺规则检查 → 输出 `produces_missing: [...]`，**转移照常成功**；检查本身 try/except fail-open（异常省略字段——绝不阻断唯一写入口，否则重试撞 invalid-transition）；rejected/revised/skipped 不查。软警告跑一个 dogfood 周期再议升级硬错误。
+4. **`report` 软警告**：completed/approved 时对当前阶段按 N≥2 全缺规则检查 → 输出 `produces_missing: [...]`，**转移照常成功**；检查本身 try/except fail-open（异常省略字段——绝不阻断唯一写入口，否则重试撞 invalid-transition）；rejected/revised/skipped 不查。软警告跑一个 dogfood 周期再议升级硬错误（**2026-09-24 已裁决：不升级，关闭**，见 §9 当日条目；fx991 三迭代[2026-09-27/28]零触发为追加佐证，累计 5 周期零信号，关闭时点不变，详见 §9 2026-09-28 其三）。
 5. **测试**（102 → 约 134）：ParkTests(~9：handoff 写入且 audit 零新增/digest 自洽/marks 不变/note 卫生/no-state 与 workflow-complete 拒绝/去重两分支/report 清除/**写序用 mock.patch 断言 `_write_text_atomic` 先于 `_append_text`**)；StatusRecoveryTests(~10：resume_note 有无/recent_events 5 条/时间戳夹心/**反误报六连**（RA-minimal 无 questions、B&T 缺 e2e、infra N=1 豁免、operations N=0 豁免、WD fresh-init 无 resumed、RA 单缺不告警）/**正例**（RA completed 双缺失告警、resumed glob 含磁盘 `auth[1]` 目录命中、current RA 半成品 requirements.md）/alerts_unavailable)；ReportWarningTests(2：字段出现且转移成功/fail-open 字段省略)；BackwardCompatTests(2：旧格式载入 parked=None、report 重渲逐字节回归)；InteractionMatrixTests(4：park×report、park×jump --stage、park×jump --fresh、park×rebase)；GoldenOutputTests(~4：形状对齐契约 §10，掩码=timestamp 键+ISO 值+workspace 路径占位)；CliTests(~2：park 缺 --note、usage 串与 docstring 动词列表含 park)。
 6. **文档同步**（10 处）：engine-contract.md（§1 动词分类列全 8 个——**2026-09-22 审核更正：实际 7 个子命令，"8"系本规格笔误**、转移定义+不变律；:158 枚举补 park；新 §5.5 Park Semantics 含写序/并发/降级/--fresh 归档/引擎文件排除；§6 措辞"**引擎对** audit.md 的写入收窄为转移条目，模型侧用户输入记录与 CTX phase summary 不变"+Last Parked 行与 handoff.md 引擎独占；§9 表加 park；§10 样例含 status 新键形状/early-exit 无新键/violated 时 alerts 照常/park ack/workflow-complete 错误/produces_missing/finding 形状/alerts_unavailable）；session-continuity.md（恢复协议 v2：status→integrity→resume_note+recent_events→响应 alerts→分级阅读①引擎输出②required consumes③按需→增量续作含 rejected/revised 整体重写例外；Park Ritual 含 CTX-01 边界双写；反劝退条；Welcome Back 模板加 "Last parked: [stage] — [note]" 行；生成标记区保留为查阅地图）；checkpointing.md（CTX-02 改"分级阅读第 2 层插入 checkpoint 优先"+always-load 集加 resume_note/artifact_alerts；CTX-03 归属 phase summary 留 audit/park 记 handoff+补"模型侧读纪律不约束引擎全量读"；opt-in 文案补"断点与探测已默认，本扩展只管蒸馏与轻量加载"）；checkpointing.opt-in.md（Session Resumption Trigger 段改写，删 "full-artifact loading" 过期锚点）；error-handling.md（"Missing Artifacts During Resumption" **节头**定序交叉引用覆盖全节：传感器发现→报告用户→用户决定后才进入本节 jump→regenerate 路径）；SKILL.md（bootstrap active 行补 resume_note；Park 触发规则；:534/:554 枚举补 park；Directory 树加 handoff.md；**运行时缺失指引**：engine 调用报 Python 缺失特征（`'python' is not recognized` / `command not found` / `No module named`）时停止重试，向用户转达需 Python 3.8+（纯标准库、免 pip/venv）并给出平台安装命令——Windows `winget install Python.Python.3.12` 或 python.org 安装器、macOS `brew install python3` 或 `xcode-select --install`、Debian/Ubuntu `sudo apt install python3`——装好后重试；零代码，AI 即错误翻译层）；terminology.md（Park/Parked 词条）；AGENTS.md（§3.1 动词列表+park+handoff.md；实施后测试数 102→实际数）；README.md + README_cn.md（运行要求显式化：Python 3.8+ 纯标准库，缺失时附上述平台安装命令一行）；本文件（§1 决策表录 D13/D14；§9 记录实施结果）。
 7. **顺序与验证**：engine.py（region→park/handoff→status→report→头部→CLI/docstring）→ 全部测试全绿 → `generate.py --check` 零漂移（本相位不触 frontmatter/生成物）→ 文档按第 6 条清单 → 终验（二次全绿幂等 + git diff 生成标记区零改动 + AGENTS.md 测试数更新 + CI 绿）。
@@ -478,7 +478,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 
 **批次原则**（验收三轮核验的规律沉淀）：记录表三处定性偏差均为"模型对规则文本的引述失真"——修法优先选择**把正确行为变成最省力路径**（流程步骤/一条命令），而非追加规则条文。
 
-**P0 前置裁决（用户，开工前）**：CTX 扩展去留三选一——a) 维持 opt-in 现状，推迟到 Phase 4 多会话 dogfood 后裁决（**推荐**，理由见 §9 2026-09-24 讨论与 dogfood-records/calculator/acceptance 验收对话）；b) 降级 advisory（去合规负担）；c) 删除（WP-1 第 4 项作废 + 4 处引用清理：session-continuity.md:74 / workflow-conventions.md:31 / RA opt-in / Phase 3.3 候选登记）。WP-1-④ 跟随：a→warning 级实施；b→info 级实施；c→作废。
+**P0 前置裁决（用户，开工前）**：CTX 扩展去留三选一——a) 维持 opt-in 现状，推迟到 Phase 4 多会话 dogfood 后裁决（**推荐**，理由见 §9 2026-09-24 讨论与 dogfood-records/calculator/acceptance 验收对话（该验收报告已佚——本地记录，git 全历史零记录，本条目即留存））；b) 降级 advisory（去合规负担）；c) 删除（WP-1 第 4 项作废 + 4 处引用清理：session-continuity.md:74 / workflow-conventions.md:31 / RA opt-in / Phase 3.3 候选登记）。WP-1-④ 跟随：a→warning 级实施；b→info 级实施；c→作废。
 
 **WP-1 engine 扩展（主智能体直做，~3h）**——engine.py + 契约 + 测试，四项：
 1. **`stamp` 注解动词**：零副作用子命令，输出 `{"engine":"ok","kind":"stamp","timestamp":"<ISO 8601 UTC>"}`；不写 state/audit/handoff（区别于 park 的注记留痕——stamp 是纯读）。D13 三层不动（注记类扩充）。docstring/usage 同步。
@@ -530,7 +530,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 - knowledge_refs（③档）：按 `task`/阶段声明需要加载的知识引用；完整设计见 `docs/result-oriented-delegation-design.md`（现为"讨论记录待并入"状态，Phase 4 设计输入第 6 项处理并入/延后）；空树期回退引用 RE working-conventions（WP-5 交付）与既有规则文件
 - 种子关系：RE working-conventions.md = 知识树初始种子/导入源，唯一"约定"存储为知识树（防两套分叉，R4 裁决）
 
-**观察项：活文档单文件单调增长与 rollup 规程（2026-09-28 挂档，dogfood 实证后再设计，讨论全录见 §9 当日条目）**——D15 单树活文档模式的代价面。`stories.md` / `requirements.md` 类 current-state 制品按契约**只增不减**：Type 10 步骤 5 原地更新（workflow-changes.md:247）、步骤 6 Deferred 编号保留不回收（:248）、DOC-04 修订记录与 Q&A append-only——增长 = O(历史上出现过的功能总数，含 Deferred)，粗估 15-20 个故事即过 DOC-06 的 300 行阈值（且 DOC-06 为全库唯一 advisory，无硬触发），而 user-stories 再入与 application-design 的 tier-2 消费清单要求全量读 stories.md（session-continuity.md:52、application-design.md:17）。姊妹线索：build-and-test 的 consumes 为**全单元** `construction/{unit-name}/code/*`（build-and-test.md:17），是唯一输入随产品规模线性增长的阶段。**触发条件**：dogfood 中核心活文档过 500 行，或再入/设计场景全量读 stories.md 产生可感知的上下文压力。届时方向（与 Deferred 编号纪律同构）：shipped-stable 条目 rollup 为一行索引（编号 + 标题 + 一句话 + git commit 指针），全文由 git 历史承载，编号永不回收；DOC-06 升"超线必做"评估。知识树（5A 本体）即长期解——沉淀过的知识蒸馏进树，原文档降级为参考。
+**观察项：活文档单文件单调增长与 rollup 规程（2026-09-28 挂档，dogfood 实证后再设计，讨论全录见 §9 当日条目）**——D15 单树活文档模式的代价面。`stories.md` / `requirements.md` 类 current-state 制品按契约**只增不减**：Type 10 步骤 5 原地更新（workflow-changes.md:247）、步骤 6 Deferred 编号保留不回收（:248）、DOC-04 修订记录与 Q&A append-only——增长 = O(历史上出现过的功能总数，含 Deferred)，粗估 15-20 个故事即过 DOC-06 的 300 行阈值（且 DOC-06 为全库唯一 advisory，无硬触发），而 user-stories 再入与 application-design 的 tier-2 消费清单要求全量读 stories.md（session-continuity.md:52、application-design.md:17）。姊妹线索：build-and-test 的 consumes 为**全单元** `construction/{unit-name}/code/*`（build-and-test.md:17），是唯一输入随产品规模线性增长的阶段。**触发条件**：dogfood 中核心活文档过 500 行，或再入/设计场景全量读 stories.md 产生可感知的上下文压力。届时方向（与 Deferred 编号纪律同构）：shipped-stable 条目 rollup 为一行索引（编号 + 标题 + 一句话 + git commit 指针），全文由 git 历史承载，编号永不回收；DOC-06 升"超线必做"评估。知识树（5A 本体）即长期解——沉淀过的知识蒸馏进树，原文档降级为参考。**首批实证（fx991 三迭代，2026-09-28）**：`stories.md` 达 356 行/6 个全量 Gherkin 故事（US-09~14），已过 300 行阈值且未维护 DOC-06 导航索引；`requirements.md` 出现自发 rollup——已交付 FR 压为一行摘要 + git 提交指针 + 编号永久保留，与上述预设方向同构；两制品不对等（requirements 压缩了、stories 的 Gherkin 验收契约未压）提示 rollup 策略需按制品类型分治。详见 §9 2026-09-28 其三。
 
 ### Phase 5B：reviewer 及其他（逐项独立可交付，纯增量无返工，路径见 §6.5）
 
@@ -554,7 +554,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 ## 8. 关键参考文件索引
 
 ### v1.0 分叉（工作对象）
-- `.agents/skills/aidlc-workflows/SKILL.md` — 主入口（620 行）
+- `.agents/skills/aidlc-workflows/SKILL.md` — 主入口（631 行）
 - `.agents/skills/aidlc-workflows/references/common/` — 12 个通用规则
 - `.agents/skills/aidlc-workflows/references/{inception,construction,operations}/` — 14 个阶段规则
 - `.agents/skills/aidlc-workflows/references/extensions/` — 6 个扩展（opt-in 机制）
@@ -577,6 +577,8 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 ---
 
 ## 9. 讨论与变更记录
+
+> 引用纪律（2026-09-28 起）：本节与 §7 正文引用的仓库内文件必须存在于 git 跟踪中，失联时在引用处标注"已佚"；`docs/dogfood-records/` 为本地保留目录（.gitignore 2026-09-28 起，不入 git），引用其内容时标注"本地保留"；日期化叙事文档（如 blog 草稿）中的历史性提及不适用本纪律。
 
 ### 2026-09-14：scope 淡化（已落地）+ 扩展配置成熟度重估（搁置）
 
@@ -734,7 +736,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 
 ### 2026-09-24：fx991 dogfood 首周期验收——负债③裁决关闭，Phase 3.3 候选批次挂档
 
-dogfood-protocol.md 服务的首个完整周期（两迭代，快照 bc04dd7）验收**通过**。验收报告（含证据完整性/事实核验/六度量/消融/逐项裁决）：`docs/dogfood-records/calculator/acceptance-2026-09-24.md`。要点：
+dogfood-protocol.md 服务的首个完整周期（两迭代，快照 bc04dd7）验收**通过**。验收报告（含证据完整性/事实核验/六度量/消融/逐项裁决）：`docs/dogfood-records/calculator/acceptance-2026-09-24.md`（已佚——本地记录，git 全历史零记录，本条目摘要即留存）。要点：
 
 - **负债③裁决（关闭）**：produces_missing 软警告**不升级**硬阻断。两迭代触发 0 次；传感器定位 = 灾难检测（N≥2 全缺，engine.py:790-806），正常流程天然不触发；本周期实际观测的制品类缺口（checkpoint 遗漏/audit 误替换/计数失准）全部在传感器管辖外，加严现有警告对已观测问题零解。证据强度声明：0 触发 = 无正例，属"无证据支持升级"的保守裁决，后续周期出现新证据可重开。
 - **记录表两处定性修正**（验收人对照引擎代码核实）：①"强制扩展未说明"不实——SKILL.md:51 已声明，真因是 Loading process 编号步骤（:42-45）未覆盖该段落级规则，属"流程步骤未覆盖"；②"park note 无失效机制"收窄为"长阶段内无转移的多次中断"（转移本就清除 parked，engine.py:1131/1222），与负债⑥同族。
@@ -797,7 +799,7 @@ dogfood-protocol.md 服务的首个完整周期（两迭代，快照 bc04dd7）�
 1. **文档 5 处改条件式**（git 工作区→当前状态先 commit 承载历史[对齐 AUD-02/B&T R4]；非 git 工作区→保留 `.backup.{timestamp}` 手动备份）：workflow-changes.md:83 / :106 / :353、error-handling.md:217；error-handling.md:262 特殊——改写为"归档交给引擎（见步骤 6 `jump --fresh` 自动归档整树），勿手动"，消除与步骤 6 的重复。
 2. **engine.py `_stage_resumed_artifacts` glob 分支排除 `.backup`**：命中过滤 basename 含 `.backup` 的路径（精确事实：`_stage_missing_produces` 为精确路径匹配、免疫，不改动）。
 3. **engine-contract.md §7 resumed-artifacts 条目**同步补一句排除规则说明。
-4. **测试 +1**（基线已因 AM 生命周期批先行落地变为 227，实施时 227→228——2026-09-28 对齐）：wildcard produces 树内放置 `.backup.{ts}` 文件，断言不计入 resumed 命中；同场景下正常文件仍命中。
+4. **测试 +1**（基线已随收尾小批落地变为 231，实施时 231→232——2026-09-29 对齐，见 §9 2026-09-28 其三条目）：wildcard produces 树内放置 `.backup.{ts}` 文件，断言不计入 resumed 命中；同场景下正常文件仍命中。
 5. **AGENTS.md** 测试数与路线图行随实施同步。
 
 **验收**：全量测试全绿 + `generate.py --check` 零漂移 + 全树 grep 无"无条件 `.backup`"残留（`Archive existing artifacts` / `Archive First` 等短语均带 git/非 git 分支）。
@@ -835,3 +837,28 @@ dogfood-protocol.md 服务的首个完整周期（两迭代，快照 bc04dd7）�
 - 测试 209→**226**（AutonomousExpiryTests 15→17 例：+前向完成过期、+再入已 No 无字段）。
 
 **三轮终审（reviewer，2026-09-28 修复后）**：对二轮修复本体判定"运行时无缺陷"——jump 分支 × (current, new_current) 取值矩阵独立推导证实挂钩条件恰好覆盖"跳转前/后处于完成态"两支、无过度触达（backward 从活跃态不可能使 new_current 为 None）与漏触（B1/B2/E3/E4 全命中）；审计注记分流求值、断言纠正、加固复位、计数体系、生成物、无回归均核验通过。发现并已修复：契约 **§6 窄写窗口条款残留"两边界"枚举**（B-1 修复时同步了 §8/§10/AM-10 却漏改 §6，与同文件 §8 相抵）→ 改类别表述（"完成工作流的转移[完成 report 或使工作流完成的 jump]＋再入 jump"两类边界）；engine.py 区头注释与测试类 docstring 两处同步残留；§9 jump 行摘要对齐 §10 措辞；补 (再入, 保持完成态) 矩阵格用例 `test_reentry_jump_staying_completed_expires`（断言翻转 + current_stage=None + state=completed + 审计 "(re-entry)"——即二轮误诊子情形的显式钉死）。存疑待议项（AM-08/AGENTS/D16 的类别级"两边界"措辞）经 D13 术语考证判为可接受，不改。测试 209→**227**（AutonomousExpiryTests 18 例）。
+
+### 2026-09-28（其三）：fx991 三迭代 dogfood 验收登记 + 收尾小批立项
+
+**验收登记（fx991-calculator，2026-09-27~28 三迭代；记录与证据包：`docs/dogfood-records/fx991-calculator/`，本地保留不入 git）**：
+
+- **D15 闭环端到端验证通过**：迭代 2（旧快照 89f81cc）新会话复现"completed → jump --fresh"四环链路（归档迭代 1 文档树 + 重跑逆向工程 + 编号连续仅靠模型自觉读归档维持）→ 本仓库 D15 修复（`42302f1`）→ 技能快照同步至 dogfood 项目（`18559bf`，与源字节级一致）→ 迭代 3 新会话正确选择原地重入 `jump --stage requirements-analysis`（audit 记 "from complete (backward); re-entry"、RE 未重跑、FR-6/US-12 续编、无新归档树）。fresh 与 re-entry 形成干净 A/B 对照，D15 所消除的三项代价均有实证。
+- **六度量三周期要点**：重复解释 ~0（AM-04 自答 + 逆向产物复用）；PRD 清晰度递升但"组合行为盲区"连续两迭代复发（迭代 2 DEL×Ans 交付后实测 bug、迭代 3 DEL×幂后缀未显式声明靠实现侥幸未炸）；重复评审恒 0（AM 配置结果，无信息量）；换工具零样本；新人独立完成两迭代连续近似观测成立（仅凭 status 探针正确路由）；RCA 累计 8 例、沉淀 0（Phase 5A 未落地）。
+- **produces_missing 升级议题**：关闭时点不变（2026-09-24 裁决），fx991 三迭代零触发为追加佐证，累计 5 周期零信号；后续周期验收时抽样复核即可，不再逐周期写专项回填行。
+- **自主模式跨轮持续观察已被 D16 消解**（本日其二批的触发证据即此观察——迭代 2/3 新会话沿用上轮 AM 配置"开启一次、代代相传"），不重复登记。
+- **观察项登记**：① Phase 5A rollup 首批实证（见 §7 Phase 5A 节末）；② CTX 检查点三周期"产出未消费"（消费场景=跨会话恢复始终未出现；唯一实际用途是 executor 交接底稿）→ Phase 4 CTX 终裁输入；③ 首次多 executor 并发实施一次通过（文件级互斥 + 接口契约由计划固定 + 合并验证 127/127、基线 80 零回归）→ Phase 4 契约先行模式的正向先例；④ WinError 5 环境事件（IDE 句柄占用 aidlc-docs，模型 CWD 排查路径正确；error-handling 补条目为低优候选，暂不动）；⑤ audit 引擎 append 动词（机械保障模型写条目的 append-only；D13 交互矩阵成本，Phase 4/5 输入）。
+
+**收尾小批立项（同日，规格经 reviewer 独立审核收口后实施）**：
+
+1. **Depth 行值纯净双侧修复**：引擎 `_parse_plan` 新增 `_strip_inline_note`（首个半/全角括号截断）仅用于 Depth 分支（Scope 保持粘连注解 plan-invalid 硬阻断 + hint，"机器可校验项从严"）；`requirements-analysis.md` Step 2.5 模板行改裸值（原 `(scope default, or user override)` 括号引导是注解诱因，dogfood 三迭代两次实录 `standard（scope` 截断）；`engine.py` init 模板 `[scope default]` 改裸枚举占位；`workflow-planning.md` Step 8 补值纯净规则（Skip `(reason)` 是唯一合法括号内容）；契约 §6 格式注精确化（Depth 剥除从宽 / Scope 不剥除：粘连注解硬阻断、空白分隔尾注静默丢弃）。+4 测试（全角剥除/半角剥除/纯注回退/Scope 粘连注仍拒）。
+2. **AUD-05 追加纪律**：workflow-conventions Group 3 更名 "Audit Discipline" + 新增 AUD-05（新条目锚定文末单次追加，禁以既有标题行为编辑锚点；依据=迭代 3 三次标题锚点失误均同交互自愈留痕，此依据留本条目不进技能文件——DOC-05 边界）+ 概览行/映射表同步；SKILL.md Prompts Logging Requirements 加一行。
+3. **组合边界检查项（普适）**：requirements-analysis.md Step 7 加一条——凡引入新交互/行为维度（新输入 token/实体类、按键/命令/手势、状态或转移、数据实体、外部接口），必须对每项既有横切行为（编辑/删除、重置/清空、错误处理与恢复、结果态/空闲态续算、撤销重做、持久化）的组合边界逐项声明——被 FR 覆盖（或注明由后续故事的 AC 承担）或显式声明范围外并给理由；对新项目与再入迭代同构生效（连续两迭代复发的唯一真实产品缺陷类别）。
+4. **dogfood-protocol 泛化 + 登记**：协议 produces_missing 关闭表述（2026-09-24 裁决 + 累计 5 周期零触发）+ 度量 3/4 在 AM/单 harness 周期记 N/A + 决策回填行泛化；integration-plan §7/§9 登记（引用纪律两类分治、§7/§9 两处失联引用标注已佚、Phase 5A 首批实证、本条目）；AGENTS.md 测试数 227→231（3 处活指针）+ 路线图行。
+
+**实施完成（同日）**：WP-1 主智能体直做（引擎+契约+RA 双点+测试，引擎多耦合），WP-2 与 WP-4+5 两 executor 并行（文件互不重叠），主智能体逐 diff 复核通过。验证终态：测试 227→**231** 全绿（+4 例）；`generate.py --check` 零漂移（零 frontmatter 改动）；冒烟——临时目录 `init` 后填 `standard（scope 默认）`，`status` 报 `depth: "standard"`（修复前截断为 `standard（scope`）；sweep 全过——`Audit Attribution` 全树零命中、教注模板清零（init 模板与 RA 模板均裸值，`scope default` 剩 4 处均为有意保留：助手 docstring / 契约容差文档 / 测试数据 / RA 禁令反例）、AGENTS.md 活指针 227 清零（仅剩路线图两处历史叙述 209→227 与 227→231）、协议"待裁决"专项措辞清零（剩 4 处 produces_missing 均为关闭史述或传感器观测通道——软警告本体未删）、§7/§9 失联引用均已标注"已佚"。executor 执行裁决两处记录在案：文内引号按文件实际直引号处理（简报弯引号假设有误）；协议 :3 保留"软警告是否升级"字样属 NEW 文本自身的关闭表述，非残留。
+
+**实施后审核（reviewer，2026-09-29）**：裁决"**可作为提交依据**"（0🔴/3🟡/3🔵；8 条待验证主张全证实——`_strip_inline_note` 唯一调用点在 Depth 分支 / init 占位语义保持且无测试断言旧文案 / 4 新测试断言与引擎语义一致 / AUD-05 四处一致且无项目专名 / 关闭时点一律 2026-09-24 / 生成物标记区零触碰 / 契约 §6 新段与代码逐句吻合 / 直引号裁决属实；六项收口条件逐项满足；测试计数 231 静态精确复现 = engine 154 + trace-matrix 22 + generate 55；fx991 证据逐项对账相符）。发现全部当场修复：🟡① engine-illustrated.md 行号锚点失步（本批使 `_parse_plan` :293→:308 失准，另有 D15/AM 批既有漂移）——正文内联引用与附 A 全表刷新至当前行号、补 `_strip_inline_note`（:293）与 `_expire_autonomous`（:799）两行、头注"约 1650 行"→"约 1800 行"、附 B 测试数 205→231（engine 128→154）；🟡② 备份批基线"227→228"与本批落地后状态矛盾→改 231→232 并指向本条目；🟡③ B3"由后续故事 AC 承担"分支在 user-stories 被 SKIP 的 scope（6 个中 5 个）下悬空→重排为"被 FR 覆盖或显式声明范围外并给理由；仅当 user stories 在计划内才可显式推迟到后续故事的 AC"；🔵 RA 禁令理由句"shear the value"与修复后行为不同步→改容差分裂实述（Depth 剥除容忍 / Scope plan-invalid 拒绝）；🔵 §8 SKILL.md 行数 620→631；🔵 §7 RA:174 行号引用改语义锚点（Step 6）。审核方附注的可选补测形态（半角粘连无空格 / 混合全半角）与已测路径同源、风险可忽略，不加。
+
+**修复轮复审（reviewer，2026-09-29 同日）**：六项发现逐项验收——5 项修复完整、1 项（RA 理由句）主诉完整；engine-illustrated 全部 37 处 `engine.py:` 引用逐一对账无一漏改取错、附 A 24 行含新增两行全数吻合、测试计数 154+22+55=231 静态复现；修复零范围蔓延、无新 🔴/🟡。新发现 1 条 🔵（低危）：RA/WP 对 Scope 的简化表述（"rejects/fails"）漏"空格分隔尾注静默丢弃"分支，与契约 §6 全量陈述不对齐（RA 句内示例恰为空格分隔形态）——**已当场修复**：RA 与 WP 两处均补全三分支表述（Depth 剥除容忍 / Scope 粘连注 plan-invalid / 空格分隔尾注静默丢弃），与契约 §6 完全对齐。终态裁决：**可作为提交依据**。
+
+**与既有批次关系**：备份遗产清理批仍待实施，engine.py 改动点不同函数（`_parse_plan` vs `_stage_resumed_artifacts`）零冲突可串行；其测试基线随本批落地后为 231→232，实施时对齐。

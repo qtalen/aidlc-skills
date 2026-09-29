@@ -2,7 +2,7 @@
 
 > **阅读对象**：第一次接触本仓库的新成员——不要求了解 AI-DLC，只要懂基本编程概念（函数、命令行、JSON、哈希）就能读完。
 > **配图规范**：所有示意图只用 `+ - | ^ v < >` 和空格绘制（与本仓库 `content-validation.md` 的 ASCII 图规范一致），无 Unicode 制表符。
-> **深入阅读**：本文是导览；权威契约见 `references/common/engine-contract.md` 与 `references/common/stage-contract.md`，行号以当前 `scripts/engine.py` 为准（约 1650 行）。
+> **深入阅读**：本文是导览；权威契约见 `references/common/engine-contract.md` 与 `references/common/stage-contract.md`，行号以当前 `scripts/engine.py` 为准（约 1800 行）。
 
 ---
 
@@ -121,9 +121,9 @@ aidlc-state.md
 +--------------------------------------------------------------+
 
 model-writes -> engine-reads channels (tolerant, junk degrades to null):
-  _parse_plan()       engine.py:293   scope/depth/skip drive effective_stages()
-  _ctx_enabled()      engine.py:779   gates the checkpoint-missing sensor
-  _parse_autonomous() engine.py:730   feeds the status "autonomous" key
+  _parse_plan()       engine.py:308   scope/depth/skip drive effective_stages()
+  _ctx_enabled()      engine.py:848   gates the checkpoint-missing sensor
+  _parse_autonomous() engine.py:749   feeds the status "autonomous" key
 ```
 
 ### 这张图在画什么
@@ -136,9 +136,9 @@ model-writes -> engine-reads channels (tolerant, junk degrades to null):
 
 **三条特殊的"模型写、引擎读"通道**（图下方的注释）：模型在上半区写的三个结构化信息，引擎会读：
 
-1. `_parse_plan()`（engine.py:293）：读"选了哪个 scope、哪些阶段跳过"——这是引擎算出"接下来该做哪个阶段"的依据。
-2. `_ctx_enabled()`（engine.py:779）：读扩展配置表里 CTX（上下文检查点扩展）开没开——决定要不要做 checkpoint 检查。
-3. `_parse_autonomous()`（engine.py:730）：读自主模式区——喂给 `status` 输出的 `autonomous` 键。
+1. `_parse_plan()`（engine.py:308）：读"选了哪个 scope、哪些阶段跳过"——这是引擎算出"接下来该做哪个阶段"的依据。
+2. `_ctx_enabled()`（engine.py:848）：读扩展配置表里 CTX（上下文检查点扩展）开没开——决定要不要做 checkpoint 检查。
+3. `_parse_autonomous()`（engine.py:749）：读自主模式区——喂给 `status` 输出的 `autonomous` 键。
 
 注意"tolerant, junk degrades to null"（宽容解析，坏数据降级为空）：这三条通道读取时**不挑刺**——格式不对、缺字段、写了乱码，引擎不报错，当作"没配置"处理。因为这些区归模型所有，引擎若因区外内容报错，就等于侵犯了自己不该管的辖区。
 
@@ -203,7 +203,7 @@ model-writes -> engine-reads channels (tolerant, junk degrades to null):
 report --stage <slug> --result <R> --reason <why>
    |
    v
-_validate_transition()                                   engine.py:1216
+_validate_transition()                                   engine.py:1285
    |-- [1] slug in graph? ..................... no -> EngineError unknown-stage
    |-- [2] gate coupling:
    |       gate != "none"  and R == completed .......... -> error (use approved)
@@ -236,7 +236,7 @@ JSON ack {"kind":"reported", "current_stage": <next pending>}
 
 `report` 是整个系统**唯一**的常规进度写入口，全部逻辑是一条流水线：
 
-**四道验证关卡**（`_validate_transition()`，engine.py:1216）：
+**四道验证关卡**（`_validate_transition()`，engine.py:1285）：
 
 1. **查票**：阶段名（slug，如 `requirements-analysis`）必须在图里存在。
 2. **票种匹配**：带审批门禁（gate）的阶段**必须**用 `approved`/`rejected`/`revised`——不允许用 `completed` 蒙混过关；没门禁的阶段正好相反。这把"该让人拍板的事必须让人拍板"焊死在代码里：AI 想跳过用户审批？引擎直接拒绝。
@@ -252,7 +252,7 @@ JSON ack {"kind":"reported", "current_stage": <next pending>}
 
 **出门提醒（fail-open）**：完成/获批后，引擎顺手检查一下这个阶段承诺要产出的文件（frontmatter 里的 `produces`）是否真的存在，缺了就在 JSON 回执里带一句 `produces_missing` 软警告。它是 try/except 包着的——检查本身出任何错都**静默放行**，绝不因为"提醒"失败而堵死唯一写入口。
 
-**回执**：JSON 告诉模型"记上了，现在轮到哪个阶段"。`current_stage` 的算法很简单：按计划顺序找第一个还是 `[ ]` 的阶段（engine.py:688-700）。
+**回执**：JSON 告诉模型"记上了，现在轮到哪个阶段"。`current_stage` 的算法很简单：按计划顺序找第一个还是 `[ ]` 的阶段（engine.py:704-717）。
 
 ### 名词解释：原子写、append-only、fail-open
 
@@ -279,7 +279,7 @@ JSON ack {"kind":"reported", "current_stage": <next pending>}
            +------------------+------------------+
                               |
                               v
-                   check_integrity()          engine.py:595
+                   check_integrity()          engine.py:611
                    [1] recomputed digest == stored digest?
                    [2] marks set == audit transitions set?
                               |
@@ -288,14 +288,14 @@ JSON ack {"kind":"reported", "current_stage": <next pending>}
          both pass                        mismatch
       integrity: ok                  tampered / out-of-band edit
                                             |
-                                   repair: rebase (engine.py:1405)
+                                   repair: rebase (engine.py:1524)
                                    replay audit transitions back
                                    into the region + new digest
 ```
 
 ### 这张图在画什么
 
-状态文件是普通 Markdown——人随时能用记事本打开它。怎么防止"有人手改进度表作弊"？答案是**两道互相独立的证据链**，每次状态操作前都交叉核验（`check_integrity()`，engine.py:595）：
+状态文件是普通 Markdown——人随时能用记事本打开它。怎么防止"有人手改进度表作弊"？答案是**两道互相独立的证据链**，每次状态操作前都交叉核验（`check_integrity()`，engine.py:611）：
 
 **证据链 [1]：内容指纹（digest）。** 引擎专属区的文字内容（除指纹行本身）被算出 sha256 哈希，存在指纹行里。下次操作前重新算一遍：文件被改过哪怕一个空格，重算的哈希就对不上存的哈希——当场识破。
 
@@ -372,29 +372,31 @@ status -> resume_note + note_age_seconds:6 + autonomous{...}
 | engine.py:70-74 | `MARK_*` | 五种印章字符：空格 / x / S / R / ? |
 | engine.py:76 | `RESULTS` | report 结果的封闭集合（5 种） |
 | engine.py:183 | `load_graph()` | 只读加载编译产物 stage-graph.json |
-| engine.py:293 | `_parse_plan()` | 读模型写的执行计划（宽容解析） |
-| engine.py:457 | `_digest_of_region()` | 计算引擎区 sha256 指纹 |
-| engine.py:468 | `_splice_region()` | 重写引擎专属区 |
-| engine.py:520 | `_audit_transition_events()` | 从审计解析转移事件（对账用） |
-| engine.py:595 | `check_integrity()` | 指纹 + 审计双链核验 |
-| engine.py:670 | `effective_stages()` | 按 scope/计划裁剪后的有效阶段序列 |
-| engine.py:688-700 | `pending_stages()` / `current_stage()` | 第一个 `[ ]` 阶段 = 当前阶段 |
-| engine.py:730 | `_parse_autonomous()` | 读自主模式区（宽容解析） |
-| engine.py:779 | `_ctx_enabled()` | 读扩展配置表判断 CTX 开关 |
-| engine.py:918 | `_artifact_alerts()` | 传感器：半成品/缺产出/缺 checkpoint 警报 |
-| engine.py:1030 | `cmd_status()` | 恢复简报（resume_note / recent_events / …） |
-| engine.py:1136 | `cmd_stamp()` | 权威时间戳，零副作用 |
-| engine.py:1216 | `_validate_transition()` | report 的四道验证关卡 |
-| engine.py:1274 | `cmd_report()` | 唯一转移写入口 |
-| engine.py:1308 | `cmd_jump()` | 改道（--fresh 归档重来） |
-| engine.py:1405 | `cmd_rebase()` | 按审计流水重放修复 |
-| engine.py:1519 | `cmd_park()` | 泊车注记（不碰进度、不写审计） |
-| engine.py:1562 | `_JsonArgumentParser` | 连命令行用法错误都输出 JSON |
-| engine.py:1619 | `main()` | 命令分发入口 |
+| engine.py:293 | `_strip_inline_note()` | 剥除 Depth 行内括号注（仅 Depth 分支；Scope 不剥） |
+| engine.py:308 | `_parse_plan()` | 读模型写的执行计划（宽容解析） |
+| engine.py:473 | `_digest_of_region()` | 计算引擎区 sha256 指纹 |
+| engine.py:484 | `_splice_region()` | 重写引擎专属区 |
+| engine.py:536 | `_audit_transition_events()` | 从审计解析转移事件（对账用） |
+| engine.py:611 | `check_integrity()` | 指纹 + 审计双链核验 |
+| engine.py:686 | `effective_stages()` | 按 scope/计划裁剪后的有效阶段序列 |
+| engine.py:704/:713 | `pending_stages()` / `current_stage()` | 第一个 `[ ]` 阶段 = 当前阶段 |
+| engine.py:749 | `_parse_autonomous()` | 读自主模式区（宽容解析） |
+| engine.py:799 | `_expire_autonomous()` | AM-10 轮次边界把自主模式 Enabled 翻转为 No（宽容 no-op） |
+| engine.py:848 | `_ctx_enabled()` | 读扩展配置表判断 CTX 开关 |
+| engine.py:987 | `_artifact_alerts()` | 传感器：半成品/缺产出/缺 checkpoint 警报 |
+| engine.py:1099 | `cmd_status()` | 恢复简报（resume_note / recent_events / …） |
+| engine.py:1205 | `cmd_stamp()` | 权威时间戳，零副作用 |
+| engine.py:1285 | `_validate_transition()` | report 的四道验证关卡 |
+| engine.py:1343 | `cmd_report()` | 唯一转移写入口 |
+| engine.py:1395 | `cmd_jump()` | 改道（--fresh 归档重来） |
+| engine.py:1524 | `cmd_rebase()` | 按审计流水重放修复 |
+| engine.py:1638 | `cmd_park()` | 泊车注记（不碰进度、不写审计） |
+| engine.py:1684 | `_JsonArgumentParser` | 连命令行用法错误都输出 JSON |
+| engine.py:1741 | `main()` | 命令分发入口 |
 
 ## 附 B：延伸阅读
 
 - `references/common/engine-contract.md` —— 引擎对外契约：动词语义、状态分区、示例
 - `references/common/stage-contract.md` —— 阶段 frontmatter 字段定义与校验规则
-- `scripts/tests/` —— 205 个测试（engine 128 + trace-matrix 22 + generate 55），改引擎后必跑
+- `scripts/tests/` —— 231 个测试（engine 154 + trace-matrix 22 + generate 55），改引擎后必跑
 - `docs/integration-plan.md` —— 设计决策（D6/D13/D14 等）与演进史

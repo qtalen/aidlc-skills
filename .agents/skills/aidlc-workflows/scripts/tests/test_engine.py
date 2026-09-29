@@ -405,6 +405,33 @@ class RoutingTests(WorkspaceCase):
         self.set_plan_lines(scope="not-a-scope")
         self.assert_error(self.next, "plan-invalid")
 
+    def test_depth_inline_annotation_stripped(self):
+        # Depth is display-only: a full-width note glued to the token (the
+        # recurring real-world form) is stripped, not sheared into the value.
+        self.set_plan_lines(depth="standard（scope 默认）")
+        plan = engine.load_state(self.graph, self.workspace).plan
+        self.assertEqual(plan.depth, "standard")
+
+    def test_depth_halfwidth_annotation_stripped(self):
+        self.set_plan_lines(depth="standard (scope default)")
+        plan = engine.load_state(self.graph, self.workspace).plan
+        self.assertEqual(plan.depth, "standard")
+
+    def test_depth_annotation_only_falls_back_to_scope_default(self):
+        # A note with no bare token ahead of it leaves depth unset, so the
+        # scope's default depth applies.
+        self.set_plan_lines(depth="（scope 默认）")
+        plan = engine.load_state(self.graph, self.workspace).plan
+        self.assertEqual(plan.depth, "standard")
+
+    def test_scope_glued_annotation_still_rejected(self):
+        # Asymmetry is intentional: Scope routes, so an annotation glued to
+        # the scope token hard-blocks (plan-invalid + registered-scope hint)
+        # instead of being tolerated. (A whitespace-separated trailing note
+        # is the pre-existing silent-drop case — not a promise to test.)
+        self.set_plan_lines(scope="classic（默认）")
+        self.assert_error(self.next, "plan-invalid")
+
     def test_done_directive(self):
         for slug in STAGE_ORDER:
             directive = self.next()

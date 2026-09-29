@@ -106,8 +106,10 @@ would never use. The scope catalog below is generated from the scope registry
 
 ```markdown
 - **Scope**: [scope name]
-- **Depth**: [minimal/standard/comprehensive] (scope default, or user override)
+- **Depth**: [minimal|standard|comprehensive]
 ```
+
+   The Depth value is the scope's default unless the user overrides it. Keep both values **bare single tokens** — inline parenthesised annotations (e.g. `(scope default)`) on these lines are forbidden: the engine never parses them — Depth strips the note (tolerated), while Scope rejects a glued annotation (`plan-invalid`) and silently drops a whitespace-separated one. Put commentary on a separate free-text line below the structured lines (rules in Workflow Planning Step 8).
 
    Also log the scope selection (chosen scope, depth, and whether it was auto-selected or user-chosen) in `aidlc-docs/audit.md`. Do NOT hand-edit the `<!-- BEGIN/END ENGINE-STATE -->` region. Workflow Planning will additionally write the `- **Stages to Execute**:` / `- **Stages to Skip**:` lines in the same section after its gate is approved.
 
@@ -198,6 +200,19 @@ Present the question file to the user and STOP.
      - Scope estimate
      - Complexity estimate
    - Include both functional and non-functional requirements
+   - **Combination boundary check (universal)**: when this iteration introduces
+     a new interactive or behavioral dimension — a new input token or entity
+     class, a new key/command/gesture, a new state or state transition, a new
+     data entity, or a new external interface — explicitly declare its
+     combination boundaries with **every existing cross-cutting behavior**
+     (e.g. edit/delete semantics, reset or clear, error handling and recovery,
+     continuation from result or idle states, undo/redo, persistence). Each
+     such combination must be either covered by an FR or explicitly declared
+     out of scope for this iteration with a reason; when user stories are
+     part of the plan, it may instead be explicitly deferred to the
+     acceptance criteria of a later user story. Per-feature
+     coverage alone routinely hides pairwise gaps: the recurring blind spot is
+     "new element × pre-existing global behavior".
    - Incorporate user's answers to clarifying questions
    - Provide brief summary of key requirements
 

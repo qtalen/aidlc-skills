@@ -6,7 +6,7 @@ MANDATORY cross-cutting rules for every AI-DLC workflow execution. This file has
 
 - **DOC-01~06** Documentation Consistency — keep aidlc-docs artifacts synchronized with code after every change
 - **APG-01~05** Approval Gate Semantics — how user responses at stage approval gates are classified and handled
-- **AUD-01~04** Audit Attribution — authorship fields on audit.md entries
+- **AUD-01~05** Audit Discipline — authorship fields and append discipline on audit.md entries
 - **QT-01~04** Question Tool Flow — after generating a question file, collect answers via the harness's structured question tool, write them back to the file, then proceed
 
 **Enforcement**: At each applicable stage/gate, and after every change request, verify compliance with the applicable rules BEFORE presenting the completion message. Include a compliance summary (compliant / non-compliant / N/A per rule, with brief rationale for N/A).
@@ -104,7 +104,7 @@ Completion message templates and the "NO EMERGENT BEHAVIOR" constraint remain ex
 
 ---
 
-## Group 3: Audit Attribution (AUD)
+## Group 3: Audit Discipline (AUD)
 
 ### AUD-01: Authorship Fields on Every New Entry
 Every NEW entry appended to `aidlc-docs/audit.md` MUST include these two lines immediately after the `**Context**` line:
@@ -134,6 +134,9 @@ Applies only to entries created after adoption; existing entries MUST NOT be ret
 
 ### AUD-04: Generic Rule Text
 This rule file MUST NOT contain any real person's name or email — placeholders and resolution instructions only.
+
+### AUD-05: Append at End, Never Anchor on Headings
+Every NEW `audit.md` entry is appended at the END of the file (after the last existing entry and its `---` separator), in a single edit. NEVER anchor an insertion on an existing entry's heading line (`## ...`) and never insert a new entry between historical entries — heading-anchored edits on a long file have repeatedly overwritten neighboring titles and orphaned entry bodies. If a new entry seems to belong mid-file chronologically, that signals an earlier mistake: append a correction note at the end instead of inserting.
 
 ---
 
@@ -182,7 +185,7 @@ If no structured question tool is available (none recognized for this harness), 
 | Shared rule file edits | DOC-05 |
 | Creating or substantially updating a long (300+ line) aidlc-docs content artifact | DOC-06 (advisory — narrow context; list reminder if missing, never block) |
 | Every approval gate (all stages, inception + construction) | APG-01 ~ APG-05 |
-| Every audit.md write | AUD-01, AUD-02, AUD-03 |
+| Every audit.md write | AUD-01, AUD-02, AUD-03, AUD-05 |
 | Every question file creation (requirements, stories, design, clarification) | QT-01 ~ QT-04 |
 | Autonomous Mode trigger / gates / questions / pause / resume / round expiry | AM-01 ~ AM-10 (see `../autonomous-mode/autonomous-mode.md`) |
 | This file's own maintenance | DOC-05, AUD-04 |

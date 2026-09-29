@@ -208,6 +208,8 @@ The engine **reads** these lines to filter routing (`Scope`/`Depth` gate the sco
 
 Format note on the `(reason)` annotation: the parenthesised reason on a Skip line is optional, and it **may contain English commas** — the parser reassembles comma-split fragments against the known slug registry, so a reason such as `(deferred, no user-facing change)` no longer produces an "unknown stage slug" error. Keep reasons short regardless; commas are tolerated, not an invitation to write prose.
 
+Related tolerance split (Depth vs Scope): the parser strips a trailing parenthesised note (half- or full-width) from the **Depth** value — Depth is display-only and has no validation vocabulary, so `standard（scope default）` parses as `standard`. **Scope** is *not* stripped: an annotation glued to the scope token (e.g. `classic（default）`) fails validation with `plan-invalid` and the registered-scope hint, while a whitespace-separated trailing note is silently dropped. Keep both values bare single tokens regardless (rules in Workflow Planning Step 8); the only sanctioned parenthesised content on the four lines is the Skip `(reason)`.
+
 Precedence rules (deterministic):
 
 1. A slug in `Stages to Skip` is always out — **Skip wins over Execute** and can even exclude an `ALWAYS` stage (the human approved that plan at the Workflow Planning gate).

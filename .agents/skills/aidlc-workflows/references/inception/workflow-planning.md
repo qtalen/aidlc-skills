@@ -474,6 +474,14 @@ Rules:
   reason may contain commas — the parser reassembles comma-split fragments
   against the known slug registry — but keep reasons short.
 - Any placeholder text (containing `[`) is treated as unfilled.
+- **Values are bare**: `Scope` and `Depth` carry exactly one token each — no
+  inline annotations or trailing notes. The Skip line's `(reason)` is the only
+  sanctioned parenthesised content on the four structured lines. The engine
+  strips a trailing parenthesised note from the Depth value (display-only
+  tolerance), while a glued Scope annotation fails validation (`plan-invalid`)
+  and a whitespace-separated one is silently dropped; either way, keep the
+  values bare and put commentary on a separate free-text line below the four
+  structured lines.
 
 Then complete this stage's transition by running:
 
