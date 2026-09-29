@@ -2,7 +2,7 @@
 
 本仓库是 **AI-DLC（AI-Driven Development Life Cycle）技能的分叉与整合工作区**：以 v1.0 纯 Markdown 技能为基座进行分叉演进，分阶段吸收 v2.0 的先进理念。
 
-**开始任何工作前，先读 `docs/integration-plan.md`**——它记录了全部已确认的决策（D1-D16）、v2.0/v1.0 对比分析、分阶段路线图（Phase 0-5+）和各阶段完成状态，是本仓库的单一权威上下文。
+**开始任何工作前，先读 `docs/integration-plan.md`**——它记录了全部已确认的决策（D1-D17）、v2.0/v1.0 对比分析、分阶段路线图（Phase 0-5+）和各阶段完成状态，是本仓库的单一权威上下文。
 
 ## 目录结构与职责
 
@@ -21,7 +21,7 @@
 
 - 每个阶段规则文件（`references/<phase>/*.md`）顶部的 **YAML frontmatter 是阶段清单的唯一事实源**（slug/phase/execution/condition/gate/produces/consumes/requires_stage/for_each/workspace_writes/depth/scopes）。
 - 字段定义与校验规则见 `references/common/stage-contract.md`。
-- SKILL.md、process-overview、welcome-message、terminology、session-continuity、workflow-planning、autonomous-mode 中的阶段清单全部是 **`<!-- BEGIN/END GENERATED: <key> -->` 标记区内的生成物——严禁手改**。
+- SKILL.md、process-overview、welcome-message、terminology、session-continuity、workflow-planning 中的阶段清单全部是 **`<!-- BEGIN/END GENERATED: <key> -->` 标记区内的生成物——严禁手改**。
 
 ### 2. 作者期生成器
 
@@ -66,6 +66,7 @@
 - **修复批 ✅ 已完成（2026-09-27）**：完成态再入（D15）——dogfood 实证"新会话 + 已完成 MVP + 加新功能"被引擎 hint 与菜单合力推向 `jump --fresh`（四环链路：invalid-jump hint 指路 fresh / SKILL.md completed 行无路由 / 菜单 C 唯一"开始"项 / workflow-changes 域限定 mid-workflow）。裁决：同产品功能演进不是新产品意图，走就地再入。实施：engine `cmd_jump` 完成态（current=None）放行为再入（目标及其后重置，语义同 backward redo，ack.from=null，审计记 re-entry；裁决③"jump 不绕过计划过滤"对再入同样生效）+ park workflow-complete hint 改写 + SKILL.md completed 行路由 + session-continuity 菜单 C 定位收缩 + workflow-changes 新增"Re-Entering a Completed Workflow"节 + 契约 §8/§9/§10 同步；测试 205→209
 - **AM 生命周期批 ✅ 已完成（2026-09-28）**：D16——自主模式绑定工作流轮次（dogfood 实证"开启一次、代代相传"）。实施：引擎 `_expire_autonomous` 窄写（完成转移/再入 jump 两边界翻转 `Enabled: Yes→No`，ack `autonomous_expired` + 审计 detail，缺失/畸形/已 No 宽容 no-op）+ AM-10 三边界规则（completion=引擎翻转+宣告 / re-entry=jump 翻转+计划行自复活路径模型兜底 / fresh=归档即消失）+ AM-05 重写"暂停即彻底关闭"（二选一：标准继续 / 重激活=全新 AM-02 重问）+ AM-02 激活双问（问题处理方式 + 审核阶段多选**预选**当前列表；生成块 stage-names 随迁，generate.py 注册表不动）+ Review Stages 编辑入口从暂停菜单迁至激活流与轮内显式请求 + AM-04 两处单题升级不再借道暂停 + 契约 §5/§6（唯一模型区窄写窗口条款）/§8/§9/§10 同步 + 外围 4 文件（session-continuity/SKILL/workflow-conventions/workflow-changes）+ AM-09 completed=off + opt-in 区间扩展；reviewer 独立审核三阻断项全修（自复活绕过→模型兜底、Phase 4 移出项张力→收编路径记录、残留引用 5 处入清单）；二轮实施审核又修复 B-1 前向 jump 完成漏触（挂钩条件放宽为"跳转后处于完成态"，审计注记分流 re-entry/jump completed the round）；三轮终审修复 §6 窄写窗口条款残留的两边界枚举（与 §8 相抵）并补齐 (再入,保持完成态) 矩阵格用例；测试 209→227（新增 AutonomousExpiryTests 18 例）
 - **收尾小批 ✅ 已完成（2026-09-28）**：fx991 三迭代 dogfood 收官——A1 Depth 行值纯净双侧修复（引擎 `_strip_inline_note` 剥注仅 Depth 分支，Scope 保持粘连注解 plan-invalid 硬阻断；RA Step 2.5 模板改裸值、init 模板改裸枚举、workflow-planning Step 8 补值纯净规则、契约 §6 格式注精确化）+ A2 AUD-05 审计追加纪律（Group 3 更名 Audit Discipline；新条目锚定文末单次追加、禁以既有标题行为编辑锚点；SKILL.md 同步一行）+ B3 组合边界检查项（RA Step 7，普适：新交互/行为维度 × 既有横切行为组合边界逐项声明）+ C5-C7 登记（produces_missing 关闭时点不变[2026-09-24 裁决，累计 5 周期零触发]、dogfood-protocol 度量 3/4 N/A 规则与决策回填泛化、§7/§9 引用纪律两类分治与失联标注、Phase 5A rollup 首批实证）；测试 227→231；验收登记见 docs/integration-plan.md §9 2026-09-28 其三
+- **AM 简化 + Code-Gen Hold 批 ✅ 已完成（2026-09-29）**：D17——去除审核阶段机制并新增代码生成前停点。实施：AM-06 整体移除（编号退役不重排）+ AM-03 全阶段自动批准 + AM-02 双问改轨（问题处理方式 + 代码生成前停点[每次全新问，任何持久化配置值不作预选]）+ AM-05 二次重写为优雅暂停（模式关闭 → 完成手头工作 → 标准模式继续到下一个审批门等人工，直到本轮结束不自动恢复；菜单删除；与 Park Ritual 优先级消歧）+ AM-11 新增（停点：布防条件=code-gen 未开工、触发三路径、放行 Passed+审计、其他答复后仍等继续语义、每次激活一次、模式穿越保持开启）+ AM-07 缩为等价入口 + AM-08 模板换行（Code-Gen Hold 四态）+ 引擎 status autonomous 键删 review_stages（宽忽略未知行）+ generate.py stage-names 注册退役（stage-contract 宿主清单同步）+ engine-illustrated 锚点对账；reviewer 计划审核 2 阻断（清单漏 engine-illustrated / AM-11 触发空洞）+ 10 建议 + 3 存疑全处置；测试 231 不变（1 例改名）；登记见 docs/integration-plan.md §9 当日条目
 - **备份遗产清理批（待实施，2026-09-28 立项）**：v1.0 `.backup` 惯例与 D11/git 立场相抵——文档 5 处改条件式（git 工作区走 commit、非 git 才 `.backup.{timestamp}`，对齐 AUD-02 先例）+ 引擎 `resumed-artifacts` glob 排除 `.backup` 文件；规格与考古证据见 docs/integration-plan.md §9 当日条目
 - **Phase 4**：Team Construction（unit-major 波次地基 → claim/release + worktree 多会话团队 → single 重跑 → swarm）
 - **Phase 5A/5B + 不排期**：5A 知识树与学习闭环 / 5B reviewer 及其他；④档三项带触发条件（详见 integration-plan.md）

@@ -34,6 +34,7 @@
 | D14 | 传感器 fire 点与 finding 接口（2026-09-21 定，2026-09-22 实施）：分叉侧传感器的 fire 点 = 引擎动词（status=恢复时 / report=收单时），永久不变（harness 无关性使然，区别于 v2.0 的 write hook）。finding 对象五字段 `{type, severity, subject, message, action_discipline}` 即 Phase 5 传感器接口；Phase 3.1 交付的 artifact_alerts 为第一代实现（硬编码 manifest）。`type` 集合可增不可删；同一 state_version 内对象 shape 永不破坏性变更；Phase 5 manifest 化须过输出等价测试 |
 | D15 | 完成态再入语义（2026-09-27 定）：同一产品的功能演进（新功能/修复/需求变更）**不是**新产品意图——工作流完成态下 `jump --stage <slug>` 放行为**再入**（目标及其后重置 `[ ]`，语义同 backward redo，ack.from=null，审计记 re-entry；"jump 不绕过计划过滤"对再入同样生效），是同产品新迭代的正规通道；`jump --fresh` 保留给新产品意图/显式干净重启。修复 dogfood 实证的"completed → 被引向 --fresh"四环链路。D11 不因本决策变化：同产品多迭代 = 同一意图的多个版本，版本边界由 git 提交承载 |
 | D16 | AM 生命周期绑定工作流轮次（2026-09-28 定）：激活后持续到本轮完成转移或用户显式停止（**暂停=彻底关闭**，恢复需全新 AM-02 重问配置）；三个轮次边界确定性过期——完成转移（引擎翻转 Enabled→No + ack `autonomous_expired` + 审计 detail）、再入 jump（同翻转，自愈存量 completed+Yes 工作区）、fresh（归档即消失，无状态可翻）；计划行自复活路径（不经转移动词，见 workflow-changes）由模型兜底翻转。引擎由此获得契约 §6 所有权矩阵**唯一模型区窄写窗口**（触发互斥=纪律约定非机制保证，区不在 digest、无锁）；重启激活=双问（问题处理方式+审核阶段预选旧值），绝不静默复用。与 Phase 4"AM 状态注记化"的关系：本批为止血窄写，通解（显式动词/digest 覆盖/slug 校验/并发语义）仍留 Phase 4 收编 |
+| D17 | AM 简化 + Code-Gen Hold（2026-09-29 定）：**审核阶段机制整体移除**（AM-06 规则删除、编号退役不重排、AM-03 全阶段自动批准）；**暂停/停止语义重定为优雅降级**——模式关闭后完成手头工作、标准模式继续到下一个审批门等人工，直到本轮结束不自动恢复，仅显式 Activate 重激活（AM-05 二次重写，调整菜单删除）；**Code-Gen Hold（AM-11）**——激活第二问"代码生成前是否停一次（换模型窗口）"，每次激活全新问、任何持久化配置值都不作预选（D16 的 Review Stages 预选条款废止），仅在 code-gen 工作尚未开始时可布防，停点处模式保持开启、"继续"后一路到本轮完成，每次激活最多一次；停点纯模型侧实现（状态区 Code-Gen Hold 行模型写-模型读，引擎 `autonomous` 键删 review_stages 字段、宽忽略未知行）；generate.py stage-names 注册退役（唯一消费者已删）。对 D16 的修订：双问 Q2 换轨、AM-05 语义演进、预选条款废止 |
 
 ---
 
@@ -340,7 +341,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 19. workflow-planning：计划批准后由模型把覆盖决策按结构化行格式写入 state（引擎读取消费）
 20. session-continuity：恢复菜单数据源改为 `status` 输出（呈现层保留 Markdown）
 21. workflow-changes：收敛为"**判断在约定、执行在引擎**"——redo/跳步的执行一律走 jump，不再手工移指针
-22. autonomous-mode 扩展：Review Stages 按显示名匹配 → 补 slug 对齐说明（消命名耦合风险；生成器 `_derive_name` 会剥离括号，显示名可能随 H1 变化）
+22. autonomous-mode 扩展：Review Stages 按显示名匹配 → 补 slug 对齐说明（消命名耦合风险；生成器 `_derive_name` 会剥离括号，显示名可能随 H1 变化）**（已作废 2026-09-29，D17：AM-06/Review Stages 机制整体移除——见 §9 当日条目）**
 23. **系统性收口**：grep 全 references/ 树中所有 `aidlc-state.md` 手写指令（12+ 处：全部 construction 阶段文件、application-design、user-stories、units-generation、requirements-analysis、workflow-conventions 扩展等），逐一改写为 report 调用或删除——否则模型同时收到"引擎独占写状态"与"Mark stage complete"两组矛盾指令，dogfood 必撞
 24. **error-handling.md 恢复协议整体重定向**（独立工作量）：备份重建/reset/标 SKIPPED/标 incomplete/修正 current stage 等手改 state 路径，统一改为"完整性 halt → 人工确认 → 引擎重定基线"新流程
 25. workflow-planning.md 的 `state-template-stages` GENERATED 生成区归宿：**删除**（含 generate.py MARKERS 注册清理）——引擎确定性创建 state 后，该"教模型手写 Stage Progress"的模板成为矛盾指令/死代码
@@ -515,7 +516,7 @@ Phase 5+（backlog）    reviewer 状态机、传感器阻塞校验、persona �
 
 **dogfood 反馈移入项（2026-09-24，Phase 3.3 立项时挂档，源自 fx991 验收与 CTX/AM 引擎整合讨论）**——与 Trellis 输入并列，进入本相位设计时逐项核对：
 
-1. **AM 状态注记化（`am --on/off` 或等价机制）**——AM 状态切换走引擎注记动词，获得：权威时间戳（Phase 3.3 通用 stamp 已止血，但专用动词同时解决写路径）、digest 覆盖（当前 `## Autonomous Mode` 区模型手写，两会话并发修改互踩且不可检测）、Review Stages 的 slug 合法性校验（引擎查 stage-graph.json，替代 AM-06.6 模型手工解析）。**必须与 claim 并发锁同批设计**（多会话的开放问题：AM 是全局还是 per-claim？两会话配置不一致时以谁为准？）。三归切分：激活意图识别与授权语义留在规则文本，状态读写/校验下沉引擎。**（2026-09-28 补记：完成/再入两个轮次边界的确定性过期已由"AM 生命周期批"[D16]先行落地为引擎窄写——见 §9 当日条目；届时本项收编该窄窗口并二次修订契约 §6 为完整机制，剩余范围：显式动词覆盖全部切换路径 / digest 覆盖 / slug 校验 / per-claim 并发语义。）**
+1. **AM 状态注记化（`am --on/off` 或等价机制）**——AM 状态切换走引擎注记动词，获得：权威时间戳（Phase 3.3 通用 stamp 已止血，但专用动词同时解决写路径）、digest 覆盖（当前 `## Autonomous Mode` 区模型手写，两会话并发修改互踩且不可检测）、Review Stages 的 slug 合法性校验（引擎查 stage-graph.json，替代 AM-06.6 模型手工解析）。**必须与 claim 并发锁同批设计**（多会话的开放问题：AM 是全局还是 per-claim？两会话配置不一致时以谁为准？）。三归切分：激活意图识别与授权语义留在规则文本，状态读写/校验下沉引擎。**（2026-09-28 补记：完成/再入两个轮次边界的确定性过期已由"AM 生命周期批"[D16]先行落地为引擎窄写——见 §9 当日条目；届时本项收编该窄窗口并二次修订契约 §6 为完整机制，剩余范围：显式动词覆盖全部切换路径 / digest 覆盖 / slug 校验 / per-claim 并发语义。）****（2026-09-29 D17 补记：Review Stages/AM-06 已整体移除，slug 校验子项作废；剩余范围收窄为显式动词 / digest 覆盖 / per-claim 并发语义。新增的 Code-Gen Hold 行是模型写-模型读通道，收编时一并评估是否引擎化。）**
 2. **per-unit checkpoint 锚点**——`unit-{unit-name}-checkpoint.md` 存在性检测（Phase 3.3 WP-1-④ 只做 inception/construction 两条全局锚点）。依赖本相位第 1 步的 Unit Progress 区启用（单元名才可枚举）。unit checkpoint 同时是跨会话交接的核心载体——worker 会话恢复不能全量读制品。
 3. **checkpoint 契约化（层 2，可选，视证据决定）**——阶段 frontmatter 条件产物声明 → generate.py 编译进 stage-graph.json → 复用 produces_missing 软警告管线。**前置**：Phase 3.3 的 checkpoint-missing finding 跑一个 dogfood 周期，误报率可接受才立项；机制上需要 Extension Configuration 表作为模型写-引擎读通道（引擎判断 CTX 启用与否）或 optional_produces 语义。若误报率高则放弃契约化，维持传感器方案。**误报评估输入（2026-09-24 审核补记）**：construction 锚点以 `_is_done`（[x]/[S]）判定完成，build-and-test 被跳过的场景与 CTX-01 "Build and Test completion" 字面存在张力，届时一并评估。
 4. **CTX 去留最终裁决**——Phase 3.3 P0 的临时裁决（推荐维持 opt-in）之后，在本相位多会话 dogfood 中做最终裁决。届时评估点：跨会话交接里 checkpoint 的实际价值（worker 冷启动上下文成本对比）、与知识树（Phase 5A）的分工（checkpoint=阶段状态蒸馏 vs 知识树=约定沉淀，机制同源但载体不同）。
@@ -862,3 +863,21 @@ dogfood-protocol.md 服务的首个完整周期（两迭代，快照 bc04dd7）�
 **修复轮复审（reviewer，2026-09-29 同日）**：六项发现逐项验收——5 项修复完整、1 项（RA 理由句）主诉完整；engine-illustrated 全部 37 处 `engine.py:` 引用逐一对账无一漏改取错、附 A 24 行含新增两行全数吻合、测试计数 154+22+55=231 静态复现；修复零范围蔓延、无新 🔴/🟡。新发现 1 条 🔵（低危）：RA/WP 对 Scope 的简化表述（"rejects/fails"）漏"空格分隔尾注静默丢弃"分支，与契约 §6 全量陈述不对齐（RA 句内示例恰为空格分隔形态）——**已当场修复**：RA 与 WP 两处均补全三分支表述（Depth 剥除容忍 / Scope 粘连注 plan-invalid / 空格分隔尾注静默丢弃），与契约 §6 完全对齐。终态裁决：**可作为提交依据**。
 
 **与既有批次关系**：备份遗产清理批仍待实施，engine.py 改动点不同函数（`_parse_plan` vs `_stage_resumed_artifacts`）零冲突可串行；其测试基线随本批落地后为 231→232，实施时对齐。
+
+### 2026-09-29：D17——AM 简化 + Code-Gen Hold 批
+
+**需求演进（用户驱动，三轮收敛）**：① 用户提出激活自主模式时增加一问——是否在代码生成阶段前暂停（方便切换到快速模型做实施），选是则停一次、说"继续"后一路到本轮完成；② 期间用户询问 Q2（审核阶段多选）来历（考古：审核阶段能力初始导入批即有、藏于暂停菜单 Option B，D16 重写 AM-05 废除菜单后才迁入激活流成为必问项）后裁决**完全去除 Q2/AM-06**——人工把关改由"随时暂停"承担：暂停/停止自主模式 → 工作流继续执行到下一个审批门等人工，直到本轮结束全部人工审批、不自动恢复，除非显式重启；③ 四项实施拍板：停点纯模型侧 / 暂停时优雅完成手头工作再停 / 引擎 review_stages 死字段一并移除 / 停点问题每次激活全新问不预选。
+
+**语义终态**：
+- **激活** = 双问（Q1 问题处理方式 + Q2 代码生成前停点，**均每次全新问，任何持久化值不作预选**）；AM 期间全阶段自动批准（AM-03 无审核阶段例外）。
+- **暂停/停止（AM-05 二次重写）** = 模式关闭 + 优雅完成手头工作（到一致状态、不启动超出门的新工作）+ 标准模式继续到下一个审批门（当前阶段自己的完成门，或其后的首个门；含 per-unit 段门；非门阶段照常跨过）+ 挂起的 AM-04 升级问题按标准流程继续 + 直到本轮结束不自动恢复，仅显式 Activate 重激活（全新 AM-02）；调整菜单删除。优先级消歧：AM 激活期 Pause 走 AM-05 而非 Park Ritual；显式"停下"是 Park（模式不动，AM-09 续接）；组合意图（立即停+暂停）= park + 翻转搭车、优雅条款豁免。
+- **Code-Gen Hold（AM-11 新增）** = 布防条件"code-gen 工作尚未开始"（含激活时已在当前阶段但未开工的子情形——堵计划审核轮发现的触发空洞：引擎 `remaining` 含当前阶段，若不设此条件 Pending 会悬空、AM-09 恢复条款会在开工后中途停住）；触发三路径（转移到达[优先于 AM-03 的 immediately begin] / 激活即呈现 / 续接重呈现）；放行 = 继续语义 → Pending→Passed + 刷 Last Updated + 审计；其他答复按意图处理后**仍等继续语义**；每次激活最多一次（重激活可在窗口开放时重新布防；backward redo 不重触发）；非 Pause 非 park，模式穿越停点保持开启直到本轮完成。
+- **AM-07** 缩为 AM-05 的等价入口（退出/关闭词汇）+ 保留"auto-approved 阶段重审走正常变更请求"。
+
+**实施**：主智能体重写 autonomous-mode.md（索引[AM-06 tombstone + AM-11 行]、AM-01 触发表 Pause 行 + 优先级注、AM-02 双问[Q2 含换模型理由/跳过条件/无预选]、AM-03 全阶段 + AM-11 优先、AM-05 优雅暂停六点、AM-06 退役节、AM-07 缩写、AM-08 模板换行 + Code-Gen Hold 四态语义 + 窄写窗口措辞类别化、AM-09 宣告含停点 + 停点等待态重呈现、AM-10 措辞 + 全量重问条款、AM-11 全文、Enforcement 表）+ 外围 6 文件（opt-in 区间、session-continuity 三处[停点状态标注直读来源]、workflow-conventions 两处[APG override 全阶段 + 两机制保留人环；区间行]、code-generation.md Prerequisites 后 AM-11 提示行、engine-contract §10 字段清单 + 未知行宽忽略句、dogfood-protocol 度量 3 措辞）；executor 后台并行删代码三簇（engine.py `_parse_autonomous` -9 行、test_engine.py 3 处[1 例改名 test_autonomous_key_disabled_section、整字典断言 3 键、删字段断言；fixture 的 Review Stages 行保留以钉死宽忽略]、generate.py stage-names 三处[MARKERS/render/render_map]）+ stage-contract 宿主清单去 autonomous-mode + engine-illustrated.md 行号锚点对账。
+
+**取代登记**：§7 行项 22（AM-06.6 slug 对齐）作废；Phase 4"AM 注记化"的 slug 校验子项作废、剩余范围收窄（显式动词 / digest 覆盖 / per-claim 并发语义；Code-Gen Hold 通道收编时评估）；D16 的"审核阶段预选旧值"条款废止。
+
+**验证**：unittest 231 全绿（无增删，1 例改名）；`generate.py` 重新生成 + `--check` 零漂移；sweep——功能性引用（读/用 Review Stages 的规则文字）零命中：模式串 `Review Stages|review_stages|stage-names|non-review` 在技能树 .md 仅 2 处移除/遗留注记（autonomous-mode 退役节、engine-contract §10 宽忽略句）；`AM-06` 4 处退役注记（索引/节头/opt-in/区间行）；`preselect` 3 处全否定句；engine-illustrated 引用对账（executor 报告 17 处，审核轮全数独立复核）。
+
+**实施后审核（reviewer，2026-09-29）**：裁决"**无阻断项**"——四项用户裁决与计划审核轮全部处置落地、引擎/契约/测试三方一致（`_parse_autonomous` 恰 3 键、唯一调用点、未知行宽忽略；契约 §6/§8 逐句吻合）、engine-illustrated 17 处锚点独立重定位全验（恰 -9 位移）、B2 修复三路径核实（路径 1 的 jump 到达由 AM-03.6 通用义务兜底，无实际空洞）、测试静态计数 231 精确复现（154+22+55）、16 键/渲染器一一对应零 orphan 标记。5 条发现全采纳当场修复：🟡① AGENTS.md:24 生成块宿主清单第二份拷贝漏同步（去 autonomous-mode）；🟡② 本条目 sweep 计数口径含混（模式串命中 2 处与 AM-06 退役注记足迹 4 处分列，已改）；存疑三项裁量落地——③ AM-02/AM-08 自定义停点答复落盘口径统一为 **verbatim 写入状态行**（枚举外加 `[verbatim custom hold instruction]`；AM-11 触发仅认 `Pending`，自定义变体按记录意图生效且跨会话存活）；④ 过期翻转对未知行的保留补 1 行断言钉死（fixture 的 Review Stages 行存活过翻转——此前仅解析器宽忽略有断言，翻转保留无）；⑤ 索引 AM-07 词汇分工修正（exit/turn-off，对齐 AM-01 触发表）。验证边界（审核者标注）：无 git diff 能力的三项（改名测试原名/`_expire_autonomous` 未动字面确认/宿主清单删除前原文）以静态一致性与主智能体实跑代验。

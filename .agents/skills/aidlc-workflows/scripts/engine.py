@@ -760,7 +760,6 @@ def _parse_autonomous(lines):
     in_section = False
     enabled = None
     question_handling = None
-    review_raw = None
     last_updated = None
     for line in lines:
         stripped = line.strip()
@@ -777,21 +776,13 @@ def _parse_autonomous(lines):
             enabled = value
         elif key == "Question Handling":
             question_handling = value or None
-        elif key == "Review Stages":
-            review_raw = value
         elif key == "Last Updated":
             last_updated = value or None
     if enabled is None or enabled.lower() not in ("yes", "no"):
         return None
-    review_stages = []
-    if review_raw and review_raw.strip().lower() != "none":
-        review_stages = [
-            part.strip() for part in review_raw.split(",") if part.strip()
-        ]
     return {
         "enabled": enabled.lower() == "yes",
         "question_handling": question_handling,
-        "review_stages": review_stages,
         "last_updated": last_updated,
     }
 

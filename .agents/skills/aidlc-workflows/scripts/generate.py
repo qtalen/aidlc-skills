@@ -130,9 +130,6 @@ MARKERS = {
         "execution-plan-stages",
         "scope-matrix",
     ],
-    "references/extensions/workflow/autonomous-mode/autonomous-mode.md": [
-        "stage-names",
-    ],
 }
 
 
@@ -898,9 +895,6 @@ def build_render_map(ordered, scope_order):
             % (", ".join(always), ", ".join(conditional))
         )
 
-    def render_stage_names():
-        return ", ".join(s.name for s in ordered if s.phase != "operations")
-
     def render_stage_descriptions():
         blocks = []
         for phase in PHASE_ORDER:
@@ -1164,7 +1158,6 @@ def build_render_map(ordered, scope_order):
         "artifact-loading": render_artifact_loading,
         "execution-plan-mermaid": lambda: render_mermaid(True),
         "execution-plan-stages": render_execution_plan_stages,
-        "stage-names": render_stage_names,
         "scope-catalog": render_scope_catalog,
         "scope-matrix": render_scope_matrix,
     }

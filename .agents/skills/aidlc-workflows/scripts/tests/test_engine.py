@@ -1405,12 +1405,11 @@ class StatusRecoveryTests(WorkspaceCase):
             {
                 "enabled": True,
                 "question_handling": "auto-recommended",
-                "review_stages": ["code-generation", "build-and-test"],
                 "last_updated": "2026-09-24T08:00:00Z",
             },
         )
 
-    def test_autonomous_key_disabled_has_no_review_stages(self):
+    def test_autonomous_key_disabled_section(self):
         self._append_model_text(
             "\n## Autonomous Mode\n"
             "- **Enabled**: No\n"
@@ -1420,7 +1419,7 @@ class StatusRecoveryTests(WorkspaceCase):
         )
         autonomous = self.status()["autonomous"]
         self.assertEqual(autonomous["enabled"], False)
-        self.assertEqual(autonomous["review_stages"], [])
+        self.assertNotIn("review_stages", autonomous)
         self.assertEqual(autonomous["question_handling"], "N/A")
 
     def test_autonomous_key_null_when_missing_or_malformed(self):
@@ -1621,11 +1620,12 @@ class AutonomousExpiryTests(WorkspaceCase):
         autonomous = self.status()["autonomous"]
         self.assertFalse(autonomous["enabled"])
         self.assertEqual(autonomous["question_handling"], "auto-recommended")
-        self.assertEqual(
-            autonomous["review_stages"], ["code-generation", "build-and-test"]
-        )
         self.assertNotEqual(autonomous["last_updated"], "2026-09-24T08:00:00Z")
         self.assertIn("- **Enabled**: No", self.state_text())
+        # Unknown section lines (a legacy Review Stages line here) survive
+        # the expiry flip verbatim — the engine rewrites only Enabled and
+        # an existing non-empty Last Updated line.
+        self.assertIn("- **Review Stages**", self.state_text())
         self.assertIn(
             "autonomous mode expired (workflow complete)", self.audit_text()
         )

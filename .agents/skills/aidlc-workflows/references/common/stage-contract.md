@@ -7,8 +7,8 @@
 >
 > **Purpose**: Stage frontmatter is the **single source of truth** for the stage
 > inventory. Human-readable lists elsewhere (SKILL.md, process-overview,
-> welcome-message, terminology, session-continuity, workflow-planning templates,
-> autonomous-mode) are **generated artifacts** between
+> welcome-message, terminology, session-continuity,
+> workflow-planning templates) are **generated artifacts** between
 > `<!-- BEGIN GENERATED: <key> -->` / `<!-- END GENERATED -->` markers — never
 > hand-edit them.
 >

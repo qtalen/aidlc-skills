@@ -47,6 +47,8 @@ This stage generates code for each unit of work through two integrated parts:
 - All unit design artifacts must be available
 - Unit is ready for code generation
 
+**Autonomous Mode (AM-11)**: when the state section shows `Code-Gen Hold: Pending`, present the hold announcement and wait for the user's go-ahead BEFORE starting this stage's work — the stop lands before the FIRST unit and occurs at most once per activation (see `../extensions/workflow/autonomous-mode/autonomous-mode.md`).
+
 ---
 
 # PART 1: PLANNING

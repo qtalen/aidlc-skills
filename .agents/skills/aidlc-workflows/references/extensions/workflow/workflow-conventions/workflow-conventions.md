@@ -67,7 +67,7 @@ When creating or substantially updating an `aidlc-docs/` **content artifact of 3
 
 Stage completion messages keep their standardized two-option templates unchanged — this group is an interpretation layer for the user's free-form response.
 
-**Autonomous Mode override**: When Autonomous Mode is active (see `../autonomous-mode/autonomous-mode.md`), AM-03 suspends APG-01~04 waiting behavior for stages NOT in the Review Stages list; stages in the Review Stages list follow APG-01~05 normally. APG-05 always applies.
+**Autonomous Mode override**: When Autonomous Mode is active (see `../autonomous-mode/autonomous-mode.md`), AM-03 suspends APG-01~04 waiting behavior for **every stage**. APG-05 always applies. Two mechanisms keep a human in the loop: the Code-Gen Hold (AM-11) may stop right before Code Generation, and a Pause (AM-05) ends the mode and continues in standard mode to the next approval gate.
 
 ### APG-01: Approval Intent Classification
 At every approval gate, classify the user's reply into exactly one intent BEFORE acting:
@@ -187,5 +187,5 @@ If no structured question tool is available (none recognized for this harness), 
 | Every approval gate (all stages, inception + construction) | APG-01 ~ APG-05 |
 | Every audit.md write | AUD-01, AUD-02, AUD-03, AUD-05 |
 | Every question file creation (requirements, stories, design, clarification) | QT-01 ~ QT-04 |
-| Autonomous Mode trigger / gates / questions / pause / resume / round expiry | AM-01 ~ AM-10 (see `../autonomous-mode/autonomous-mode.md`) |
+| Autonomous Mode trigger / gates / questions / pause / resume / round expiry / code-gen hold | AM-01 ~ AM-11 (see `../autonomous-mode/autonomous-mode.md`; AM-06 removed 2026-09-29) |
 | This file's own maintenance | DOC-05, AUD-04 |
