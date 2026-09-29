@@ -19,14 +19,14 @@ advisory; rules 9, 11 and 16 were already covered before this table existed):
 | 2 | slug is kebab-case and equals filename stem | build_stage() in memory | Rule2Tests |
 | 3 | phase matches containing directory | build_stage() in memory | Rule3Tests |
 | 4 | required keys present, list-typed, enum-valid | build_stage() in memory | Rule4Tests |
-| 5 | condition is a non-empty string | build_stage() in memory | Rule5Tests |
+| 5 | condition shape: non-empty string (ALWAYS) / `{execute_if, skip_if}` mapping (CONDITIONAL) | build_stage() in memory | Rule5Tests |
 | 6 | for_each only accepts 'unit-of-work' | build_stage() in memory | Rule6Tests |
 | 7 | requires_stage references known slugs | _warn_stage() + _validate_references() | Rule7Tests |
 | 8 | requires_stage graph is acyclic | _warn_stage() + _detect_cycles() | Rule8Tests |
 | 9 | scopes key set equals registered scopes | build_stage() in memory | covered by test_incomplete_scopes_keyset_errors (StageValidationTests) |
 | 10 | scope values in EXECUTE/SKIP/CONDITIONAL | build_stage() in memory | Rule10Tests |
 | 11 | ALWAYS stage is EXECUTE in every scope | build_stage() in memory | covered by test_always_stage_must_execute_everywhere (StageValidationTests) |
-| 12 | scope registry files valid (name/depth/keys/default) | load_scopes() with generate.SKILL_ROOT patched to a temp dir (module global read at call time; generate.py:31, :534-535) — no tree copy needed | Rule12Tests |
+| 12 | scope registry files valid (name/depth/keys/default) | load_scopes() with generate.SKILL_ROOT patched to a temp dir (module global read at call time; generate.py:31, :545) — no tree copy needed | Rule12Tests |
 | 13 | every consume artifact matches some producer | _warn_stage() + compute_warnings() | Rule13Tests |
 | 14 | required consume's producer listed in requires_stage | _warn_stage() + compute_warnings() | Rule14Tests |
 | 15 | an artifact is not written by two stages | _warn_stage() + compute_warnings() | Rule15Tests |
@@ -996,6 +996,58 @@ class RenderMapCoverageTests(unittest.TestCase):
             markers_keys,
             set(render_map.keys()),
             "render_map and MARKERS key sets diverged",
+        )
+
+
+class DeletedNameHygieneTests(unittest.TestCase):
+    """Anti-regression: names/keys removed by the doc-slimming batch must
+    not reappear in skill rule text, the generator, or the repo-root READMEs.
+
+    The one-off closure grep (plan WP9) covered only the skill tree; this
+    test makes the check permanent and also covers README.md / README_cn.md.
+    Historical records (docs/, AGENTS.md roadmap) are exempt by convention.
+    """
+
+    REMOVED_TOKENS = (
+        "process-overview",
+        "terminology",
+        "canon-lists",
+        "stage-flowchart",
+        "stage-descriptions",
+        "stages-inception",
+        "stages-construction",
+        "stages-operations",
+        "stage-classification",
+    )
+
+    def _scanned_files(self):
+        self_path = os.path.abspath(__file__)
+        for dirpath, _dirnames, filenames in os.walk(SKILL_ROOT):
+            for name in filenames:
+                if not name.endswith((".md", ".py")):
+                    continue
+                path = os.path.abspath(os.path.join(dirpath, name))
+                if path == self_path:
+                    continue  # this test names the tokens by necessity
+                yield path
+        for name in ("README.md", "README_cn.md"):
+            path = os.path.join(REPO_ROOT, name)
+            if os.path.exists(path):
+                yield path
+
+    def test_removed_names_absent(self):
+        offenders = []
+        for path in self._scanned_files():
+            with open(path, "r", encoding="utf-8", errors="replace") as handle:
+                text = handle.read()
+            for token in self.REMOVED_TOKENS:
+                if token in text:
+                    offenders.append(
+                        "%s: %s"
+                        % (os.path.relpath(path, REPO_ROOT), token)
+                    )
+        self.assertEqual(
+            offenders, [], "removed-name references resurfaced: %r" % offenders
         )
 
 

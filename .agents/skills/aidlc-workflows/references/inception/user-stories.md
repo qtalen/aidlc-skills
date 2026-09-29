@@ -48,6 +48,8 @@ User Stories focus on:
 
 ## Intelligent Assessment Guidelines
 
+*Authoritative criteria: this stage's frontmatter `condition` mapping (rendered into the CONDITIONAL Stage Criteria list under the scope matrix in workflow-planning.md). The guidelines below are the execution-time assessment procedure — on any conflict, the frontmatter wins.*
+
 **WHEN TO EXECUTE USER STORIES**: Use this enhanced assessment before proceeding:
 
 ### High Priority Execution (ALWAYS Execute)
