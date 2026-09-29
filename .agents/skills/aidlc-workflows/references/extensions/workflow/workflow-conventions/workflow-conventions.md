@@ -187,5 +187,5 @@ If no structured question tool is available (none recognized for this harness), 
 | Every approval gate (all stages, inception + construction) | APG-01 ~ APG-05 |
 | Every audit.md write | AUD-01, AUD-02, AUD-03, AUD-05 |
 | Every question file creation (requirements, stories, design, clarification) | QT-01 ~ QT-04 |
-| Autonomous Mode trigger / gates / questions / pause / resume / round expiry / code-gen hold | AM-01 ~ AM-11 (see `../autonomous-mode/autonomous-mode.md`; AM-06 removed 2026-09-29) |
+| Autonomous Mode trigger / gates / questions / pause / resume / round expiry / code-gen hold | AM-01 ~ AM-11 (see `../autonomous-mode/autonomous-mode.md`; AM-06 number retired) |
 | This file's own maintenance | DOC-05, AUD-04 |

@@ -18,7 +18,7 @@ The AI model intelligently assesses what stages are needed based on:
 3. Complexity and scope of change
 4. Risk and impact assessment
 
-**Workflow scopes**: During Requirements Analysis, a named scope (classic/bugfix/refactor/security-patch/infra/express) is selected and recorded in `aidlc-docs/aidlc-state.md`. Scope selection is **de-emphasized for end users**: when the match is unambiguous the scope is auto-selected without a gate; only genuine ambiguity triggers a chat question with minimal candidates (see `references/inception/requirements-analysis.md` Step 2.5). The scope pre-prunes conditional stages (see `references/common/stage-contract.md` §6). If the active scope marks a stage as SKIP, do NOT execute it or re-litigate its inclusion — the per-stage assessment in this file applies only to stages in the plan; the user may still add stages back explicitly at the Workflow Planning gate. If no scope is recorded (e.g. a session started before scopes existed), treat the plan as `classic`.
+**Workflow scopes**: During Requirements Analysis, a named scope (classic/bugfix/refactor/security-patch/infra/express) is selected and recorded in `aidlc-docs/aidlc-state.md`. Scope selection is **de-emphasized for end users**: when the match is unambiguous the scope is auto-selected without a gate; only genuine ambiguity triggers a chat question with minimal candidates (see `references/inception/requirements-analysis.md` Step 2.5). The scope pre-prunes conditional stages (see `references/common/stage-contract.md` §6). If the active scope marks a stage as SKIP, do NOT execute it or re-litigate its inclusion — the per-stage criteria live in each stage's frontmatter `condition` (rendered into the CONDITIONAL Stage Criteria list under the scope matrix in `references/inception/workflow-planning.md`) and apply only to stages in the plan; the user may still add stages back explicitly at the Workflow Planning gate. If no scope is recorded (e.g. a session started before scopes existed), treat the plan as `classic`.
 
 ## MANDATORY: Rule Details Loading
 
@@ -167,199 +167,37 @@ To park, run `python <skill>/scripts/engine.py park --note "<what is in flight; 
 
 ## Workspace Detection (ALWAYS EXECUTE)
 
-1. **MANDATORY**: Log initial user request in audit.md with complete raw input
-2. Load all steps from `references/inception/workspace-detection.md`
-3. Execute workspace detection:
-   - Confirm start/resume state from the engine status probe (see Engine Bootstrap)
-   - Scan workspace for existing code
-   - Determine if brownfield or greenfield
-   - Check for existing reverse engineering artifacts
-4. **MANDATORY**: Log findings in audit.md
-5. Present completion message to user (see workspace-detection.md for message formats)
-6. On completion, report via the engine (see Orchestration Loop): `completed` for this stage.
+Load `references/inception/workspace-detection.md` and execute (engine status probe per Engine Bootstrap; brownfield/greenfield classification). No approval gate — report `completed` via the engine (Orchestration Loop).
 
 ## Reverse Engineering (CONDITIONAL - Brownfield Only)
 
-**Execute IF**:
-- Existing codebase detected
-- No previous reverse engineering artifacts found
-
-**Skip IF**:
-- Greenfield project
-- Previous reverse engineering artifacts exist
-
-**Execution**:
-1. **MANDATORY**: Log start of reverse engineering in audit.md
-2. Load all steps from `references/inception/reverse-engineering.md`
-3. Execute reverse engineering:
-   - Analyze all packages and components
-   - Generate a business overview of the whole system covering the business transactions
-   - Generate architecture documentation
-   - Generate code structure documentation
-   - Generate API documentation
-   - Generate component inventory
-   - Generate Interaction Diagrams depicting how business transactions are implemented across components
-   - Generate technology stack documentation
-   - Generate dependencies documentation
-
-4. **Wait for Explicit Approval**: Present detailed completion message (see reverse-engineering.md for message format) - DO NOT PROCEED until user confirms
-5. **MANDATORY**: Log user's response in audit.md with complete raw input
-6. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list under the scope matrix in `references/inception/workflow-planning.md`). Load `references/inception/reverse-engineering.md` and execute its steps. Approval gate before proceeding — report `approved` / `rejected` / `revised`, or `skipped --reason` if the stage does not apply (Orchestration Loop).
 
 ## Requirements Analysis (ALWAYS EXECUTE - Adaptive Depth)
 
-**Always executes** but depth varies based on request clarity and complexity:
-- **Minimal**: Simple, clear request - just document intent analysis
-- **Standard**: Normal complexity - gather functional and non-functional requirements
-- **Comprehensive**: Complex, high-risk - detailed requirements with traceability
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this phase in audit.md
-2. Load all steps from `references/inception/requirements-analysis.md`
-3. Execute requirements analysis:
-   - Load reverse engineering artifacts (if brownfield)
-   - Analyze user request (intent analysis)
-   - Determine requirements depth needed
-   - Assess current requirements
-   - Ask clarifying questions (if needed)
-   - Generate requirements document
-4. Execute at appropriate depth (minimal/standard/comprehensive)
-5. **Wait for Explicit Approval**: Follow approval format from requirements-analysis.md detailed steps - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle.
+**Always executes**; depth scales with request clarity and complexity (minimal / standard / comprehensive — see `references/common/depth-levels.md`). Load `references/inception/requirements-analysis.md` and execute its steps (scope selection Step 2.5 included). Approval gate before proceeding — report `approved` / `rejected` / `revised` via the engine (Orchestration Loop).
 
 ## User Stories (CONDITIONAL)
 
-**INTELLIGENT ASSESSMENT**: Use multi-factor analysis to determine if user stories add value:
-
-**ALWAYS Execute IF** (High Priority Indicators):
-- New user-facing features or functionality
-- Changes affecting user workflows or interactions
-- Multiple user types or personas involved
-- Complex business requirements with acceptance criteria needs
-- Cross-functional team collaboration required
-- Customer-facing API or service changes
-- New product capabilities or enhancements
-
-**LIKELY Execute IF** (Medium Priority - Assess Complexity):
-- Modifications to existing user-facing features
-- Backend changes that indirectly affect user experience
-- Integration work that impacts user workflows
-- Performance improvements with user-visible benefits
-- Security enhancements affecting user interactions
-- Data model changes affecting user data or reports
-
-**COMPLEXITY-BASED ASSESSMENT**: For medium priority cases, execute user stories if:
-- Request involves multiple components or services
-- Changes span multiple user touchpoints
-- Business logic is complex or has multiple scenarios
-- Requirements have ambiguity that stories could clarify
-- Implementation affects multiple user journeys
-- Change has significant business impact or risk
-
-**SKIP ONLY IF** (Low Priority - Simple Cases):
-- Pure internal refactoring with zero user impact
-- Simple bug fixes with clear, isolated scope
-- Infrastructure changes with no user-facing effects
-- Technical debt cleanup with no functional changes
-- Developer tooling or build process improvements
-- Documentation-only updates
-
-**ASSESSMENT CRITERIA**: When in doubt, favor inclusion of user stories for:
-- Requests with business stakeholder involvement
-- Changes requiring user acceptance testing
-- Features with multiple implementation approaches
-- Work that benefits from shared team understanding
-- Projects where requirements clarity is valuable
-
-**ASSESSMENT PROCESS**:
-1. Analyze request complexity and scope
-2. Identify user impact (direct or indirect)
-3. Evaluate business context and stakeholder needs
-4. Consider team collaboration benefits
-5. Default to inclusion for borderline cases
-
-**Note**: If Requirements Analysis executed, Stories can reference and build upon those requirements.
+**Assessment criteria**: the authoritative Execute-IF/Skip-IF criteria are in this stage's frontmatter `condition` — see the CONDITIONAL Stage Criteria list under the scope matrix in `references/inception/workflow-planning.md`. Perform the intelligent assessment per Step 1 in `references/inception/user-stories.md`; if Requirements Analysis executed, stories can reference and build upon those requirements.
 
 **User Stories has two parts within one stage**:
 1. **Part 1 - Planning**: Create story plan with questions, collect answers, analyze for ambiguities, get approval
 2. **Part 2 - Generation**: Execute approved plan to generate stories and personas
 
-**Execution**:
-1. **MANDATORY**: Log any user input during this phase in audit.md
-2. Load all steps from `references/inception/user-stories.md`
-3. **MANDATORY**: Perform intelligent assessment (Step 1 in user-stories.md) to validate user stories are needed
-4. Load reverse engineering artifacts (if brownfield)
-5. If Requirements exist, reference them when creating stories
-6. Execute at appropriate depth (minimal/standard/comprehensive)
-7. **PART 1 - Planning**: Create story plan with questions, wait for user answers, analyze for ambiguities, get approval
-8. **PART 2 - Generation**: Execute approved plan to generate stories and personas
-9. **Wait for Explicit Approval**: Follow approval format from user-stories.md detailed steps - DO NOT PROCEED until user confirms
-10. **MANDATORY**: Log user's response in audit.md with complete raw input
-11. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
+**Execution**: Load `references/inception/user-stories.md`; Part 1 (planning: story plan + questions + ambiguity analysis + plan approval), then Part 2 (generation of stories and personas). If the assessment above concludes stories are not needed, report `skipped --reason`. Approval gate before proceeding — report `approved` / `rejected` / `revised` via the engine (Orchestration Loop).
 
 ## Workflow Planning (ALWAYS EXECUTE)
 
-1. **MANDATORY**: Log any user input during this phase in audit.md
-2. Load all steps from `references/inception/workflow-planning.md`
-3. **MANDATORY**: Load content validation rules from `references/common/content-validation.md`
-4. Load all prior context:
-   - Reverse engineering artifacts (if brownfield)
-   - Intent analysis
-   - Requirements (if executed)
-   - User stories (if executed)
-5. Execute workflow planning:
-   - Determine which phases to execute
-   - Determine depth level for each phase
-   - Create multi-package change sequence (if brownfield)
-   - Generate workflow visualization (VALIDATE Mermaid syntax before writing)
-6. **MANDATORY**: Validate all content before file creation per content-validation.md rules
-7. **Wait for Explicit Approval**: Present recommendations using language from workflow-planning.md Step 9, emphasizing user control to override recommendations - DO NOT PROCEED until user confirms
-8. **MANDATORY**: Log user's response in audit.md with complete raw input
-9. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle.
+Load `references/inception/workflow-planning.md` and execute its steps: scope-matrix baseline plus CONDITIONAL Stage Criteria judgments, per-stage depth, the execution plan document (validate Mermaid and content per `references/common/content-validation.md`). Approval gate — report `approved` / `rejected` / `revised` via the engine (Orchestration Loop).
 
 ## Application Design (CONDITIONAL)
 
-**Execute IF**:
-- New components or services needed
-- Component methods and business rules need definition
-- Service layer design required
-- Component dependencies need clarification
-
-**Skip IF**:
-- Changes within existing component boundaries
-- No new components or methods
-- Pure implementation changes
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this phase in audit.md
-2. Load all steps from `references/inception/application-design.md`
-3. Load reverse engineering artifacts (if brownfield)
-4. Execute at appropriate depth (minimal/standard/comprehensive)
-5. **Wait for Explicit Approval**: Present detailed completion message (see application-design.md for message format) - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/inception/application-design.md` and execute at appropriate depth. Approval gate — report `approved` / `rejected` / `revised`, or `skipped --reason` if not applicable (Orchestration Loop).
 
 ## Units Generation (CONDITIONAL)
 
-**Execute IF**:
-- System needs decomposition into multiple units of work
-- Multiple services or modules required
-- Complex system requiring structured breakdown
-
-**Skip IF**:
-- Single simple unit
-- No decomposition needed
-- Straightforward single-component implementation
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this phase in audit.md
-2. Load all steps from `references/inception/units-generation.md`
-3. Load reverse engineering artifacts (if brownfield)
-4. Execute at appropriate depth (minimal/standard/comprehensive)
-5. **Wait for Explicit Approval**: Present detailed completion message (see units-generation.md for message format) - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/inception/units-generation.md` and execute at appropriate depth. Approval gate — report `approved` / `rejected` / `revised`, or `skipped --reason` if not applicable (Orchestration Loop).
 
 ---
 
@@ -391,118 +229,29 @@ To park, run `python <skill>/scripts/engine.py park --note "<what is in flight; 
 > **Per-unit reporting rule**: the engine emits each per-unit stage ONCE for the whole unit loop (one state slot per stage). Run the stage's gate per unit, but call `report` exactly once — after the LAST unit's gate outcome. Reporting `approved` after an early unit would mark the stage done and strand the remaining units.
 ### Functional Design (CONDITIONAL, per-unit)
 
-**Execute IF**:
-- New data models or schemas
-- Complex business logic
-- Business rules need detailed design
-
-**Skip IF**:
-- Simple logic changes
-- No new business logic
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this stage in audit.md
-2. Load all steps from `references/construction/functional-design.md`
-3. Execute functional design for this unit
-4. **MANDATORY**: Present standardized 2-option completion message as defined in functional-design.md - DO NOT use emergent 3-option behavior
-5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/functional-design.md` and execute for this unit. Standardized 2-option gate — report `approved` / `rejected` / `revised`, or `skipped --reason` if not applicable (Orchestration Loop).
 
 ### NFR Requirements (CONDITIONAL, per-unit)
 
-**Execute IF**:
-- Performance requirements exist
-- Security considerations needed
-- Scalability concerns present
-- Tech stack selection required
-
-**Skip IF**:
-- No NFR requirements
-- Tech stack already determined
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this stage in audit.md
-2. Load all steps from `references/construction/nfr-requirements.md`
-3. Execute NFR assessment for this unit
-4. **MANDATORY**: Present standardized 2-option completion message as defined in nfr-requirements.md - DO NOT use emergent behavior
-5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/nfr-requirements.md` and execute for this unit. Standardized 2-option gate — report `approved` / `rejected` / `revised`, or `skipped --reason` if not applicable (Orchestration Loop).
 
 ### NFR Design (CONDITIONAL, per-unit)
 
-**Execute IF**:
-- NFR Requirements was executed
-- NFR patterns need to be incorporated
-
-**Skip IF**:
-- No NFR requirements
-- NFR Requirements was skipped
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this stage in audit.md
-2. Load all steps from `references/construction/nfr-design.md`
-3. Execute NFR design for this unit
-4. **MANDATORY**: Present standardized 2-option completion message as defined in nfr-design.md - DO NOT use emergent behavior
-5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/nfr-design.md` and execute for this unit. Standardized 2-option gate — report `approved` / `rejected` / `revised`, or `skipped --reason` if not applicable (Orchestration Loop).
 
 ### Infrastructure Design (CONDITIONAL, per-unit)
 
-**Execute IF**:
-- Infrastructure services need mapping
-- Deployment architecture required
-- Cloud resources need specification
-
-**Skip IF**:
-- No infrastructure changes
-- Infrastructure already defined
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this stage in audit.md
-2. Load all steps from `references/construction/infrastructure-design.md`
-3. Execute infrastructure design for this unit
-4. **MANDATORY**: Present standardized 2-option completion message as defined in infrastructure-design.md - DO NOT use emergent behavior
-5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle. If this stage does not apply, report `skipped --reason` instead.
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/infrastructure-design.md` and execute for this unit. Standardized 2-option gate — report `approved` / `rejected` / `revised`, or `skipped --reason` if not applicable (Orchestration Loop).
 
 ### Code Generation (ALWAYS EXECUTE, per-unit)
 
-**Always executes for each unit**
-
-**Code Generation has two parts within one stage**:
-1. **Part 1 - Planning**: Create detailed code generation plan with explicit steps
-2. **Part 2 - Generation**: Execute approved plan to generate code, tests, and artifacts
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this stage in audit.md
-2. Load all steps from `references/construction/code-generation.md`
-3. **PART 1 - Planning**: Create code generation plan with checkboxes, get user approval
-4. **PART 2 - Generation**: Execute approved plan to generate code for this unit
-5. **MANDATORY**: Present standardized 2-option completion message as defined in code-generation.md - DO NOT use emergent behavior
-6. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-7. **MANDATORY**: Log user's response in audit.md with complete raw input
-8. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle.
+**Two parts within one stage**: Part 1 (planning — detailed code generation plan with checkboxes, user-approved), Part 2 (generation — execute the approved plan; application code goes to the workspace root, never `aidlc-docs/`). Load `references/construction/code-generation.md` and execute. Standardized 2-option gate — report `approved` / `rejected` / `revised` via the engine (Orchestration Loop).
 
 ---
 
 ## Build and Test (ALWAYS EXECUTE)
 
-1. **MANDATORY**: Log any user input during this phase in audit.md
-2. Load all steps from `references/construction/build-and-test.md`
-3. Generate comprehensive build and test instructions:
-   - Build instructions for all units
-   - Unit test execution instructions
-   - Integration test instructions (test interactions between units)
-   - Performance test instructions (if applicable)
-   - Additional test instructions as needed (contract tests, security tests, e2e tests)
-4. Create instruction files in the `build-and-test/` subdirectory (full artifact list: see `references/construction/build-and-test.md`)
-5. **Wait for Explicit Approval**: Ask: "**Build and test instructions complete. Approve to record this stage?**" - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-7. On completion, report via the engine (see Orchestration Loop): `approved` after user approval; `rejected` if changes are requested; `revised` after a revision cycle.
+Load `references/construction/build-and-test.md` and generate comprehensive build/test instruction files for all units (full artifact list there). Approval gate — report `approved` / `rejected` / `revised` via the engine (Orchestration Loop).
 
 ---
 
@@ -539,41 +288,17 @@ The Operations stage will eventually include:
 - **Adaptive Execution**: Only execute stages that add value
 - **Transparent Planning**: Always show execution plan before starting
 - **User Control**: User can request stage inclusion/exclusion
-- **Progress Tracking**: Stage progress is engine-owned. The engine exclusively maintains the ENGINE-STATE region of `aidlc-state.md` (stage checkboxes, Current Status, State Digest) through `report`/`jump` (transitions) and `park` (annotations). The model MUST NOT hand-edit that region.
+- **Progress Tracking (two-level checkboxes)**: Stage progress is engine-owned — the engine exclusively maintains the ENGINE-STATE region of `aidlc-state.md` (stage checkboxes, Current Status, State Digest) through `report`/`jump` (transitions) and `park` (annotations); the model MUST NOT hand-edit it. Plan-level checkboxes in `aidlc-docs/` plan files are model-owned — mark a step `[x]` in the SAME interaction where the work is completed; never leave completed work untracked.
 - **State Ownership**: The model maintains only the model-owned regions of `aidlc-state.md` (Project Information, Workspace State, Code Location Rules, Extension Configuration, Autonomous Mode, Execution Plan Summary — incl. the Scope/Depth/Stages lines the engine reads for routing) per template. The full ownership matrix is in `references/common/engine-contract.md`. (Sole exception: the engine's AM-10 round-boundary expiry flip of the Autonomous Mode `Enabled` line — engine-contract.md §6.)
-- **Complete Audit Trail**: Log ALL user inputs and AI responses in audit.md with timestamps
-  - **CRITICAL**: Capture user's COMPLETE RAW INPUT exactly as provided
-  - **CRITICAL**: Never summarize or paraphrase user input in audit log
-  - **CRITICAL**: Log every interaction, not just approvals
+- **Complete Audit Trail**: Log ALL user inputs and AI responses in audit.md with timestamps — COMPLETE RAW INPUT, never summarized, every interaction (not just approvals). The full audit discipline (append-only, end-of-file anchoring, git-sourced fields, timestamp acquisition) is enforced by workflow-conventions Group 3 (AUD-01–05).
 - **Quality Focus**: Complex changes get full treatment, simple changes stay efficient
 - **Content Validation**: Always validate content before file creation per content-validation.md rules
 - **NO EMERGENT BEHAVIOR**: Construction phases MUST use standardized 2-option completion messages as defined in their respective rule files. DO NOT create 3-option menus or other emergent navigation patterns.
 
-## MANDATORY: Plan-Level Checkbox Enforcement
+## Audit Log Entry Format
 
-### MANDATORY RULES FOR PLAN EXECUTION
-1. **NEVER complete any work without updating plan checkboxes**
-2. **IMMEDIATELY after completing ANY step described in a plan file, mark that step [x]**
-3. **This must happen in the SAME interaction where the work is completed**
-4. **NO EXCEPTIONS**: Every plan step completion MUST be tracked with checkbox updates
+Log every interaction (prompts, approval asks, user responses) using this entry shape. Timestamps are ISO 8601 (YYYY-MM-DDTHH:MM:SSZ); include stage context for each entry:
 
-### Two-Level Checkbox Tracking System
-- **Plan-Level**: Track detailed execution progress within each stage. Plan files live in `aidlc-docs/` and remain model-owned — update their checkboxes immediately in the same interaction where the work is completed.
-- **Stage-Level**: Overall workflow progress lives in the engine-owned region of `aidlc-state.md`. It is maintained exclusively by the engine through `report`/`jump` (transitions) and `park` (annotations) (see Orchestration Loop) — the model MUST NOT hand-edit it.
-- **Update immediately**: All plan-level checkbox updates happen in the SAME interaction where the work is completed.
-
-## Prompts Logging Requirements
-- **MANDATORY**: Log EVERY user input (prompts, questions, responses) with timestamp in audit.md
-- **MANDATORY**: Capture user's COMPLETE RAW INPUT exactly as provided (never summarize)
-- **MANDATORY**: Log every approval prompt with timestamp before asking the user
-- **MANDATORY**: Record every user response with timestamp after receiving it
-- **CRITICAL**: ALWAYS append changes to EDIT audit.md file, NEVER use tools and commands that completely overwrite its contents
-- **CRITICAL**: NEVER use file writing tools and commands that overwrite the entire contents of audit.md, as this causes duplication
-- **CRITICAL**: Append every new audit entry at the END of audit.md in one edit; never anchor an insertion on an existing entry's `##` heading line, and never insert entries between historical ones (AUD-05 in workflow-conventions)
-- Use ISO 8601 format for timestamps (YYYY-MM-DDTHH:MM:SSZ)
-- Include stage context for each entry
-
-### Audit Log Format:
 ```markdown
 ## [Stage Name or Interaction Type]
 **Timestamp**: [ISO timestamp]
@@ -583,18 +308,6 @@ The Operations stage will eventually include:
 
 ---
 ```
-
-### Correct Tool Usage for audit.md
-
-✅ CORRECT:
-
-1. Read the audit.md file
-2. Append/Edit the file to make changes
-
-❌ WRONG:
-
-1. Read the audit.md file
-2. Completely overwrite the audit.md with the contents of what you read, plus the new changes you want to add to it
 
 ## Directory Structure
 

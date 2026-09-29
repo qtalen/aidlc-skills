@@ -33,143 +33,10 @@
 
 ## Stage-Specific Error Handling
 
-### Workspace Detection Errors
+Stage-specific failure patterns (contradictions, ambiguous answers, incomplete plans, generation failures) follow the procedures already defined in each stage rule file and the contradiction/ambiguity machinery in `question-format-guide.md` — they are not restated per stage here. Two cross-stage rules apply everywhere:
 
-**Error**: Cannot read workspace files
-- **Cause**: Permission issues, missing directories
-- **Solution**: Ask user to verify workspace path and permissions
-- **Workaround**: Proceed with user-provided information only
-
-**Error**: Existing `aidlc-state.md` is corrupted
-- **Cause**: Manual editing, incomplete previous run
-- **Solution**: Detect the problem with `python <skill>/scripts/engine.py status` (fall back to `python3`). If `integrity` is `violated` (State Digest drift), HALT and present the drift facts with the last recorded audit transition entry. Ask the user whether to re-baseline (after confirmation, `engine.py rebase`) or start fresh (`engine.py jump --fresh`).
-- **Recovery**: Never hand-edit the engine-owned state region; all recovery goes through the engine
-
-**Error**: Cannot determine required stages
-- **Cause**: Insufficient information from user
-- **Solution**: Ask clarifying questions about intent and scope
-- **Workaround**: Default to comprehensive execution plan
-
-### Requirements Analysis Errors
-
-**Error**: User provides contradictory requirements
-- **Cause**: Unclear understanding, changing needs
-- **Solution**: Create follow-up questions to resolve contradictions
-- **Do Not Proceed**: Until contradictions are resolved
-
-**Error**: Requirements document cannot be converted
-- **Cause**: Unsupported format, corrupted file
-- **Solution**: Ask user to provide requirements in supported format
-- **Workaround**: Work with user's verbal description
-
-**Error**: Incomplete answers to verification questions
-- **Cause**: User skipped questions, unclear what to answer
-- **Solution**: Highlight unanswered questions, provide examples
-- **Do Not Proceed**: Until all required questions are answered
-
-### User Stories Errors
-
-**Error**: Cannot map requirements to stories
-- **Cause**: Requirements too vague, missing functional details
-- **Solution**: Return to Requirements Analysis for clarification
-- **Workaround**: Create stories based on available information, mark as incomplete
-
-**Error**: User provides ambiguous story planning answers
-- **Cause**: Unclear options, complex decision
-- **Solution**: Add follow-up questions with specific examples
-- **Do Not Proceed**: Until ambiguities are resolved
-
-**Error**: Story generation plan has uncompleted steps
-- **Cause**: Execution interrupted, steps skipped
-- **Solution**: Resume from first uncompleted step
-- **Recovery**: Review completed steps, continue from checkpoint
-
-### Application Design Errors
-
-**Error**: Architectural decision is unclear or contradictory
-- **Cause**: Ambiguous answers, conflicting requirements
-- **Solution**: Add follow-up questions to clarify decision
-- **Do Not Proceed**: Until decision is clear and documented
-
-**Error**: Cannot determine number of services/units
-- **Cause**: Insufficient information about boundaries
-- **Solution**: Ask specific questions about deployment, team structure, scaling
-- **Workaround**: Default to monolith, allow change later
-
-### Design Errors
-
-**Error**: Unit dependencies are circular
-- **Cause**: Poor boundary definition, tight coupling
-- **Solution**: Identify circular dependencies, suggest refactoring
-- **Recovery**: Revise unit boundaries to break cycles
-
-**Error**: Unit design plan has missing steps
-- **Cause**: Plan generation incomplete, template error
-- **Solution**: Regenerate plan with all required steps
-- **Recovery**: Add missing steps to existing plan
-
-**Error**: Cannot generate design artifacts
-- **Cause**: Missing unit information, unclear requirements
-- **Solution**: Return to Units Generation to clarify unit definition
-- **Workaround**: Generate partial design, mark gaps
-
-### NFR Implementation Errors
-
-**Error**: Technology stack choices are incompatible
-- **Cause**: Conflicting requirements, platform limitations
-- **Solution**: Highlight incompatibilities, ask user to choose
-- **Do Not Proceed**: Until compatible choices are made
-
-**Error**: Organizational constraints cannot be met
-- **Cause**: Network restrictions, security policies
-- **Solution**: Document constraints, ask user for workarounds
-- **Escalation**: May require human intervention for setup
-
-**Error**: NFR implementation step requires human action
-- **Cause**: AI cannot perform certain tasks (network config, credentials)
-- **Solution**: Clearly mark as **HUMAN TASK**, provide instructions
-- **Wait**: For user confirmation before proceeding
-
-### Code Generation Planning Errors
-
-**Error**: Code generation plan is incomplete
-- **Cause**: Missing design artifacts, unclear requirements
-- **Solution**: Return to Design stage to complete artifacts
-- **Recovery**: Generate plan with available information, mark gaps
-
-**Error**: Unit dependencies not satisfied
-- **Cause**: Dependent units not yet generated
-- **Solution**: Reorder generation sequence to respect dependencies
-- **Workaround**: Generate with stub dependencies, integrate later
-
-### Code Generation Errors (Part 2: Code Generation)
-
-**Error**: Cannot generate code for a step
-- **Cause**: Insufficient design information, unclear requirements
-- **Solution**: Skip step, document as incomplete, continue
-- **Recovery**: Return to step after gathering more information
-
-**Error**: Generated code has syntax errors
-- **Cause**: Template issues, language-specific problems
-- **Solution**: Fix syntax errors, regenerate if needed
-- **Validation**: Verify code compiles before proceeding
-
-**Error**: Test generation fails
-- **Cause**: Complex logic, missing test framework setup
-- **Solution**: Generate basic test structure, mark for manual completion
-- **Workaround**: Proceed without tests, add in Operations phase
-
-### Operations Errors
-
-**Error**: Cannot determine build tool
-- **Cause**: Unusual project structure, multiple build systems
-- **Solution**: Ask user to specify build tool and commands
-- **Workaround**: Provide generic instructions, user adapts
-
-**Error**: Deployment target is unclear
-- **Cause**: Multiple environments, complex infrastructure
-- **Solution**: Ask user to specify deployment targets and methods
-- **Workaround**: Provide instructions for common platforms
+- **HUMAN TASK marking**: when a step requires human-only action (credentials, network/system access, organizational approvals), mark it **HUMAN TASK**, provide instructions, and wait for user confirmation before proceeding.
+- **Engine-owned state**: any error touching `aidlc-state.md` is handled exclusively through the engine (see Recovery Procedures below) — never by hand-editing the state region.
 
 ## Recovery Procedures
 
@@ -268,79 +135,16 @@
 
 ## Session Resumption Errors
 
-### Missing Artifacts During Resumption
+**Sensor-first ordering**: Before applying any recovery step in this section, run `engine.py status` and check `artifact_alerts` (missing-produces). If it flags missing artifacts, report them to the user first — never write or fabricate the artifacts yourself. Only after the user decides (confirming the artifacts are lost and must be redone) proceed to the recovery paths below.
 
-**Sensor-first ordering (Phase 3.1+)**: Before applying any recovery step in this section, run `engine.py status` and check `artifact_alerts` (missing-produces). If it flags missing artifacts, report them to the user first — never write or fabricate the artifacts yourself. Only after the user decides (confirming the artifacts are lost and must be redone) proceed to the jump→regenerate path below.
+**Artifacts/state mismatches at resumption** — identify the case, recover through the engine (never hand-edit the state region):
 
-**Error**: Required artifacts from previous stages are missing
-- **Cause**: Files deleted, moved, or never created
-- **Solution**: 
-  1. Identify which stage created the missing artifacts
-  2. Check if stage was marked complete in aidlc-state.md
-  3. If marked complete but artifacts missing: Regenerate that stage
-  4. If not marked complete: Resume from that stage
-- **Recovery**: Return to the stage that creates missing artifacts and re-execute
+- **Stage recorded complete, but its artifacts are missing, empty, or corrupted**: confirm the recorded state with `engine.py status`, rewind with `engine.py jump --stage <slug>` (resets the target and every stage after it), re-execute the stage, then complete it through `engine.py report`. If regeneration is impossible, ask the user to provide the information and document the gap in `audit.md`.
+- **Artifacts complete and valid, but the stage was never recorded**: catch up through the engine — `engine.py report --stage <slug> --result approved` (or `--result completed` for a non-gate stage) — then continue.
+- **Loaded artifacts contradict each other**: identify the contradictions, present them to the user, reconcile per the confirmed truth before proceeding.
+- **The engine state itself is inconsistent** (e.g. multiple stages appear current, or `integrity: violated`): run `engine.py status`; on a violated digest HALT and present the drift plus the last audit transition entry; ask the user which stage they are actually on; after confirmation, `engine.py rebase` (or `jump --stage <slug>` to rewind).
 
-**Error**: Artifact file exists but is empty or corrupted
-- **Cause**: Interrupted write, manual editing, file system issues
-- **Solution**:
-  1. Create backup of corrupted file
-  2. Attempt to regenerate from stage that creates it
-  3. If cannot regenerate: Ask user for information to recreate
-- **Recovery**: Re-execute the stage that creates the artifact
-
-### Inconsistent State During Resumption
-
-**Error**: aidlc-state.md shows a stage complete but its artifacts don't exist
-- **Cause**: State updated but artifact generation failed
-- **Solution**:
-  1. Confirm the recorded state with `engine.py status`, then rewind to the stage with `engine.py jump --stage <slug>` (this resets the target stage and everything after it — never hand-edit the checkboxes)
-  2. Re-execute the stage to generate the artifacts
-  3. Verify the artifacts exist, then complete the stage through `engine.py report`
-- **Recovery**: Rewind via `jump`, re-execute, and report through the engine
-
-**Error**: Artifacts exist but aidlc-state.md shows a stage incomplete
-- **Cause**: Artifact generation succeeded but the state transition was not recorded
-- **Solution**:
-  1. Verify the artifacts are complete and valid
-  2. Record the transition through the engine: `python <skill>/scripts/engine.py report --stage <slug> --result approved` (or `--result completed` for a non-gate stage)
-  3. Proceed to next stage
-- **Recovery**: Complete the stage through the engine — never hand-edit the state region
-
-**Error**: The engine state is inconsistent (e.g. multiple stages appear current)
-- **Cause**: Corruption or manual editing of the engine-owned region
-- **Solution**:
-  1. Run `engine.py status`; if `integrity` is `violated`, HALT and present the drift plus the last audit transition entry to the user
-  2. Ask the user which stage they are actually on; after confirmation, `engine.py rebase` (or `engine.py jump --stage <slug>` to rewind)
-  3. Never correct the state by hand — the engine owns it
-- **Recovery**: Re-baseline through the engine based on the confirmed actual progress
-
-### Context Loading Errors
-
-**Error**: Cannot load required context from previous stages
-- **Cause**: Missing files, corrupted content, wrong file paths
-- **Solution**:
-  1. List which artifacts are needed for current stage
-  2. Check which ones are missing or corrupted
-  3. Regenerate missing artifacts or ask user for information
-- **Recovery**: Complete prerequisite stages before resuming current stage
-
-**Error**: Loaded artifacts contain contradictory information
-- **Cause**: Manual editing, multiple people working, incomplete updates
-- **Solution**:
-  1. Identify contradictions and present to user
-  2. Ask user which information is correct
-  3. Update artifacts to resolve contradictions
-- **Recovery**: Reconcile contradictions before proceeding
-
-### Resumption Best Practices
-
-1. **Always validate state**: Run `engine.py status` and check its `integrity` field; the engine-owned state region is never edited by hand
-2. **Load incrementally**: Load artifacts stage-by-stage, validate each
-3. **Fail fast**: Stop immediately if critical artifacts are missing
-4. **Communicate clearly**: Tell user exactly what's missing and why it's needed
-5. **Offer options**: Regenerate, provide manually, or start fresh (same-product iteration → re-enter via `jump --stage`, not fresh — see `workflow-changes.md`)
-6. **Document recovery**: Log all recovery actions in audit.md
+**Resumption practices**: validate state first (`status` + `integrity`); load artifacts incrementally per the tiered-reading rules in `session-continuity.md`; fail fast on critical gaps; offer regenerate / provide-manually / re-enter options (same-product iteration → `jump --stage`, see `workflow-changes.md`); log every recovery action in `audit.md`.
 
 ## Logging Requirements
 

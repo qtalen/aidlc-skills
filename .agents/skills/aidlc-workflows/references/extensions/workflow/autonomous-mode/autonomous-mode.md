@@ -9,7 +9,6 @@ MANDATORY cross-cutting rules for every AI-DLC workflow execution while Autonomo
 - **AM-03** Stage Auto-Approval — skip "Wait for Explicit Approval" for every stage
 - **AM-04** Question Handling — auto-recommended answer collection (fixed behavior, no configuration)
 - **AM-05** Pause / Stop — full deactivation: flip off, finish in-flight work, continue in standard mode to the next approval gate
-- **AM-06** *(removed 2026-09-29, D17 — the review-stage safety valve is replaced by ad-hoc Pause AM-05 plus the Code-Gen Hold AM-11; the number is retired, not reused)*
 - **AM-07** Deactivation — same outcome as Pause, reached via the "exit/turn-off" trigger vocabulary
 - **AM-08** State Persistence — `## Autonomous Mode` section in aidlc-state.md
 - **AM-09** Session Resumption — restore and announce autonomous mode on resume
@@ -43,7 +42,7 @@ MANDATORY cross-cutting rules for every AI-DLC workflow execution while Autonomo
 On detecting an **Activate** intent, execute ALL of the following in the SAME interaction:
 
 1. **Audit**: Log the trigger in audit.md with complete raw input.
-2. **Ask the activation question via the structured question tool** (see QT-01) — ONE tool invocation, ONE question (presented in the user's conversation language). Question handling is NOT asked about: auto-recommended is fixed behavior (AM-04, set in D18).
+2. **Ask the activation question via the structured question tool** (see QT-01) — ONE tool invocation, ONE question (presented in the user's conversation language). Question handling is NOT asked about: auto-recommended is fixed behavior (AM-04).
    - **The question (code-gen hold)**: "进入代码生成阶段前，是否先停下来，给你一个切换模型的机会（例如切换到更快的模型做实施）？" / "Before the Code Generation stage begins, should the workflow make a one-time stop so you can switch models (e.g., to a faster model for implementation)?"
       - **Option A**: 是——代码生成前停一次；你说"继续"后，自主模式继续执行直到本轮工作流完成 / Yes — stop once before code generation; after you say continue, Autonomous Mode runs to the end of this workflow round
       - **Option B**: 否——不停，自主模式一直执行到本轮工作流完成 / No — do not stop; run straight through to the end of this workflow round
@@ -71,7 +70,7 @@ While Autonomous Mode is active — **every stage**; there is no review-stage li
 
 Applies to every `{phase-name}-questions.md` file (including `-clarification-questions.md` variants) created while Autonomous Mode is active.
 
-**Fixed behavior** (since D18, 2026-09-29): no configuration question is asked at activation — questions are ALWAYS auto-answered with the recommended option. Explicit in-round user instructions about who answers questions (a single question or all of them) are honored per intent; they change no configuration and no mode state.
+**Fixed behavior**: no configuration question is asked at activation — questions are ALWAYS auto-answered with the recommended option. Explicit in-round user instructions about who answers questions (a single question or all of them) are honored per intent; they change no configuration and no mode state.
 
 1. Create the question file as usual (question-format-guide.md rules unchanged).
 2. **Override QT-01**: Do NOT call the structured question tool to collect user answers. Instead, the AI selects the best answer for each question itself — the option it would have marked "(Recommended)".
@@ -103,9 +102,9 @@ On detecting a **Pause / Stop** intent ("暂停/停止自主模式") while Auton
 5. **Pending questions**: an AM-04 escalated question (or an open question file) waiting at pause time continues under the standard QT flow — it is never dropped.
 6. **Precedence vs parking**: while Autonomous Mode is active, a Pause intent is handled by THIS rule, not by the Park Ritual (session-continuity.md). An explicit immediate interrupt ("停下", "stop now") is the Park Ritual — the mode stays enabled across the park and AM-09 resumes it. If the user combines both intents (stop now AND pause the mode), park per the ritual and flip the mode off here — the graceful-continue clause is waived.
 
-## AM-06: (removed 2026-09-29)
+## AM-06: (retired)
 
-*The Review Stage List rule was removed in D17 (2026-09-29): pre-configuring per-stage human gates proved unnecessary — the user can pause at any moment (AM-05, graceful degradation to the next approval gate) and the Code-Gen Hold (AM-11) guards the implementation boundary. The rule number is retired, not reused. The state-file `Review Stages` line was removed from the templates; a leftover line in an old workspace is inert — no rule reads it, and the engine parses it leniently as an unknown key and ignores it.*
+*The rule number is retired, not reused. A leftover `Review Stages` line in an old workspace is inert — no rule reads it, and the engine ignores it as an unknown key.*
 
 ## AM-07: Deactivation
 
@@ -146,7 +145,7 @@ When resuming an existing project (per `../../../common/session-continuity.md`):
 1. Read the `## Autonomous Mode` section of aidlc-state.md along with the rest of the state file.
 2. **If Enabled = Yes**: Autonomous Mode remains active — announce its status in the welcome-back summary (code-gen hold state, last updated; the hold state is read from this section, not from the engine's `autonomous` key), and continue execution under AM rules without requiring re-activation. If the current stage is Code Generation and `Code-Gen Hold: Pending`, the workflow is sitting at the hold: re-present it (AM-11) instead of starting stage work.
 3. **If Enabled = No or section missing**: Standard mode; AM rules dormant until a new AM-01 trigger.
-4. **If the workflow is completed**: Autonomous Mode is expired (AM-10) — the section reads `Enabled: No`; announce standard mode. A stale `Enabled: Yes` in a pre-AM-10 completed workspace is treated as expired: flip it per AM-08 (auditing the expiry) before continuing a new round, including the plan-line self-revival path.
+4. **If the workflow is completed**: Autonomous Mode is expired (AM-10) — the section reads `Enabled: No`; announce standard mode. A stale `Enabled: Yes` in a completed workspace is treated as expired: flip it per AM-08 (auditing the expiry) before continuing a new round, including the plan-line self-revival path.
 5. If the section is malformed, fall back to Enabled: No, note the recovery in audit.md, and continue in standard mode.
 
 ## AM-10: Round-Boundary Expiry

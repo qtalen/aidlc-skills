@@ -896,3 +896,22 @@ dogfood-protocol.md 服务的首个完整周期（两迭代，快照 bc04dd7）�
 **验证**：unittest 231 全绿（总数不变；一次中间运行 `test_drift_detected_in_temp_copy` 以 0xC0000374[Windows 子进程堆损坏] 失败，隔离运行与全套复跑均过，裁决为瞬时环境抖动——该测试复制技能树跑 generate.py 子进程，generate.py 本批零改动，无因果面）；`--check` 零漂移（本批不触生成体系）；清扫按扩展口径执行，预期残留白名单（逐条说明非残留）：AM-04 节标题与索引行（描述性保留）、契约 §10 legacy 示例（本批有意保留/新增）、5 处测试夹具（钉宽忽略）、question-format-guide :83/:292/:353 与 resiliency-baseline :195（题面模板标题/自文档引用，非 AM）、integration-plan/AGENTS 历史条目（惯例不改）。
 
 **实施后审核（reviewer，2026-09-29 同日）**：方法升级——以 GitHub 远端 HEAD（67fa8da，与本地一致）为前基对 9 文件做**等效真实 diff 对账**。发现并已修复 **1 项阻断**：本条目原插入点拆开了 D17 条目（D17 的"实施后审核"段被挂在 D18 标题之下，且其"3 键/-9 位移"等时点事实会误挂 D18 名下）→ 纯移动归位。其余全部通过：6 项主张证实（含瞬时抖动裁决推理成立）、计划审核 9 项修补全部落地、用户裁决 3 项落地（manual/custom 删除无语义孤儿，三出口闭环）、engine-illustrated 17 锚点双侧对账零偏差、231 静态精确复现（154+22+55）、扩展口径清扫与白名单一致（本条目已按审核建议补列 question-format-guide/resiliency 4 处非 AM 命中与存疑两项内容）。
+
+### 2026-09-29（其三）：文档减法清理批（D-清系列，计划 v2.2 三批落地）
+
+**需求**：用户发起"做减法"——Phase 1→3.3 及后续小批在技能文件中遗留大量不再需要的文本（路由遗物/判据三重副本/墓碑/教学冗余/死文件），干扰上下文、浪费 token。经两轮对话定调 + 两轮 reviewer 计划审核，形成计划 v2.2（存 `C:\Users\qianpeng\.opencode\plan\aidlc-doc-slimming-plan.md`，含一审 2 阻断+8 建议+3 存疑、二审 2 阻断+5 建议+2 存疑的全部处置对照表）。
+
+**裁决（D-清1~9）**：纯减法·语义等价（五类判据：重复副本/路由遗物/墓碑纪事/教学冗余/死文件，无法归类不删）；历史叙事直接删除（本档案为既定归档处，运行时文件只留现状规则，存量工作区有运行时价值的压缩为一行）；范围=默认上下文优先（opt-in 大文件留下一轮）；legacy pre-engine 兼容留代码批；**D-清9（C 方案）**——CONDITIONAL 判据唯一权威 = 阶段 frontmatter `condition` 浅映射 `{execute_if, skip_if}`（v2.1 源码核实 mini 解析器 :283 已支持浅映射、无需扩展），生成器渲染进 workflow-planning 的 scope-matrix 生成区（"CONDITIONAL Stage Criteria (authoritative)" 清单），SKILL.md 块判据与 3.1-3.4 副本全删；ALWAYS 阶段 condition 保持标量（双形态校验）。D-清6 例外扩为三项：REGISTRY 删除 + 条件渲染特性（含校验/夹具迁移/契约修订）+ 死渲染函数清理。AWS 世代散文删例子留框架（RE/infra-design 的检测清单词元不动）。
+
+**计划审核要点**：一审证伪"判据权威在阶段文件正文"（9 个 CONDITIONAL 中 7 个只有 frontmatter 摘要，且三处判据是**分歧变体**而非副本——units-generation 两版不同、US 独有条目仅存一处）→ WP0 升级为三方比对调和；二审抓出 C 方案两个执行面阻断——condition 改映射瞬间两个 legacy 渲染器会把 dict repr 写进恒载文件（改法 b：批次重排为"删除先行"，doomed 渲染器先于映射上线消失）+ 新校验形态未定义会当场爆红 5 个阶段文件与 17 处测试用例（改法：双形态契约 + `_stage_fm` 夹具双形态化 + Rule5 拆 4 测试）。主张 A-H 八项全定论（F 证实解析器能力；G 部分证伪校验影响面；H 证伪——stage-graph.json 不内嵌 condition，零连锁）。
+
+**实施（三批三 commit，每批 --check+全测试）**：
+- **Batch 1（70ce2d3）删除先行**：整删 process-overview.md（10.3KB 恒载文件，含与引擎路由直接矛盾的 ":24 No fixed sequences"）与 terminology.md（10.6KB 零引用死文件）；generate.py 删 2 个 MARKERS 条目（7 key）+ 4 个死渲染函数（canon-lists/descriptions/classification/stages_construction_flat，保留共享的 render_mermaid/render_stage_list）；新增 RenderMapCoverageTests 防"静默死渲染器"复发；同步 SKILL.md 加载清单/stage-contract 引用/AGENTS.md:24。
+- **Batch 2（d25a5fc）判据通路**：WP0 三方调和写入 9 个 CONDITIONAL frontmatter（units-generation 剔除 WP 3.3 的 FD 范畴条目[new data models/complex algorithms/state management]——functional-design 判据已覆盖；US 取并集保留 SKILL 独有的 technical debt cleanup/developer tooling 与"边界默认纳入"规则；operations 给占位性映射保持校验统一）；WP1 双形态校验 + 矩阵判据渲染 + stage-contract 三处对齐（§2 字段表/§7 规则 5/§9 示例）+ 夹具迁移 + ScopeMatrixCriteriaTests；Step 3.0 指针改向权威清单。
+- **Batch 3（本 commit）散文减法与收尾**：SKILL.md 631→343 行（删 US 评估矩阵副本/14 块 Execute IF-Skip IF/Execution 模板复读/审计弹幕去重指向 AUD 组/Checkbox 两级合并/✅❌ 教学块；:21 指代改写；:543-544 State Ownership 保留）；workflow-planning 删 3.1-3.4/Step 6 样式内部去重/Step 10 改"report 后引擎路由"/AWS 例子删留框架；WP6 墓碑清扫（AM-06 压缩为两行"编号退役+遗留行 inert"、D 纪事剥除、pre-AM-10 叙事中性化、engine-contract :309 旧键举例删但宽忽略机制句保留）；error-handling 17.4→9.4KB（Stage-Specific 140 行按阶段复读收敛为指针+两条跨阶段规则[HUMAN TASK 标记/引擎独占状态]，Session Resumption 合并为恢复矩阵）；qfg 示例压缩（Evidence-First 注释三处原样保留）；engine-contract 样例区裁决为无操作（各样本承载不同规范语义）。
+
+**验证**：unittest 236 全绿（231 + RenderMapCoverageTests 1 + Rule5 拆分净增 3 + ScopeMatrixCriteriaTests 1）；`--check` 零漂移；悬空引用 grep 对账零命中（删名/7 生成 key/精确短语 `the per-stage assessment in this file` 与 `3.1–3.4`）；基线实测——必加载集（SKILL+session-continuity+content-validation+qfg+workflow-conventions）**97,064 → 73,262 字节（-24.5%）**，其中 SKILL.md 39,593→26,602（-33%）；error-handling 17,393→9,422（-46%，按需）；workflow-planning +980B（判据清单按 D-清9 设计迁入该按需文件，非回归；§8 预估的 -31~-35% 系 SKILL.md 终值高估，以本实测为准）。
+
+**销账**：§复审遗留 backlog（原 :637）的"terminology Operations 'Outputs' 与 process-overview 'No fixed sequences' 陈旧散文"项——两文件整删，全销。
+
+**后续登记**：① 代码批·旧格式兼容层退役（engine.py legacy 分支 ~8-10 处 / 宽容解析语义重评 / test_engine.py 旧格式夹具 6+ 处——三层一体，前提=确认无 pre-engine 存量工作区，连带 SKILL.md bootstrap legacy 行与 engine-contract legacy 枚举，本批 WP6 特意未动）；② 代码摸底批（可选）：engine.py/generate.py/trace-matrix.py 同款摸底；③ opt-in 大文件减法（resiliency 28K/security 18K/PBT 18K）留下一轮。

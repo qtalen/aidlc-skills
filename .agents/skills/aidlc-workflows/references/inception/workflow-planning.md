@@ -63,19 +63,13 @@ scopes:
 #### Architectural Transformation
 - **Single component change** vs **architectural transformation**
 - **Infrastructure changes** vs **application changes**
-- **Deployment model changes** (Lambda→Container, EC2→Serverless, etc.)
+- **Deployment model changes** (e.g. serverless ↔ container ↔ VM)
 
 #### Related Component Identification
-For transformations, identify:
-- **Infrastructure code** that needs updates
-- **CDK stacks** requiring changes
-- **API Gateway** configurations
-- **Load balancer** requirements
-- **Networking** changes needed
-- **Monitoring/logging** adaptations
+For transformations, identify the concrete infrastructure and shared touchpoints needing updates — infrastructure-as-code modules, API gateways or ingress configuration, load balancing, networking, monitoring/logging adaptations.
 
 #### Cross-Package Impact
-- **CDK infrastructure** packages requiring updates
+- **Infrastructure** packages requiring updates
 - **Shared models** needing version updates
 - **Client libraries** requiring endpoint changes
 - **Test packages** needing new test scenarios
@@ -96,13 +90,13 @@ For transformations, identify:
 - **Testing**: Unit tests, integration tests
 
 #### Infrastructure Layer Impact (if applicable)
-- **Deployment model**: Lambda→ECS, EC2→Fargate, etc.
-- **Networking**: VPC, security groups, load balancers
+- **Deployment model**: e.g. function ↔ container ↔ VM shifts
+- **Networking**: topology, security groups, load balancers
 - **Storage**: Persistent volumes, shared storage
 - **Scaling**: Auto-scaling policies, capacity planning
 
 #### Operations Layer Impact (if applicable)
-- **Monitoring**: CloudWatch, custom metrics, dashboards
+- **Monitoring**: Metrics, dashboards
 - **Logging**: Log aggregation, structured logging
 - **Alerting**: Alarm configurations, notification channels
 - **Deployment**: CI/CD pipeline changes, rollback strategies
@@ -114,7 +108,7 @@ For transformations, identify:
 ```markdown
 ## Component Relationships
 - **Primary Component**: [Package being changed]
-- **Infrastructure Components**: [CDK/Terraform packages]
+- **Infrastructure Components**: [Infrastructure-as-code packages]
 - **Shared Components**: [Models, utilities, clients]
 - **Dependent Components**: [Services that call this component]
 - **Supporting Components**: [Monitoring, logging, deployment]
@@ -174,63 +168,13 @@ Apply the scope's column as the baseline:
 
 - **EXECUTE** → stage is in the plan (no re-justification needed)
 - **SKIP** → stage is out of the plan (rationale: the scope excludes it)
-- **CONDITIONAL** → decide now using the **CONDITIONAL Stage Criteria (authoritative)** list directly below the matrix — it is generated from each stage's frontmatter `condition` mapping (the single source of truth). Sections 3.1–3.4 below repeat older variants of the same criteria and are **superseded** by that list; they are scheduled for removal
+- **CONDITIONAL** → decide now using the **CONDITIONAL Stage Criteria (authoritative)** list directly below the matrix — it is generated from each stage's frontmatter `condition` mapping (the single source of truth)
 
 Then fine-tune: the user may add individual SKIP stages or remove EXECUTE/CONDITIONAL stages at the approval gate (Step 9/10). If the baseline feels wrong for the task as a whole, recommend switching scope instead of hand-editing many rows.
 
 **No scope recorded?** If `aidlc-state.md` has no Scope entry (e.g. a session started before scopes existed), treat the plan as `classic` and continue.
 
 **Implicit single unit**: when Units Generation is not in the plan (skipped by the scope and not added back), treat the whole task as one implicit unit — use the project or task name as the unit name, and each per-unit construction stage in the plan runs exactly once for it, taking its inputs from `aidlc-docs/inception/requirements/requirements.md` and (brownfield) the reverse-engineering artifacts instead of unit artifacts. State this explicitly in the execution plan when it applies.
-
-### 3.1 User Stories - Already Executed or Skip?
-**Already executed**: Move to next determination
-**Not executed - Execute IF**:
-- Multiple user personas
-- User experience impact
-- Acceptance criteria needed
-- Team collaboration required
-
-**Skip IF**:
-- Internal refactoring
-- Bug fix with clear reproduction
-- Technical debt reduction
-- Infrastructure changes
-
-### 3.2 Application Design - Execute IF:
-- New components or services needed
-- Component methods and business rules need definition
-- Service layer design required
-- Component dependencies need clarification
-
-**Skip IF**:
-- Changes within existing component boundaries
-- No new components or methods
-- Pure implementation changes
-
-### 3.3 Units Generation - Execute IF:
-- New data models or schemas
-- API changes or new endpoints
-- Complex algorithms or business logic
-- State management changes
-- Multiple packages require changes
-- Infrastructure-as-code updates needed
-
-**Skip IF**:
-- Simple logic changes
-- UI-only changes
-- Configuration updates
-- Straightforward implementations
-
-### 3.4 NFR Implementation - Execute IF:
-- Performance requirements
-- Security considerations
-- Scalability concerns
-- Monitoring/observability needed
-
-**Skip IF**:
-- Existing NFR setup sufficient
-- No new NFR requirements
-- Simple changes with no NFR impact
 
 ## Step 4: Note Adaptive Detail
 
@@ -279,24 +223,13 @@ Create Mermaid flowchart showing:
 - EXECUTE or SKIP decision for each conditional phase
 - Proper styling for each phase state
 
-**Styling rules** (add after flowchart):
-```
-style WD fill:#4CAF50,stroke:#1B5E20,stroke-width:3px,color:#fff
-style CG fill:#4CAF50,stroke:#1B5E20,stroke-width:3px,color:#fff
-style BT fill:#4CAF50,stroke:#1B5E20,stroke-width:3px,color:#fff
-style US fill:#BDBDBD,stroke:#424242,stroke-width:2px,stroke-dasharray: 5 5,color:#000
-style Start fill:#CE93D8,stroke:#6A1B9A,stroke-width:3px,color:#000
-style End fill:#CE93D8,stroke:#6A1B9A,stroke-width:3px,color:#000
-
-linkStyle default stroke:#333,stroke-width:2px
-```
-
-**Style Guidelines**:
+**Style Guidelines** (applied to the flowchart after generation):
 - Completed/Always execute: `fill:#4CAF50,stroke:#1B5E20,stroke-width:3px,color:#fff` (Material Green with white text)
 - Conditional EXECUTE: `fill:#FFA726,stroke:#E65100,stroke-width:3px,stroke-dasharray: 5 5,color:#000` (Material Orange with black text)
 - Conditional SKIP: `fill:#BDBDBD,stroke:#424242,stroke-width:2px,stroke-dasharray: 5 5,color:#000` (Material Gray with black text)
 - Start/End: `fill:#CE93D8,stroke:#6A1B9A,stroke-width:3px,color:#000` (Material Purple with black text)
 - Phase containers: Use lighter Material colors (INCEPTION: #BBDEFB, CONSTRUCTION: #C8E6C9, OPERATIONS: #FFF59D)
+- Default link style: `linkStyle default stroke:#333,stroke-width:2px`
 
 ## Step 7: Create Execution Plan Document
 
@@ -568,7 +501,7 @@ I recommend skipping [Y] stages:
 
 ## Step 10: Handle User Response
 
-- **If approved**: Proceed to next stage in execution plan
+- **If approved**: record the transition via `report --stage workflow-planning --result approved` (Step 8); the engine's `next` directive routes what follows — never route manually
 - **If changes requested**: Update execution plan and re-confirm
 - **If user wants to force include/exclude stages**: Update plan accordingly
 

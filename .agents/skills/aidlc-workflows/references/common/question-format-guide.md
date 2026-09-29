@@ -70,42 +70,16 @@ What is the primary user authentication method?
 
 A) Username and password
 
-B) Social media login (Google, Facebook)
+B) Single Sign-On (SSO)
 
-C) Single Sign-On (SSO)
-
-D) Multi-factor authentication
-
-E) Other (please describe after [Answer]: tag below)
-
-[Answer]: 
-
-## Question 2
-Will this be a web or mobile application?
-
-A) Web application
-
-B) Mobile application
-
-C) Both web and mobile
+C) Multi-factor authentication
 
 D) Other (please describe after [Answer]: tag below)
 
 [Answer]: 
-
-## Question 3
-Is this a new project or existing codebase?
-
-A) New project (greenfield)
-
-B) Existing codebase (brownfield)
-
-C) Other (please describe after [Answer]: tag below)
-
-[Answer]: 
 ```
 
-> **Evidence-First annotation for this example**: Question 3 (new vs existing codebase) is decided by Workspace Detection and Reverse Engineering — never re-ask it. Questions 1 (auth method) and 2 (web/mobile) are exploration-first in a brownfield: inspect the existing codebase, dependency manifests, and config first; ask only for greenfield preference decisions or when exploration is inconclusive.
+> **Evidence-First annotation for this example**: "New vs existing codebase"-style questions are decided by Workspace Detection and Reverse Engineering — never re-ask them. Auth-method questions are exploration-first in a brownfield: inspect the existing codebase, dependency manifests, and config first; ask only for greenfield preference decisions or when exploration is inconclusive.
 
 ### User Response Format
 Users will answer by filling in the letter choice after [Answer]: tag:
@@ -163,11 +137,7 @@ A) Relational (PostgreSQL, MySQL)
 
 B) NoSQL Document (MongoDB, DynamoDB)
 
-C) NoSQL Key-Value (Redis, Memcached)
-
-D) Graph Database (Neo4j, Neptune)
-
-E) Other (please describe after [Answer]: tag below)
+C) Other (please describe after [Answer]: tag below)
 
 [Answer]: 
 ```
