@@ -2,7 +2,9 @@
 slug: reverse-engineering
 phase: inception
 execution: CONDITIONAL
-condition: Executes when existing codebase detected and no prior reverse-engineering artifacts exist; skipped for greenfield or when artifacts already exist
+condition:
+  execute_if: an existing codebase is detected and no prior reverse-engineering artifacts exist
+  skip_if: greenfield project, or prior reverse-engineering artifacts already exist
 gate: approve-continue
 produces:
   - inception/reverse-engineering/*

@@ -2,7 +2,9 @@
 slug: operations
 phase: operations
 execution: CONDITIONAL
-condition: Placeholder for future deployment and monitoring workflows — the workflow currently ends after Build and Test
+condition:
+  execute_if: future deployment and monitoring workflows (not yet implemented)
+  skip_if: always in the current workflow - the stage is a placeholder, reported skipped so the engine emits done
 gate: none
 produces: []
 consumes: []

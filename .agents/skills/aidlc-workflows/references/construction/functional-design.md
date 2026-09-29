@@ -2,7 +2,9 @@
 slug: functional-design
 phase: construction
 execution: CONDITIONAL
-condition: Executes when the unit has new data models, complex business logic, or business rules needing detailed design; skipped for simple logic changes
+condition:
+  execute_if: new data models or schemas, complex business logic, business rules needing detailed design
+  skip_if: simple logic changes, no new business logic
 gate: two-option
 produces:
   - construction/plans/{unit-name}-functional-design-plan.md

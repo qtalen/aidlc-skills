@@ -2,7 +2,9 @@
 slug: units-generation
 phase: inception
 execution: CONDITIONAL
-condition: Executes when the system needs decomposition into multiple units of work or services; skipped for single straightforward implementations
+condition:
+  execute_if: the system needs decomposition into multiple units of work, multiple services/modules/packages require changes, a complex system needs structured breakdown or a multi-package change sequence
+  skip_if: single simple unit, no decomposition needed, straightforward single-component implementation, UI-only or configuration-only changes
 gate: approve-continue
 produces:
   - inception/plans/unit-of-work-plan.md

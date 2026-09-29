@@ -411,8 +411,34 @@ def build_stage(path, stem, dir_phase, text, scope_names):
         )
 
     condition = mapping["condition"]
-    if not isinstance(condition, str) or condition.strip() == "":
-        raise HardError("%s: condition must be a non-empty string" % display_path)
+    if execution == "CONDITIONAL":
+        # Authoritative criteria carrier: shallow mapping (stage-contract §2).
+        # Rendered into the generated scope-matrix criteria list in
+        # workflow-planning.md; keep values as single-line scalars (the mini
+        # parser does not recurse into nested lists).
+        if not isinstance(condition, dict):
+            raise HardError(
+                "%s: condition must be a mapping with execute_if/skip_if "
+                "for CONDITIONAL stages" % display_path
+            )
+        for cond_key in ("execute_if", "skip_if"):
+            cond_value = condition.get(cond_key)
+            if not isinstance(cond_value, str) or cond_value.strip() == "":
+                raise HardError(
+                    "%s: condition.%s must be a non-empty string"
+                    % (display_path, cond_key)
+                )
+        unknown_cond_keys = sorted(set(condition) - {"execute_if", "skip_if"})
+        if unknown_cond_keys:
+            raise HardError(
+                "%s: condition has unknown keys: %s"
+                % (display_path, ", ".join(unknown_cond_keys))
+            )
+    else:
+        if not isinstance(condition, str) or condition.strip() == "":
+            raise HardError(
+                "%s: condition must be a non-empty string" % display_path
+            )
 
     gate = mapping["gate"]
     if gate not in GATE_VALUES:
@@ -1079,6 +1105,24 @@ def build_render_map(ordered, scope_order):
             lines.append(
                 "| %s | %s | %s |"
                 % (phase_cell, stage.name, " | ".join(cells))
+            )
+        # Authoritative CONDITIONAL stage criteria, rendered from the
+        # frontmatter condition mapping (single source of truth). Plan-time
+        # judgment reads this list; execution-time judgment reads the same
+        # mapping at the top of each stage file.
+        lines.append("")
+        lines.append("**CONDITIONAL Stage Criteria (authoritative)**")
+        lines.append("")
+        for stage in ordered:
+            if stage.execution != "CONDITIONAL":
+                continue
+            lines.append(
+                "- **%s** — Execute IF: %s; Skip IF: %s"
+                % (
+                    stage.name,
+                    stage.condition["execute_if"],
+                    stage.condition["skip_if"],
+                )
             )
         return "\n".join(lines)
 

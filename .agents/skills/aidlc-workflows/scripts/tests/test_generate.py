@@ -72,16 +72,38 @@ def _stage_fm(
     consumes="[]",
     produces="[]",
     requires_stage="[]",
-    condition="Runs when needed",
+    condition=None,
     gate="none",
 ):
-    """Build a minimal valid stage frontmatter + H1 body."""
+    """Build a minimal valid stage frontmatter + H1 body.
+
+    ``condition`` renders per the dual-shape contract (stage-contract §2):
+    CONDITIONAL stages default to a valid ``execute_if``/``skip_if`` mapping,
+    ALWAYS stages to a scalar string. Pass a dict to control the mapping
+    explicitly, or a string to force the scalar shape (shape-violation tests).
+    """
+    if condition is None:
+        if execution == "CONDITIONAL":
+            condition = {
+                "execute_if": "test execute condition",
+                "skip_if": "test skip condition",
+            }
+        else:
+            condition = "Runs when needed"
+    if isinstance(condition, dict):
+        condition_lines = ["condition:"]
+        ordered_keys = [k for k in ("execute_if", "skip_if") if k in condition]
+        ordered_keys += [k for k in condition if k not in ordered_keys]
+        for cond_key in ordered_keys:
+            condition_lines.append("  %s: %s" % (cond_key, condition[cond_key]))
+    else:
+        condition_lines = ["condition: " + condition]
     lines = [
         "---",
         "slug: " + slug,
         "phase: " + phase,
         "execution: " + execution,
-        "condition: " + condition,
+    ] + condition_lines + [
         "gate: " + gate,
         "produces: " + produces,
         "consumes: " + consumes,
@@ -492,12 +514,55 @@ class Rule4Tests(unittest.TestCase):
         self.assertIn("execution must be one of", str(ctx.exception))
 
 
+class ScopeMatrixCriteriaTests(unittest.TestCase):
+    """The scope-matrix region renders the authoritative CONDITIONAL criteria
+    list from the frontmatter condition mapping (doc-slimming plan WP1)."""
+
+    def test_scope_matrix_renders_criteria_list(self):
+        stage = generate.Stage(
+            slug="my-stage",
+            name="My Stage",
+            phase="inception",
+            execution="CONDITIONAL",
+            condition={"execute_if": "need it", "skip_if": "do not need it"},
+            scopes={"classic": "CONDITIONAL"},
+            for_each=None,
+        )
+        render_map = generate.build_render_map(
+            [stage], [generate.Scope(name="classic")]
+        )
+        out = render_map["scope-matrix"]()
+        self.assertIn("CONDITIONAL Stage Criteria (authoritative)", out)
+        self.assertIn(
+            "**My Stage** — Execute IF: need it; Skip IF: do not need it", out
+        )
+
+
 class Rule5Tests(unittest.TestCase):
-    def test_empty_condition_rejected(self):
+    def test_scalar_condition_rejected_for_conditional(self):
+        # CONDITIONAL stages must carry the execute_if/skip_if mapping;
+        # a scalar (even non-empty) violates the dual-shape contract.
         text = _stage_fm(
             "my-stage",
             "inception",
             "CONDITIONAL",
+            {"classic": "EXECUTE"},
+            condition="Runs when needed",
+        )
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn(
+            "condition must be a mapping with execute_if/skip_if",
+            str(ctx.exception),
+        )
+
+    def test_empty_condition_rejected_for_always(self):
+        text = _stage_fm(
+            "my-stage",
+            "inception",
+            "ALWAYS",
             {"classic": "EXECUTE"},
             condition="",
         )
@@ -506,6 +571,39 @@ class Rule5Tests(unittest.TestCase):
                 "my-stage.md", "my-stage", "inception", text, ["classic"]
             )
         self.assertIn("condition must be a non-empty string", str(ctx.exception))
+
+    def test_incomplete_condition_mapping_rejected(self):
+        # A mapping present but missing skip_if must fail.
+        text = _stage_fm(
+            "my-stage",
+            "inception",
+            "CONDITIONAL",
+            {"classic": "EXECUTE"},
+            condition={"execute_if": "test execute condition"},
+        )
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn("condition.skip_if", str(ctx.exception))
+
+    def test_unknown_condition_mapping_key_rejected(self):
+        text = _stage_fm(
+            "my-stage",
+            "inception",
+            "CONDITIONAL",
+            {"classic": "EXECUTE"},
+            condition={
+                "execute_if": "a",
+                "skip_if": "b",
+                "extra": "c",
+            },
+        )
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn("condition has unknown keys", str(ctx.exception))
 
 
 class Rule6Tests(unittest.TestCase):

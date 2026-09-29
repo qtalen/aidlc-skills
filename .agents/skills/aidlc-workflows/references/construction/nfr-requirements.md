@@ -2,7 +2,9 @@
 slug: nfr-requirements
 phase: construction
 execution: CONDITIONAL
-condition: Executes when performance, security, or scalability requirements exist or tech stack selection is required; skipped when no NFR requirements and tech stack already determined
+condition:
+  execute_if: performance, security, or scalability requirements exist, monitoring or observability is needed, tech stack selection is required
+  skip_if: no NFR requirements, tech stack already determined, existing NFR setup sufficient, simple changes with no NFR impact
 gate: two-option
 produces:
   - construction/plans/{unit-name}-nfr-requirements-plan.md

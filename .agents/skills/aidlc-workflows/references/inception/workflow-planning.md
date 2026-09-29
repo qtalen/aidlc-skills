@@ -156,13 +156,25 @@ The active scope (selected and confirmed during Requirements Analysis, recorded 
 | 🟢 Construction | Code Generation | EXECUTE | EXECUTE | EXECUTE | EXECUTE | EXECUTE | EXECUTE |
 | 🟢 Construction | Build and Test | EXECUTE | EXECUTE | EXECUTE | EXECUTE | EXECUTE | EXECUTE |
 | 🟡 Operations | Operations | CONDITIONAL | SKIP | SKIP | SKIP | SKIP | SKIP |
+
+**CONDITIONAL Stage Criteria (authoritative)**
+
+- **Reverse Engineering** — Execute IF: an existing codebase is detected and no prior reverse-engineering artifacts exist; Skip IF: greenfield project, or prior reverse-engineering artifacts already exist
+- **User Stories** — Execute IF: user-facing features or workflow changes, multiple user types or personas, complex business requirements needing acceptance criteria, cross-team collaboration or customer-facing API changes; borderline cases default to inclusion; Skip IF: pure internal refactoring with zero user impact, simple bug fixes with clear isolated scope, infrastructure changes with no user-facing effects, technical debt cleanup with no functional changes, documentation-only or developer-tooling updates
+- **Application Design** — Execute IF: new components or services needed, component methods and business rules need definition, service layer design required, component dependencies need clarification; Skip IF: changes within existing component boundaries, no new components or methods, pure implementation changes
+- **Units Generation** — Execute IF: the system needs decomposition into multiple units of work, multiple services/modules/packages require changes, a complex system needs structured breakdown or a multi-package change sequence; Skip IF: single simple unit, no decomposition needed, straightforward single-component implementation, UI-only or configuration-only changes
+- **Functional Design** — Execute IF: new data models or schemas, complex business logic, business rules needing detailed design; Skip IF: simple logic changes, no new business logic
+- **NFR Requirements** — Execute IF: performance, security, or scalability requirements exist, monitoring or observability is needed, tech stack selection is required; Skip IF: no NFR requirements, tech stack already determined, existing NFR setup sufficient, simple changes with no NFR impact
+- **NFR Design** — Execute IF: NFR Requirements was executed and NFR patterns need to be incorporated; Skip IF: no NFR requirements, or NFR Requirements was skipped
+- **Infrastructure Design** — Execute IF: infrastructure services need mapping, deployment architecture required, cloud resources need specification; Skip IF: no infrastructure changes, infrastructure already defined
+- **Operations** — Execute IF: future deployment and monitoring workflows (not yet implemented); Skip IF: always in the current workflow - the stage is a placeholder, reported skipped so the engine emits done
 <!-- END GENERATED: scope-matrix -->
 
 Apply the scope's column as the baseline:
 
 - **EXECUTE** → stage is in the plan (no re-justification needed)
 - **SKIP** → stage is out of the plan (rationale: the scope excludes it)
-- **CONDITIONAL** → decide now using the criteria in 3.1–3.4 below and each stage's own Execute-IF/Skip-IF conditions
+- **CONDITIONAL** → decide now using the **CONDITIONAL Stage Criteria (authoritative)** list directly below the matrix — it is generated from each stage's frontmatter `condition` mapping (the single source of truth). Sections 3.1–3.4 below repeat older variants of the same criteria and are **superseded** by that list; they are scheduled for removal
 
 Then fine-tune: the user may add individual SKIP stages or remove EXECUTE/CONDITIONAL stages at the approval gate (Step 9/10). If the baseline feels wrong for the task as a whole, recommend switching scope instead of hand-editing many rows.
 

@@ -2,7 +2,9 @@
 slug: user-stories
 phase: inception
 execution: CONDITIONAL
-condition: Executes for user-facing features, workflow changes, or complex business requirements; skipped only for pure internal refactoring, simple bug fixes, or documentation-only changes
+condition:
+  execute_if: user-facing features or workflow changes, multiple user types or personas, complex business requirements needing acceptance criteria, cross-team collaboration or customer-facing API changes; borderline cases default to inclusion
+  skip_if: pure internal refactoring with zero user impact, simple bug fixes with clear isolated scope, infrastructure changes with no user-facing effects, technical debt cleanup with no functional changes, documentation-only or developer-tooling updates
 gate: approve-continue
 produces:
   - inception/plans/user-stories-assessment.md

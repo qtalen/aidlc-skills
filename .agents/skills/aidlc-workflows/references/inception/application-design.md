@@ -2,7 +2,9 @@
 slug: application-design
 phase: inception
 execution: CONDITIONAL
-condition: Executes when new components/services or component methods and business rules need definition; skipped for changes within existing component boundaries or pure implementation changes
+condition:
+  execute_if: new components or services needed, component methods and business rules need definition, service layer design required, component dependencies need clarification
+  skip_if: changes within existing component boundaries, no new components or methods, pure implementation changes
 gate: approve-continue
 produces:
   - inception/plans/application-design-plan.md

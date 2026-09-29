@@ -2,7 +2,9 @@
 slug: infrastructure-design
 phase: construction
 execution: CONDITIONAL
-condition: Executes when infrastructure services need mapping, deployment architecture, or cloud resource specification; skipped when no infrastructure changes or infrastructure already defined
+condition:
+  execute_if: infrastructure services need mapping, deployment architecture required, cloud resources need specification
+  skip_if: no infrastructure changes, infrastructure already defined
 gate: two-option
 produces:
   - construction/plans/{unit-name}-infrastructure-design-plan.md

@@ -51,7 +51,7 @@ The generator **rejects unknown keys** — see §5 for the reserved namespace.
 | `slug` | string | yes | kebab-case; **must match the filename stem** |
 | `phase` | string | yes | `inception` \| `construction` \| `operations`; **must match the containing directory** |
 | `execution` | string | yes | `ALWAYS` \| `CONDITIONAL` |
-| `condition` | string | yes | Free-form, 1–3 sentences. For `ALWAYS`: why it always runs. For `CONDITIONAL`: a compact summary of the Execute-IF / Skip-IF branches (the full prose stays in the body / SKILL.md stage block) |
+| `condition` | string \| object | yes | **Dual shape by execution type.** `ALWAYS`: free-form string, 1–3 sentences (why it always runs). `CONDITIONAL`: shallow mapping `{execute_if, skip_if}` — the **authoritative Execute-IF/Skip-IF criteria**; values are single-line non-empty strings (the mini parser does not recurse into nested lists), rendered into the generated "CONDITIONAL Stage Criteria" list under the scope matrix in workflow-planning.md. When criteria change, edit this mapping first; stage-body prose follows |
 | `gate` | string | yes | `none` \| `approve-continue` \| `two-option` — see §3 |
 | `produces` | string[] | yes | May be empty. Artifact paths **relative to `aidlc-docs/`** (e.g. `inception/requirements/requirements.md`). Glob `*` allowed for per-unit trees (e.g. `construction/{unit-name}/code/`) — see §4 |
 | `consumes` | object[] | yes | May be empty. Each entry: `{artifact, required, conditional_on?}` — see below |
@@ -185,7 +185,9 @@ Hard failures (non-zero exit):
 2. `slug` ≠ filename stem, or non-kebab-case.
 3. `phase` ≠ containing directory name.
 4. Missing required field; wrong type; enum violation.
-5. `condition` empty or missing.
+5. `condition` empty, missing, or wrong shape — `CONDITIONAL` stages require
+   the `{execute_if, skip_if}` mapping (non-empty string values, no unknown
+   keys); `ALWAYS` stages require a non-empty string.
 6. `for_each` present with a value other than `unit-of-work`.
 7. `requires_stage` entry not a known stage slug.
 8. Cycle detected in the `requires_stage` graph.
@@ -259,6 +261,15 @@ Notes: no `for_each` (once per workflow), no `workspace_writes` (docs only).
 `scopes` lists every registered scope explicitly — `requirements-analysis` is an
 `ALWAYS` stage, so it is `EXECUTE` in all six. The rule body below the
 frontmatter is unchanged from v1.0.
+
+A `CONDITIONAL` stage carries the criteria mapping instead of the scalar (e.g.
+`functional-design.md`):
+
+```yaml
+condition:
+  execute_if: new data models or schemas, complex business logic, business rules needing detailed design
+  skip_if: simple logic changes, no new business logic
+```
 
 ---
 

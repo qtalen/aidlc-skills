@@ -2,7 +2,9 @@
 slug: nfr-design
 phase: construction
 execution: CONDITIONAL
-condition: Executes when NFR Requirements was executed and NFR patterns need to be incorporated; skipped when no NFR requirements exist
+condition:
+  execute_if: NFR Requirements was executed and NFR patterns need to be incorporated
+  skip_if: no NFR requirements, or NFR Requirements was skipped
 gate: two-option
 produces:
   - construction/plans/{unit-name}-nfr-design-plan.md
