@@ -917,3 +917,15 @@ dogfood-protocol.md 服务的首个完整周期（两迭代，快照 bc04dd7）�
 **后续登记**：① 代码批·旧格式兼容层退役（engine.py legacy 分支 ~8-10 处 / 宽容解析语义重评 / test_engine.py 旧格式夹具 6+ 处——三层一体，前提=确认无 pre-engine 存量工作区，连带 SKILL.md bootstrap legacy 行与 engine-contract legacy 枚举，本批 WP6 特意未动）；② 代码摸底批（可选）：engine.py/generate.py/trace-matrix.py 同款摸底；③ opt-in 大文件减法（resiliency 28K/security 18K/PBT 18K）留下一轮。
 
 **实施后审核（reviewer，同日）**：零阻断；一审/二审共 15 项处置全部验证落地；主张 I-O 定论——J 部分证伪（UG 留痕不完整+一条理由不准确）、L 裁决为口径问题（reviewer 自行扩扫仓库根 README 两文件，零命中，事实无影响）、I/N 各报两处未声明偏差、其余证实。**收尾批修复（同日第 4 commit）**：① UG 调和留痕补全——WP 3.3 六项中保留 multiple packages（并入 services/modules/packages），剔除五项：new data models 与 complex algorithms→FD 判据承接（complex business logic），API changes/new endpoints、state management changes、IaC updates→判定为非分解专属的复杂度信号，由 FD/NFR/infra 各自判据在其所属阶段承接、不设 UG 专条；② US 试写样例摘要（闭合二审存疑 2）：execute_if 以 "user-facing features or workflow changes, …; borderline cases default to inclusion" 压缩三档优先级（High/Likely 并为正条目、边界规则收尾），skip_if 五项含 SKILL 独有的 technical debt cleanup/developer tooling——与正文 Step 1 程序的关系由正文节头新增的 frontmatter 优先级锚行定死（冲突以 frontmatter 为准）；③ SKILL.md Directory Structure 裁决为保留（紧凑且承重，压缩收益边际，记为 no-op）；④ AGENTS.md 测试计数 231→236（§3.1 正文 + 路线图 :62/:63 两处"现累计"）；⑤ autonomous-mode.md:156 "before AM-10 existed" 中性化对齐 engine-contract:196（清扫模式串顺带补 `before AM-10` 形态）；⑥ test_generate.py 模块 docstring 双形态化（规则 5 摘要与 load_scopes 行号 :545）+ 新增 DeletedNameHygieneTests（把 WP9 一次性悬空 grep 固化为防回归测试，覆盖技能树 md/py 与仓库根 README.md/README_cn.md，排除测试自身与 AGENTS/docs 历史档案）。
+
+### 2026-10-06：减重批 dogfood 验收（fx991 双臂，方向性通过）
+
+**验收结论**：D-清系列行为面验收**方向性通过**——三腿双臂（fx991 日常迭代嵌入：腿1 历史记录功能 / 腿1b 单组件精度字段 / 腿2 evaluate 重构+bug）CONDITIONAL 决策集合逐腿完全一致；臂 B（减重后）判据溯源全部引用新权威清单措辞、零旧判据残留；六会话 F1-F6 探针零失效。token 收益维持静态估计（恒载 −24.5% ≈ −5.8K tokens/会话）；会话级实测三腿 Δ(B−A) = −23.0K / +4.9K / −17.7K，方向 2/3 有利 B 但噪声 >> 信号，不可分辨文档差（实证"制品主导上下文"预判）。完整对账见 `docs/dogfood-records/fx991-calculator-slimming-ablation-2026-10-06.md`。
+
+**证据定级与偏差（如实）**：日常使用嵌入形态，非受控消融。腿1/1b 可信（臂 A=减重前形态、臂 B=减重后形态经特征判定成立）；腿2 两侧快照来源存疑（A 侧"混合形态"疑为把 Phase 2 scope-matrix 生成块误读为 D-清9 判据清单产物；B 侧或为主项目胖快照）→ **腿2 不构成减重验证证据**，降级为 F2/F4/F5 日常累积。臂副本 .git 重初始化致 lineage 断裂（单根提交 ca66474/9556080），lineage 证明退化为特征判定——协议 §零.1 源 commit 注记缺失的实证代价。F6 实发冲突样本（引擎按计划行残留 emit user-stories vs frontmatter `refactor: SKIP` → frontmatter wins 裁定 skipped）**重定性为 Phase 2 scopes 权威机制的验证**，非减重锚行（锚行现仅腿1b 弱样本）。腿1 预注册"UG/FD 双 execute"两臂均未出现（一致判单隐式单元）——非回归，登记**判据锐度观察**（"触及多模块"与"需要分解"的边界仍靠模型裁量）。
+
+**新发现登记（改进项排队，未立项）**：① 引擎 Windows 自由文本参数三会话复发（`park --note` 空格/分号、`report --reason` 空格被 cmd 拆参）→ 建议 `--note-file`/`--reason-file` 通道或编码约定；② 引擎 emit 未按 frontmatter scope 预剪枝（计划行含 SKIP 阶段仍 emit → 多耗一轮交互，模型现行规则已正确消化）；③ consumes `required:true` × scope 剪枝组合语义待 stage-contract 澄清；④ dogfood-protocol §零 增补快照 STAMP 惯例（源 commit+时间戳；本轮三次缺失实证）与副本记录卫生（原作者侧记录随拷贝混入）。
+
+**部署卫生待办**：主项目 fx-991-calculator 的 `.agents` 仍为减重前快照（`.agents` 末次提交 `5ff1923` = 09-29 11:26 减重前；本轮实测 SKILL 39,593B/死文件在场/无判据清单）——需更新至当前技能 HEAD，否则后续迭代继续承担胖文档负载。
+
+**遗留观察点与决策回填**：指针化阶段块加载遗漏——本周期 6 会话零观测，转日常累积通道（预注册：多周期阴性方可关闭）。produces_missing 连续六会话零触发（升级议题持续无新证据）；resumed-artifacts info 级"先读后写"正向旁证 ×7。账目勘误：AGENTS.md §3.1 测试计数在收尾批误记 236（DeletedNameHygieneTests 落地后实为 237），本条目随记随修。
