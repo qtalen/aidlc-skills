@@ -187,5 +187,5 @@
 - v2.0 对应物：stage-protocol.md §3（三模式选择 :366-383、Guide me :387-461、Self-edit :463-470、Chat :472-481、write-every-pending-question :512-521）+ question-rendering.md（numbered-prose 渲染、consolidated-summary checkpoint、"END THE TURN" 句式）
 - Trellis 二次吸收对照源：`opencode-suit/trellis/.opencode/skills/trellis-brainstorm/SKILL.md`（Evidence Rule :16-24、Question Rules :65-82、First Principles :84-125、Convergence Gate :127-140、PRD Convergence Pass :172-185）与 `.trellis/workflow.md`（breadcrumb 不变量 :99-142）；登记类设计输入（Phase 4/5A 块与 §6 两行）同日落 integration-plan
 - 与 B02 附注二"扩展配置成熟度重估（搁置）"的关系：本批不触碰该搁置项——opt-in 问题仍挂在 RA 澄清问题文件里，其"需求太清晰时不重问"盲区维持原搁置状态
-- 本批不改 7 个阶段文件的决策（D19.24 优先级条款路线）如后续 dogfood 发现阶段文件旧指令频繁误导执行，升级为改写批处理（B16+ 候选）
+- 本批不改 7 个阶段文件的决策（D19.24 优先级条款路线）如后续 dogfood 发现阶段文件旧指令频繁误导执行，升级为改写批处理（B17+ 候选）
 - 根 `AGENTS.md` 导语的 D/B 区间指针曾因本批立项漏同步（D1-D18/B01-B14 两处，另一会话发现、2026-10-07 确认）——当日补修 + integration-plan §7 新增"指针同步"纪律；本批验证节含该指针零残留核验

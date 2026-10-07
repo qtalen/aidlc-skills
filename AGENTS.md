@@ -2,7 +2,7 @@
 
 本仓库是 **AI-DLC（AI-Driven Development Life Cycle）技能的分叉与整合工作区**：以 v1.0 纯 Markdown 技能为基座进行分叉演进，分阶段吸收 v2.0 的先进理念。
 
-**开始任何工作前，先读 `docs/integration-plan.md`**——它记录了全部已确认的决策（D1-D19 + D-清系列）、批次登记表（B01-B15）、分阶段路线图（Phase 0-5+）、开放项总账与维护规程，是本仓库的单一权威上下文。历史细节住在 `docs/batches/`（每批一个档案）与 `docs/archive/`（冻结档案）。
+**开始任何工作前，先读 `docs/integration-plan.md`**——它记录了全部已确认的决策（D1-D20 + D-清系列）、批次登记表（B01-B16）、分阶段路线图（Phase 0-5+）、开放项总账与维护规程，是本仓库的单一权威上下文。历史细节住在 `docs/batches/`（每批一个档案）与 `docs/archive/`（冻结档案）。
 
 ## 目录结构与职责
 
@@ -12,7 +12,7 @@
 | `opencode/` | **只读参考** | v2.0（opencode 插件形态，v2.7.1）。整合的理念来源，**不要修改**。权威导览见其 `AIDLC-PLUGIN.md` |
 | `opencode-cn/` | 只读参考 | v2.0 中文版对应物 |
 | `aidlc-workflows-cn/` | 只读参考 | v1.0 中文版对应物（暂不纳入整合范围） |
-| `docs/` | 可写 | 项目文档。`integration-plan.md` 是主文档（决策登记/批次登记表/路线图/开放项总账）；`docs/batches/` 为执行批次档案（B01-B14）；`docs/archive/` 为冻结档案 |
+| `docs/` | 可写 | 项目文档。`integration-plan.md` 是主文档（决策登记/批次登记表/路线图/开放项总账）；`docs/batches/` 为执行批次档案（B01-B16）；`docs/archive/` 为冻结档案 |
 | `README.md` / `README_cn.md` | — | 仓库自述 |
 
 ## 核心架构约定（v1.0 分叉）
@@ -63,7 +63,8 @@
 - **Phase 3 建设期收尾批 ✅（2026-09-22~24）**：会话连续性 park/恢复简报/传感器第一代（B04，D13/D14）→ Trellis 借鉴立即批（B05）→ dogfood 反馈批 stamp/autonomous 键/Type 10/trace-matrix（B06）
 - **演化期小批 ✅（2026-09-27~29）**：完成态再入修复（B07，D15）→ AM 生命周期（B08，D16）→ 收尾小批（B09）→ AM 简化+Code-Gen Hold（B10，D17）→ AM 提问零配置（B11，D18）→ 文档减法清理（B12，D-清1~9，必加载集 -24.5%，10-06 双臂 dogfood 验收方向性通过）
 - **文档重组批 ✅（2026-10-07）**：integration-plan 拆分为主文档 + 批次档案 + 冻结档案，Phase/B/D 三层体系归一（B14）
-- **待实施**：备份遗产清理批（B13，规格就绪）；提问交互三模式批（B15，规格就绪[含 Trellis 二次吸收增补 D19.30~34]、两轮计划审核，D19）；代码批·旧格式兼容层退役等见主文档开放项总账
+- **Phase 3.4 ⏳（2026-10-07 立项）**：迭代交付（B16，D20）——roadmap 活文档 + 每轮工作流一个迭代 + 完成仪式人工门 + D15 再入通道复用；后续批次 Operations 实义化（B17+ 候选，开放项挂账）
+- **待实施**：备份遗产清理批（B13，规格就绪）；提问交互三模式批（B15，规格就绪[含 Trellis 二次吸收增补 D19.30~34]、两轮计划审核，D19）；迭代交付批（B16，Phase 3.4，规格就绪、计划已过 reviewer 审核，D20）；代码批·旧格式兼容层退役等见主文档开放项总账
 - **Phase 4**：Team Construction（unit-major 波次地基 → claim/release + worktree 多会话团队 → single 重跑 → swarm；设计输入见主文档路线图）
 - **Phase 5A/5B + 不排期**：5A 知识树与学习闭环 / 5B reviewer 及其他；④档三项带触发条件（详见主文档路线图与不排期节）
 
