@@ -1,6 +1,6 @@
 # Dogfood 度量协议
 
-本协议服务于 dogfood 周期的度量采集。目标：把"感觉有用"变成可记录的观测，为后续决策提供数据。曾直接服务的决策——produces_missing 软警告是否升级为硬阻断——已于 2026-09-24 裁决关闭（不升级，见 integration-plan.md §9 当日条目），fx991 三迭代（2026-09-27/28）零触发为追加佐证（累计 5 周期零信号）；第四节模板的"决策回填"行自此泛化为通用遗留决策通道。
+本协议服务于 dogfood 周期的度量采集。目标：把"感觉有用"变成可记录的观测，为后续决策提供数据。曾直接服务的决策——produces_missing 软警告是否升级为硬阻断——已于 2026-09-24 裁决关闭（不升级，见 docs/batches/b06-dogfood-feedback.md），fx991 三迭代（2026-09-27/28）零触发为追加佐证（累计 5 周期零信号）；第四节模板的"决策回填"行自此泛化为通用遗留决策通道。
 
 ---
 
@@ -59,7 +59,7 @@
 
 ## 二、消融对照
 
-- **历史对照**：Phase 3（引擎落地）前后的 dogfood 记录对比。基线 = integration-plan.md §9 历史记录与既有 dogfood 体验（2026-09-14 裸项目、2026-09-15 course-schedule）。
+- **历史对照**：Phase 3（引擎落地）前后的 dogfood 记录对比。基线 = docs/batches/ 各批次档案中的历史 dogfood 记录与既有 dogfood 体验（2026-09-14 裸项目、2026-09-15 course-schedule）。
 - **引擎内开关对照**：park 与 produces_missing 软警告均为引擎内置行为，可在不同 dogfood 会话中分别启用 / 禁用相关流程纪律，做近似对照。
 - **显式声明**：无引擎臂（完全脱离 engine.py 的工作流）在当前契约下**不可构造**——引擎是必选运行时组件（决策 D6，无引擎 = HARD STOP），且跨阶段路由仅由引擎 `next` 提供（Only-next-routes）。此为永久约束，除非契约变更。
 
@@ -68,7 +68,7 @@
 ## 三、数据源
 
 - **首选**：audit.md 审计条目（append-only，含转移条目与用户输入记录）。
-- **引擎侧**：`engine.py status` 输出的 `audit_entries` / `audit_bytes` 字段（Phase 3.1 起），以及 resume_note / recent_events / artifact_alerts。
+- **引擎侧**：`engine.py status` 输出的 `audit_entries` / `audit_bytes` 字段（B04 起），以及 resume_note / recent_events / artifact_alerts。
 - **观测记录**：本协议第四节的一次一表。
 - **注意**：数据读取遵循分级阅读纪律（session-continuity.md），不做全量加载。
 
