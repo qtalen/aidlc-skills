@@ -2,11 +2,11 @@
 
 | 项 | 值 |
 |---|---|
-| 状态 | ⏳ 待实施（2026-10-07 立项，规格经 reviewer 计划审核后收口） |
+| 状态 | ⏳ 待实施（2026-10-07 立项；两轮 reviewer 计划审核 + 其三用户裁决[回写时点回退为收束时统一回写]后规格收口） |
 | 触发 | 用户即期需求——问卷制缺少自由讨论形态，意图不明/一句话需求时无"先聊聊"的空间 |
-| 关联决策 | D19（本批产出，23 项子裁决随立项确认，见规格节）；与 D16-D18（AM 链）在 AM-04 交互面耦合 |
+| 关联决策 | D19（本批产出，34 项子裁决：立项 29 项 + Trellis 二次吸收增补 D19.30~34）；与 D16-D18（AM 链）在 AM-04 交互面耦合 |
 | 测试基线 | 立项时 237；实施时 237→238（+1 规则文本断言） |
-| 材料来源 | 2026-10-07 会话讨论链（v2.0 §3 考证 → 用户三决策 → 五轮边界迭代 → 计划 v1 → reviewer 审核 → v2 终稿）；v2.0 证据：`opencode/.aidlc/aidlc-common/protocols/stage-protocol.md` §3（:330-530）、`opencode/.aidlc/skills/aidlc/question-rendering.md` |
+| 材料来源 | 2026-10-07 会话讨论链（v2.0 §3 考证 → 用户三决策 → 五轮边界迭代 → 计划 v1 → reviewer 审核 → v2 终稿）；v2.0 证据：`opencode/.aidlc/aidlc-common/protocols/stage-protocol.md` §3（:330-530）、`opencode/.aidlc/skills/aidlc/question-rendering.md`；Trellis 二次吸收（同日其二）：`opencode-suit/trellis`（主出处 brainstorm SKILL，忠实度经 reviewer 11 项对照核验） |
 
 ## 立项与裁决
 
@@ -20,7 +20,7 @@
 
 ## 规格
 
-### 决策清单 D19.1~29
+### 决策清单 D19.1~34
 
 **协议骨架**
 
@@ -46,7 +46,7 @@
 - D19.14 澄清文件（follow-up）继承当前模式
 - D19.15 收束判据两条硬判据：每个空白标签可提取**有依据**决策（能指认来自用户哪句话）+ 无悬空用户线索（未回应的问题/"我再想想"/明确搁置议题）；模糊感仅可触发一行探询；**低置信提取先逐条口头确认**，全高置信才提案汇总
 - D19.16 开谈立规矩：chat 开始一句话告知双向收束协议（用户说 done 收束 / 模型判断收敛也会提案汇总，想继续随时说）
-- D19.17 收束路径两条收敛到同一确认点：用户 done → 回写 → 确认；模型判断已收敛 → 回写 → **呈现确认即提案** → STOP
+- D19.17 收束路径两条收敛到同一确认点：用户 done → 回写 → 收敛检查（D19.33）→ 确认；模型判断已收敛 → 回写 → 收敛检查（D19.33）→ **呈现确认即提案** → STOP
 - D19.18 强停措辞：确认呈现后 STOP and wait（v2.0 "END THE TURN" 句式）；文件出现 `[Answer]: Looks correct` 前**不生成任何产物**
 - D19.19 呈现必附一行继续选项（"想继续讨论或修改任何一条，直接说"）；**非匹配回复规则**：确认 pending 时其他回复一律视为继续讨论，禁二选一追问，标签保持空白，结束后重新呈现
 - D19.20 Request changes 涵盖改决策 + 开新议题（新议题先落文件）；确认循环**无上限**，Looks correct 是唯一出口；事后反悔走既有阶段门/workflow-changes
@@ -64,7 +64,15 @@
 - D19.26 **确认条目三处 carve-out**：①豁免 Other/字母格式（检查点非问题）；②Error Handling 字母校验仅限字母题，确认检查点归非匹配规则管；③确认标签仅最终 Looks correct 时写入一次，Request changes 以**追加兄弟条目**记录，循环期间标签空白——DOC-04 兼容（追加而非改写）
 - D19.27 **恢复会话不重问**：QT-05 仅在新工作流会话（engine `status`=none）的首个问题文件触发；恢复会话（active）不重问，默认 structured，开口即切
 - D19.28 **无工具 harness 自适应菜单**：无结构化提问工具时模式问题只呈现 Self-edit / Chat 两项 + 一行说明（先例：QT-01 多选缺失降级处理）
-- D19.29 **park/AM 交互三条**：①park 于聊天中 → 泊车前执行回写（D19.11 第 1 步），空白标签 + park 注记承载恢复；②AM 激活于聊天中 → 先回写已提取决策，未答部分转 AM-04；③自主模式激活话语进消解阶梯路由表，优先于 chat 切换解释
+- D19.29 **park/AM 交互三条**：①park 于聊天中 → 泊车前执行回写（已提取决策统一回写，同 D19.11 第 1 步），空白标签 + park 注记承载恢复；②AM 激活于聊天中 → 先回写已提取决策，未答部分转 AM-04；③自主模式激活话语进消解阶梯路由表，优先于 chat 切换解释
+
+**Trellis 二次吸收增补（2026-10-07 其二，二轮审核后收口）**
+
+- D19.30 **证据边界锐化**（并入 qfg Evidence-First Policy，全模式适用）：仓库证据确立**现状与技术约束**；用户的意图行为、功能边界、UX 偏好**永远不能仅由仓库证据回答**——即使存在既有模式。**既有模式是选项和推荐依据，不是决定**；引用时作为推荐理由呈现，决定权仍在用户
+- D19.31 **逐题纪律**（QT-06，chat 模式）：模型每条消息**至多问一个**问题——当前**最高价值**（最阻塞下游）者；问题须含决定点/为何重要/推荐答案/另选代价（对齐 Recommendation-and-Trade-off 节）；问完即停，等用户回应；回应用户主动发起的话题不受此限（串行化的只是**模型的提问**，讨论本身自由）；用户一条回复回答多个问题 → 记录后重算剩余清单，再问下一个（答案统一在收束时回写，D19.32）。**文件自讨论开始即含全部待答问题（D19.13）——逐题纪律只约束提问节奏，不削减文件的问题完备性**（先答的答案可能使后问的问题作废，故高价值优先）。模式间不对称的理：结构化工具批量是显式清单勾选、上下文自明；chat 单题为对话可追踪
+- D19.32 **回写时点 = 收束时统一回写**〔2026-10-07 其三用户裁决，推翻同日其二的增量回写吸收〕：全部答案在收束时一次性回写（用户 done 或模型提案收束后、收敛检查与确认呈现前）；讨论过程中的决策由模型在对话内维护并当回合宣告（"已记下：X 用 PostgreSQL"）。兜底链：park / AM 激活前的强制回写（D19.29①②）+ 汇总确认与阶段审批门的质量把关。已知代价（接受，见规格修订其三）：未 park 的硬中断（崩溃/上下文压缩）可能丢失未回写讨论
+- D19.33 **收敛检查**（确认呈现前，DOC-04 兼容）：清单式核对——①无重复/重叠问题未收口；②无已解决但仍挂着的悬空线索；③全部锚点/决策/约束进入 requirements.md（无一遗漏）；④无遗留空白标签。**DOC-04 兼容机制**：重复问题不删改原文，以**带时间戳的追加合并注记**收口（如 "Consolidation: Q5 并入 Q2，以 Q2 答案为准 @<timestamp>"）；收束后的答案修订走 D19.26③ 兄弟条目（统一回写下，写入前的修订发生在唯一一次回写之前，无需改写历史）；requirements.md 生成时每个决策只出现一次、携带全部锚点，生成后通读验证无跨节重复。**分工边界**：收敛检查只覆盖问题文件侧；outcome/scope/acceptance/技术未知由 RA Step 5 六领域分析与 Step 7 组合边界检查承担
+- D19.34 **第一性原理脚手架**（搭车项，RA Step 5 增补；触发条件 = Step 2.1 清晰度判定 Vague/Incomplete）：六领域枚举之前先分解——①一句话重述问题（剥掉实现细节："用户资料加载太慢"，不是"加 Redis 缓存"）；②列基本事实（物理约束/业务规则/技术不变量/用户需要——只要事实不要惯例）；③挑战假设（事实还是惯例？拿掉会怎样？解真问题还是症状？）；④自下而上构建（最小机制开始，每个增加回答"哪条事实要求它？"）；⑤验证（解了原问题吗？哪些假设待验证？最简实验？）。产出的"基本事实清单"直接作六领域提问骨架。触发条件**有意收窄**于 Trellis 原件（原件另含"防过度工程"维度——不为一个透镜扩清晰度判定结构）
 
 **不在本批**：`gate: none` 两阶段（WD/operations）的有意设计不重开；跨会话模式持久化不做。
 
@@ -72,9 +80,9 @@
 
 | # | 文件 | 改动 |
 |---|---|---|
-| 1 | `references/common/question-format-guide.md` | "Never Ask in Chat"→"Questions Live in Files — Chat Is Only a Collection Mode"（三模式表 + 两个聊天豁免元问题 + 文件不变量）；豁免表加模式选择行并修正 :15 "only" 措辞；顶部优先级条款（D19.24）；问题边界定义（D19.25）；新增 Chat-Mode Write-Back 格式节（`**Mode:** chat` 标注、间接 remarks 依据行、Consolidated Summary Confirmation 文件格式、carve-out 三条 D19.26）；interaction mode ≠ Autonomous Mode 区分句；Summary 清单更新 |
-| 2 | `references/extensions/workflow/workflow-conventions/workflow-conventions.md` | 组更名 Question Tool Flow → **Question Flow (QT)**；Overview 行（:10）同步；Group 4 导言：三模式 + 信号意图分类通则 + 终止符用户所有 + 优先级条款 + AM 区分句；AM override 段补模式不可用；QT-01/QT-03 加模式适用前置（Structured 适用 / Self-edit 走基础流 / Chat 走 QT-06）；新增 QT-05（首文件挂载、预声明免问、意图类切换、消解阶梯、会话级单变量、自适应菜单、恢复会话判别、audit）；新增 QT-06（先落文件、收束判据、开谈立规矩、双路径收束、强停、非匹配规则、循环无上限、park/AM 规则）；Enforcement 表 QT-01~06 |
-| 3 | `references/inception/requirements-analysis.md` | Step 6 加模式入口行 + 收集方式行改模式化表述（替换"Request user to fill in all [Answer]: tags directly"）；⛔ GATE（:190-192）改模式中性表述 |
+| 1 | `references/common/question-format-guide.md` | "Never Ask in Chat"→"Questions Live in Files — Chat Is Only a Collection Mode"（三模式表 + 两个聊天豁免元问题 + 文件不变量）；豁免表加模式选择行并修正 :15 "only" 措辞；顶部优先级条款（D19.24）；问题边界定义（D19.25）；新增 Chat-Mode Write-Back 格式节（`**Mode:** chat` 标注、间接 remarks 依据行、Consolidated Summary Confirmation 文件格式、carve-out 三条 D19.26）；interaction mode ≠ Autonomous Mode 区分句；Summary 清单更新。**Trellis 二次吸收**：Evidence-First 证据边界 bullet（D19.30）；Chat-Mode 节逐题纪律（D19.31）；收敛检查格式与带时间戳合并注记（D19.33） |
+| 2 | `references/extensions/workflow/workflow-conventions/workflow-conventions.md` | 组更名 Question Tool Flow → **Question Flow (QT)**；Overview 行（:10）同步；Group 4 导言：三模式 + 信号意图分类通则 + 终止符用户所有 + 优先级条款 + AM 区分句；AM override 段补模式不可用；QT-01/QT-03 加模式适用前置（Structured 适用 / Self-edit 走基础流 / Chat 走 QT-06）；新增 QT-05（首文件挂载、预声明免问、意图类切换、消解阶梯、会话级单变量、自适应菜单、恢复会话判别、audit）；新增 QT-06（先落文件、收束判据、开谈立规矩、双路径收束、强停、非匹配规则、循环无上限、park/AM 规则）；Enforcement 表 QT-01~06。**Trellis 二次吸收**：QT-06 增补逐题纪律（含模式间不对称理由半句）与收敛检查（D19.31/33） |
+| 3 | `references/inception/requirements-analysis.md` | Step 6 加模式入口行 + 收集方式行改模式化表述（替换"Request user to fill in all [Answer]: tags directly"）；⛔ GATE（:190-192）改模式中性表述。**Trellis 二次吸收**：Step 5 增第一性原理透镜（D19.34，搭车项，触发=Step 2.1 清晰度 Vague/Incomplete） |
 | 4 | `references/common/session-continuity.md` | #12 改写：问题住文件；两个聊天豁免元问题；chat 是受约束的收集模式（先落文件不变量） |
 | 5 | `references/extensions/workflow/autonomous-mode/autonomous-mode.md` | AM-04 补一句：模式问题不问、chat 不可用、in-round 指示按既有条款 |
 | 6 | `SKILL.md` | Question File Format 节（生成区外，:71-78 已核）加一个 bullet：三交互模式，指向 QT-05/06 |
@@ -110,6 +118,36 @@
 | 建议1 | 规则文本断言使清扫机器可检（B11 先例） | 采纳：+1 测试（237→238） |
 | 建议2 | 工序委派豁免理由措辞与实际条款不符 | 采纳：改写为紧凑性判据原文 |
 
+## 规格修订（2026-10-07 其二 · Trellis 二次吸收）
+
+**来源**：Trellis 框架二次吸收分析（`D:\Documents\PythonProject\opencode-suit\trellis`，主出处 `.opencode/skills/trellis-brainstorm/SKILL.md`；吸收忠实度经 reviewer 11 项对照核验全部忠实）。规格侧五项增补 D19.30~34 已并入决策清单（既有 D19.11/17/29 随 D19.32 改述）；登记侧六项（Phase 5A/Phase 4 设计输入块 + §6 总账两行）落 integration-plan，同日执行。
+
+**二轮计划审核（reviewer，修订计划审）**：1 🔴 / 5 🟡 / 5 🔵；用户裁决"全部按推荐处置"。
+
+| 级别 | 发现 | 处置 |
+|---|---|---|
+| 🔴1 | D19.17 有两条收束路径，修订只改了用户 done 路径，模型发起路径仍写"回写"，与 D19.32 增量回写矛盾 | D19.32 改述范围扩为两条路径（已修入决策清单） |
+| 🟡1 | 增量回写使"答案被后续修订"成高发场景，D19.33 原只覆盖"问题重复"未覆盖"答案取代"，且漏时间戳 | D19.33 增补带时间戳修订注记映射 old→new（已修入） |
+| 🟡2 | integration-plan §2 D19 行"子裁决 D19.1~29"将失准 | 同步改 D19.1~34（integration-plan 侧执行） |
+| 🟡3 | Phase 4 新项塞 09-22 旧块、5A 却新建 10-07 块，来源归属不一致 | Phase 4 也新建并列"Trellis 二次吸收设计输入（2026-10-07）"块 |
+| 🟡4 | D19.34 搭车未反映到 §3 一句话/AGENTS.md，且来源为 Trellis 非 v2.0 | 选保留 + 三处描述同步（理由见下） |
+| 🟡5 | D19.33 只映射 Trellis 收敛门 2/6 维，未说明其余维度分工 | D19.33 末补分工句（已修入） |
+| 🔵1 | D19.34 触发条件窄于原件（丢"防过度工程"维度） | 接受收窄并在规则文本注明有意为之（已修入） |
+| 🔵2 | chat 单题 vs structured 批量不对称无理由说明 | QT-06 加理由半句（已修入 D19.31） |
+| 🔵3 | dogfood 观察点⑦依赖文件 mtime 不可靠 | 改 audit.md 同交互对应关系（已修入观察点 7） |
+| 🔵4 | required·once 门脱离 breadcrumb 载体后无强制力 | 5A 块注明"仅作软强度标记"（integration-plan 侧执行） |
+| 🔵5 | 观察点编号风格混用 | 统一阿拉伯数字续编（已修入） |
+
+**D19.34 搭车理由**：与三模式同触 RA 文件、同服务"意图不明 → 好需求"的立项主线（透镜改善**问什么**，模式改善**怎么问**）；独立成批的登记成本与约 15 行增补不成比例（先例：B09 收尾小批混装异质项）。来源为 Trellis（非 v2.0），已在 integration-plan §3 一句话与 AGENTS.md 路线图标注。
+
+### 其三 · 回写时点回退（用户裁决，同日）
+
+**裁决**：废止其二的增量回写吸收（原 D19.32），恢复**收束时统一回写**。理由（用户）：审批门兜底——汇总确认与阶段审批门发现答案不完整或错提时，可重新处理或向用户追问；统一回写协议更简。
+
+**回退波及（全部已执行）**：D19.11 / D19.17（两条路径，保留 D19.33 收敛检查在收束路径中）/ D19.29①② 改述回退；D19.31 去"逐一回写"表述并补"提问节奏 ≠ 文件完备性"澄清；D19.32 重写为统一回写裁决；D19.33 移除"答案取代修订注记"条款（统一回写下修订发生在唯一一次写入之前，收束后修订走 D19.26③ 兄弟条目）；dogfood 观察点删"增量回写验证"并重编号（现 1~7）。
+
+**已知代价（接受并记录）**：未 park 的硬中断（会话崩溃/上下文压缩）可能丢失未回写讨论——审批门只兜产物质量、不兜讨论过程的中断持久性。缓解：park / AM 激活前强制回写（D19.29①②）+ 模型当回合口头确认决策（错听即时可纠）+ 会话恢复通常可从历史找回。此为对 Trellis"conversations get compacted, files don't"动机的已知情取舍。
+
 ## 实施与实施期裁决
 
 （待实施）
@@ -119,9 +157,25 @@
 - `python .agents\skills\aidlc-workflows\scripts\generate.py --check` 退出码 0（纯正文改动，预期零漂移）
 - `python -m unittest discover -s .agents\skills\aidlc-workflows\scripts\tests` **238 例全绿**（新增 test_rule_invariants.py 1 例；引擎/生成器零改动，既有 237 预期零变化）
 - 清扫串技能树清零（历史档案/docs 记载豁免——惯例不改）：`Never ask questions in chat`、`sole exception: the Requirements Analysis`、`QT-01 ~ QT-04`、`QT-01~04`（大小写不敏感）、`Question Tool Flow`、`only chat question`
+- 根 `AGENTS.md` 导语区间指针核验：`D1-D18`、`B01-B14` 零残留（2026-10-07 立项时漏同步，当日已补修为 D1-D19/B01-B15 并入 §7 指针同步纪律——实施时核验即可，见附注）
 - 交叉引用人工核对：QT-05/06 ↔ question-format-guide ↔ RA Step 6 ↔ session-continuity #12 ↔ AM-04 ↔ SKILL.md 六处互指一致；两个聊天豁免（scope、模式）所有提及处对齐
 - 生成区标记内零改动；`opencode/`、`opencode-cn/`、`aidlc-workflows-cn/` 只读目录零触碰
 - 点名已核无需改：error-handling.md:36（矛盾/歧义处理显式 defer 给 qfg）；welcome-message 生成区（仅 ascii-diagram，无提问内容）
+
+### 实施后验收（dogfood，2026-10-07 补，B12 先例）
+
+机械验证全绿后，跑一个**最小 dogfood** 回答本批的立项问题（"一句话/意图不明需求能否经 RA+Chat 逐步完善为详细需求文档"）：
+
+- **输入**：一句真实的模糊需求（可用 fx991 原始一句话"做个科学计算器"或新裸项目任意一句话需求），pretend 无附加上下文；
+- **观察点**（对照 D19 子裁决）：
+  1. 模式入口：首个问题文件处的三选一是否出现；预声明路径（开口"想先聊聊"→ 免问直入）是否免问；
+  2. 讨论质量：是否真在挖意图（六领域逐步覆盖、追问到点）而非走过场式罗列文件里的问题；Evidence-First 是否把可探索项挡在讨论外；
+  3. 提取回写：`**Mode:** chat` 标注、间接 remarks 依据行、错提是否被汇总确认拦住（故意在讨论中留一处含糊表述，看确认环是否捕获）；
+  4. 信号识别：非 "done" 字面的收束语（如"就到这吧"）、中途退出（"上选项"）、中途换话题开新议题（先落文件）各一次；
+  5. 产物质量：requirements.md 是否达到 standard+ 深度、组合边界检查是否出现、审批门正常拦截；
+  6. 逐题纪律（D19.31）：模型每条消息是否只问一个问题（含推荐+代价）、优先级是否合理（先问最阻塞下游的）；
+  7. 收敛检查（D19.33）：确认呈现前问题文件无未收口重复（合并注记在场）、锚点保全；
+- **记录**：过程记录入 `docs/dogfood-records/`（本地保留）；结论与改进项回填本档案验证节与遗留节；**方向性通过即本批关闭**（单样本不追求统计功效，消融对照不强制——B12 双臂属减法批特例）。
 
 ## 遗留与去向（预定）
 
@@ -131,5 +185,7 @@
 ## 附注
 
 - v2.0 对应物：stage-protocol.md §3（三模式选择 :366-383、Guide me :387-461、Self-edit :463-470、Chat :472-481、write-every-pending-question :512-521）+ question-rendering.md（numbered-prose 渲染、consolidated-summary checkpoint、"END THE TURN" 句式）
+- Trellis 二次吸收对照源：`opencode-suit/trellis/.opencode/skills/trellis-brainstorm/SKILL.md`（Evidence Rule :16-24、Question Rules :65-82、First Principles :84-125、Convergence Gate :127-140、PRD Convergence Pass :172-185）与 `.trellis/workflow.md`（breadcrumb 不变量 :99-142）；登记类设计输入（Phase 4/5A 块与 §6 两行）同日落 integration-plan
 - 与 B02 附注二"扩展配置成熟度重估（搁置）"的关系：本批不触碰该搁置项——opt-in 问题仍挂在 RA 澄清问题文件里，其"需求太清晰时不重问"盲区维持原搁置状态
 - 本批不改 7 个阶段文件的决策（D19.24 优先级条款路线）如后续 dogfood 发现阶段文件旧指令频繁误导执行，升级为改写批处理（B16+ 候选）
+- 根 `AGENTS.md` 导语的 D/B 区间指针曾因本批立项漏同步（D1-D18/B01-B14 两处，另一会话发现、2026-10-07 确认）——当日补修 + integration-plan §7 新增"指针同步"纪律；本批验证节含该指针零残留核验
