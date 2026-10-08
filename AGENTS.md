@@ -46,7 +46,7 @@
 - 引擎 `scripts/engine.py` 是**必选运行时组件**：独占跨阶段路由（`next`）、状态机转移（`report` 是唯一写入口）、审计转移条目、状态完整性校验（State Digest sha256 + 审计交叉核验 + `rebase`）、改道（`jump`/`jump --fresh`；工作流完成态下 `jump --stage` 放行为**同产品再入**——目标及其后重置、语义同 backward redo，`--fresh` 留给新产品意图，D15）、会话泊车注记（`park --note`：写状态文件 Last Parked 行 + `aidlc-docs/handoff.md`，不改 marks/current、不写审计）、权威时间戳读取（`stamp`，零副作用）。`aidlc-docs/handoff.md` 为引擎独写，模型不得手改。
 - 引擎**只读**作者期编译产物 `scripts/data/stage-graph.json`（generate.py 生成，--check 覆盖其漂移），**永不解析 frontmatter，也永不解析 condition 散文**（CONDITIONAL 阶段照常发射 `conditional: true`，模型判断不适用则 `report --result skipped --reason`）。
 - 状态文件分区所有权（`references/common/engine-contract.md`）：`<!-- BEGIN/END ENGINE-STATE -->` 标记区内（Stage Progress/Current Status/Unit Progress/State Digest）引擎独占、digest 覆盖；区外（Project Information/Execution Plan Summary/Autonomous Mode/Extension Configuration 等）模型按模板写。Execution Plan Summary 的结构化行（Scope/Depth/Stages to Execute/Skip）是模型写-引擎读的 load-bearing 通道（Autonomous Mode 区的 `autonomous` 键与 Extension Configuration 表的 checkpoint 探测同属模型写-引擎读，引擎只宽容读取、不改变所有权）。**唯一引擎写模型区例外（AM-10 轮次边界过期，2026-09-28）**：引擎在完成转移与再入 jump 两个确定性边界可把 Autonomous Mode 区的 `Enabled` 行翻转为 No（连同既存 Last Updated 行），宽容 no-op；触发互斥是纪律约定非机制保证（该区不在 digest、无锁），见契约 §6。
-- 引擎测试与生成器测试同套件（`scripts/tests/`，共 247 例，2026-10-08 起含 test_rule_invariants.py 规则文本断言）：改引擎后必跑 `python -m unittest discover -s .agents\skills\aidlc-workflows\scripts\tests`。
+- 引擎测试与生成器测试同套件（`scripts/tests/`，共 248 例，2026-10-08 起含 test_rule_invariants.py 规则文本断言）：改引擎后必跑 `python -m unittest discover -s .agents\skills\aidlc-workflows\scripts\tests`。
 
 ### 4. 编辑纪律
 
@@ -59,12 +59,12 @@
 ## 路线图速览（详见 docs/integration-plan.md；已执行批次的完整记录见 docs/batches/ 批次档案）
 
 - **Phase 0/1/2 ✅**：阶段契约化 + 生成器（B01）；scope 裁剪矩阵（B02，`references/common/scopes/` 6 个 scope：classic[默认]/bugfix/refactor/security-patch/infra/express）
-- **Phase 3 ✅（2026-09-14）**：轻量编排引擎落地——"判断归 LLM，精确归工具，决定归人类"。`scripts/engine.py`（Python stdlib 必选运行时引擎）+ compile-to-JSON（`scripts/data/stage-graph.json`）+ 状态分区所有权（`references/common/engine-contract.md`）+ stdlib unittest 测试套件（CI 同跑 --check 与测试，现累计 237 见 §3.1）+ 裸项目 dogfood 通过（B03）
+- **Phase 3 ✅（2026-09-14）**：轻量编排引擎落地——"判断归 LLM，精确归工具，决定归人类"。`scripts/engine.py`（Python stdlib 必选运行时引擎）+ compile-to-JSON（`scripts/data/stage-graph.json`）+ 状态分区所有权（`references/common/engine-contract.md`）+ stdlib unittest 测试套件（CI 同跑 --check 与测试，期终 237——现累计 248 见 §3.1）+ 裸项目 dogfood 通过（B03）
 - **Phase 3 建设期收尾批 ✅（2026-09-22~24）**：会话连续性 park/恢复简报/传感器第一代（B04，D13/D14）→ Trellis 借鉴立即批（B05）→ dogfood 反馈批 stamp/autonomous 键/Type 10/trace-matrix（B06）
 - **演化期小批 ✅（2026-09-27~29）**：完成态再入修复（B07，D15）→ AM 生命周期（B08，D16）→ 收尾小批（B09）→ AM 简化+Code-Gen Hold（B10，D17）→ AM 提问零配置（B11，D18）→ 文档减法清理（B12，D-清1~9，必加载集 -24.5%，10-06 双臂 dogfood 验收方向性通过）
 - **文档重组批 ✅（2026-10-07）**：integration-plan 拆分为主文档 + 批次档案 + 冻结档案，Phase/B/D 三层体系归一（B14）
-- **Phase 3.4 ⏳（2026-10-07 立项，10-08 重定义；段一/段二已实施，dogfood #1 全程完成）**：产品演进闭环（首批=合并批 B15，D19 其六 + D20 全量并入）——头脑风暴阶段 + roadmap 活文档 + 迭代交付环 + 完成仪式；段一（战略层 11 项）落地（240 绿），dogfood #1 全程过（8/8+发现 P7~P12；迭代 1 同日建到 done——39/39 测试、E2E file:// 实证、roadmap flipped shipped）；段二（交付环 D1~D8 + P7/P8/P10 修复）落地（**247 绿**+零漂移）；**dogfood #2 待启动**（自完成态续跑：完成仪式三分支/两再入路径/AM 延迟/N=1 退化）；后续 Operations 实义化（B17+ 候选，开放项挂账）
-- **待实施**：备份遗产清理批（B13，规格就绪）；B15 **dogfood #2**（段二实施已毕，验证待跑——两再入路径+四轻量验证，见档案验证节）；代码批·旧格式兼容层退役等见主文档开放项总账
+- **Phase 3.4 ✅（2026-10-07 立项，10-08 重定义并全量落地）**：产品演进闭环（首批=合并批 B15，D19 其六 + D20 全量并入）——头脑风暴阶段 + roadmap 活文档 + 迭代交付环 + 完成仪式；段一（战略层 11 项）落地（240 绿），dogfood #1 全程过（8/8+P7~P12；迭代 1 同日建到 done——39/39 测试、E2E file:// 实证、roadmap flipped shipped）；段二（交付环 D1~D8 + P7/P8/P10 修复）落地（247 绿+零漂移）；dogfood #2 全程过（六项全收：改形再入全链/AM 延迟+Hold+轮末过期全生命周期/中断放弃语义/N=1+express 纸面走查；P13 回合边界条款+P14 B&T 条件修复当场落地、P11 维持；迭代 2 本机双人 shipped——49/49、E2E 五景、56.45 kB）；收口提交后本相位闭环（**248 绿**）；后续 Operations 实义化（B17+ 候选，开放项挂账）
+- **待实施**：备份遗产清理批（B13，规格就绪）；代码批·旧格式兼容层退役等见主文档开放项总账（B15 已全量完成，dogfood 发现账 P9 挂 B17+、P13/P14 已落地）
 - **Phase 4**：Team Construction（unit-major 波次地基 → claim/release + worktree 多会话团队 → single 重跑 → swarm；设计输入见主文档路线图）
 - **Phase 5A/5B + 不排期**：5A 知识树与学习闭环 / 5B reviewer 及其他；④档三项带触发条件（详见主文档路线图与不排期节）
 

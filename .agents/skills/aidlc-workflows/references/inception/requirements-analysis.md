@@ -133,7 +133,7 @@ After the intent analysis, if the request is judged **Vague or Incomplete at pro
 
 - **Guard**: if the user has already declined this suggestion earlier in this session, do not suggest it again (the guard lives in session memory only; a new session or re-entry may ask once more).
 - If the product design exists, this step never triggers — proceed and let Step 1's product-design context do the work.
-- On agreement, the return is a normal backward re-route (`engine.py jump --stage product-brainstorm`, classic scope); on refusal or silence, continue with Step 3.
+- On agreement, the return is a normal backward re-route (`engine.py jump --stage product-brainstorm`, classic/infra scopes); on refusal or silence, continue with Step 3.
 
 ### Step 3: Determine Requirements Depth
 

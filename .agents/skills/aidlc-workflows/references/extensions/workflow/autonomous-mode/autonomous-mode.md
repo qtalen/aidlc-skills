@@ -65,6 +65,7 @@ While Autonomous Mode is active — **every stage**; there is no review-stage li
 4. APG-05 still applies: completion message templates are never modified.
 5. All other completion obligations remain in force (plan checkbox updates, DOC-01 sweep, extension compliance summary, content validation) — auto-approval skips ONLY the wait, never the work.
 6. The Code-Gen Hold (AM-11) takes precedence at the Code Generation boundary: when the hold is armed and Code Generation is about to start, present the hold and wait per AM-11 — do NOT auto-approve past it.
+7. **Turn boundaries are not stop points**: a chat-harness response turn may have to end mid-round (length/context budget) — that is pacing, never a gate. End it with a progress note that explicitly states no user decision is pending; the next user message, however trivial, is a resumption trigger only (it carries no approval semantics and no gate value). On resumption, continue the round immediately under AM rules without re-presenting any gate. The only designed stop points are the Code-Gen Hold (AM-11, including any custom variant per AM-02/AM-08) and an escalated undecidable question (AM-04).
 
 **Verification**: no autonomous stage sits waiting for approval; every auto-approval has a corresponding audit entry and state update in the same interaction.
 

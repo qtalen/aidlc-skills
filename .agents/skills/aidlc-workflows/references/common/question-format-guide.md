@@ -17,7 +17,7 @@
 | The Product Brainstorm stage dialogue (references/inception/product-brainstorm.md) | The entire stage is a co-design conversation by design — questions and answers live in the conversation record and crystallize into `product-design.md` in one write at the end (structured tool calls inside the dialogue inherit this exemption) |
 
 ### Rule: Never Ask Questions in Chat
-**CRITICAL**: You must NEVER ask questions directly in the chat. ALL questions must be placed in dedicated question files. (Exceptions: the minimal-candidate scope-selection question in Requirements Analysis Step 2.5 — see `references/inception/requirements-analysis.md`; and the Product Brainstorm stage dialogue, which is exempt for its whole duration — see `references/inception/product-brainstorm.md`.)
+**CRITICAL**: You must NEVER ask questions directly in the chat. ALL questions must be placed in dedicated question files. (Exceptions: the minimal-candidate scope-selection question in Requirements Analysis Step 2.5 — see `references/inception/requirements-analysis.md`; the Product Brainstorm stage dialogue, which is exempt for its whole duration — see `references/inception/product-brainstorm.md`; and the extension opt-in choice card presented in chat when no questions file is created — see Requirements Analysis Step 5.1.)
 
 ### Question File Format
 
@@ -370,7 +370,7 @@ E) Other (please describe after [Answer]: tag below)
 - ✅ Always validate responses for contradictions
 - ✅ Always create clarification files if needed
 - ✅ Always resolve contradictions before proceeding
-- ❌ Never ask questions in chat (exceptions: the Requirements Analysis Step 2.5 scope-selection question, and the Product Brainstorm stage dialogue)
+- ❌ Never ask questions in chat (exceptions: the Requirements Analysis Step 2.5 scope-selection question, the Product Brainstorm stage dialogue, and the file-less-path extension opt-in choice card — Requirements Analysis Step 5.1)
 - ❌ Never make up options just to have A, B, C, D
 - ❌ Never ask what the codebase or existing artifacts already answer (Evidence-First Policy)
 - ❌ Never proceed without answers

@@ -66,7 +66,7 @@ C) Start Fresh (archive this project's aidlc-docs and reset state — for a new 
 9. **Show specific next steps** rather than generic descriptions
 10. **Log the continuity prompt** in audit.md with timestamp
 11. **Context Summary**: after the tiered load, briefly state what was loaded and what was deliberately deferred
-12. **Asking questions**: ALWAYS ask clarification or user feedback questions by placing them in .md files. DO NOT place the multiple-choice questions in-line in the chat session (sole exception: the scope-selection chat question in Requirements Analysis Step 2.5; the Product Brainstorm stage dialogue is likewise exempt for its whole duration — see `references/inception/product-brainstorm.md`).
+12. **Asking questions**: ALWAYS ask clarification or user feedback questions by placing them in .md files. DO NOT place the multiple-choice questions in-line in the chat session (exceptions: the scope-selection chat question in Requirements Analysis Step 2.5; the Product Brainstorm stage dialogue — exempt for its whole duration, see `references/inception/product-brainstorm.md`; and the file-less-path extension opt-in choice card — Requirements Analysis Step 5.1).
 
 ## Park Ritual
 

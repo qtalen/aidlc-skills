@@ -71,12 +71,23 @@ class IterationDeliveryCoPresenceTests(unittest.TestCase):
         # D20.14/D20.16: immutability lives in workflow-changes; the B&T
         # commit protocol carries the marking rule and the artifact name
         # (roadmap lives inside product-design.md since D20.2's override).
+        # P14 (dogfood #2 paper walkthrough): the trigger is "has an
+        # iteration roadmap" — N=1 products mark their only row too.
         self.assertIn(
             "never rewritten", _read("references/common/workflow-changes.md")
         )
         bt = _read("references/construction/build-and-test.md")
         self.assertIn("product-design.md", bt)
         self.assertIn("Shipped Log rollup line", bt)
+        self.assertIn("Products with an iteration roadmap", bt)
+        self.assertIn("single-iteration one", bt)  # N=1 clause (P14 core semantics)
+        # R1 (review): Branch 3 must NOT conflate N=1-with-roadmap with
+        # no-roadmap — the parenthetical names the no-roadmap condition only.
+        wc = _read("references/common/workflow-changes.md")
+        self.assertIn(
+            "(a design delivered without an iteration roadmap", wc
+        )
+        self.assertIn("an N=1 roadmap's only iteration counts as the last", wc)
 
     def test_iteration_scope_wp_and_ug(self):
         # WP plans the subset (template section + verification); UG scopes
@@ -119,6 +130,19 @@ class IterationDeliveryCoPresenceTests(unittest.TestCase):
             "never be orphaned",
             _read("references/inception/requirements-analysis.md"),
         )
+
+
+class AutonomousModeTurnBoundaryTests(unittest.TestCase):
+    """P13 ruling (dogfood #2, option b): AM-03 must state that turn
+    boundaries are pacing, never gates — a resumption poke carries no
+    approval semantics."""
+
+    def test_turn_boundary_clause_present(self):
+        am = _read(
+            "references/extensions/workflow/autonomous-mode/autonomous-mode.md"
+        )
+        self.assertIn("Turn boundaries are not stop points", am)
+        self.assertIn("resumption trigger only", am)
 
 
 if __name__ == "__main__":

@@ -398,5 +398,5 @@ status -> resume_note + note_age_seconds:6 + autonomous{...}
 
 - `references/common/engine-contract.md` —— 引擎对外契约：动词语义、状态分区、示例
 - `references/common/stage-contract.md` —— 阶段 frontmatter 字段定义与校验规则
-- `scripts/tests/` —— 231 个测试（engine 154 + trace-matrix 22 + generate 55），改引擎后必跑
+- `scripts/tests/` —— 248 个测试（engine 154 + trace-matrix 22 + generate 61 + rule-invariants 11），改引擎后必跑
 - `docs/integration-plan.md` —— 设计决策（D6/D13/D14 等）与演进史

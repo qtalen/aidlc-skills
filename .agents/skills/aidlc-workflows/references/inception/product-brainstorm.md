@@ -193,11 +193,11 @@ Iteration numbering starts at 1 for the current product; FR/US identifiers follo
 
 ## Autonomous Mode and Park
 
-The brainstorm dialogue is **exclusively human territory** — no mechanism may make product decisions for the user.
+The brainstorm dialogue is **exclusively human territory** — no mechanism may make product decisions for the user. (When Product Brainstorm becomes the current stage while Autonomous Mode is on, AM-05's brainstorm trigger deactivates the mode first — see `references/extensions/workflow/autonomous-mode/autonomous-mode.md`; this section then applies in standard mode.)
 
-- **Activate intent during the dialogue**: deferred, never executed here. Announce in one line ("Autonomous Mode will activate at Requirements Analysis"), log it in audit — do **not** write `Enabled: Yes`. A full, fresh activation flow (AM-02, including the code-gen hold question) runs at the Requirements Analysis boundary. During the deferral window, an exit/cancel intent cancels the pending activation (no AM state change; one audit line). The pending activation never persists across sessions.
+- **Activate intent during the dialogue**: deferred, never executed here. Announce in one line ("Autonomous Mode will activate at Requirements Analysis"), log it in audit — do **not** write `Enabled: Yes`. A full, fresh activation flow (AM-02, including the code-gen hold question) runs at the Requirements Analysis boundary. During the deferral window, an exit/cancel intent cancels the pending activation (no AM state change; one audit line). The pending activation never persists across sessions. (AM deferral semantics: `references/extensions/workflow/autonomous-mode/autonomous-mode.md`, AM-02.)
 - **The impatient user takes the fast path, not AM**: draft a full-default `product-design.md` from everything heard so far and present it — but the gate still requires explicit human approval. Speed comes from defaults, never from delegated decisions.
-- **Park is not offered for the dialogue**: the discussion does not persist across sessions. An interruption or context compaction abandons the current dialogue — on resume, restart the conversation (the understanding write-back makes this cheap) or take the fast path. This is a deliberate, recorded trade-off.
+- **Park is not offered for the dialogue**: the discussion does not persist across sessions. An interruption or context compaction abandons the current dialogue — on resume, restart the conversation (the understanding write-back makes this cheap) or take the fast path. This is a deliberate, recorded trade-off. (Contrast with normal stages: `references/common/session-continuity.md`, Park Ritual.)
 
 ## Gate and Reporting
 
