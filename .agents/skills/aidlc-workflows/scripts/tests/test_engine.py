@@ -40,6 +40,7 @@ ISO_UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 STAGE_ORDER = [
     "workspace-detection",
     "reverse-engineering",
+    "product-brainstorm",
     "requirements-analysis",
     "user-stories",
     "workflow-planning",
@@ -345,11 +346,15 @@ class RoutingTests(WorkspaceCase):
         self.set_plan_lines(skip="user-stories (no UX), application-design")
         self.drive_past("workspace-detection")
         self.drive_past("reverse-engineering")
+        self.drive_past("product-brainstorm")
         self.drive_past("requirements-analysis")
         directive = self.next()
         self.assertEqual(directive["stage"], "workflow-planning")
 
     def test_plan_execute_adds_back_scope_skip(self):
+        # bugfix scope pre-skips product-brainstorm (scope matrix, D19.35)
+        # — the drive goes straight from reverse-engineering to
+        # requirements-analysis.
         self.set_plan_lines(scope="bugfix", execute="user-stories")
         self.drive_past("workspace-detection")
         self.drive_past("reverse-engineering")
@@ -365,6 +370,7 @@ class RoutingTests(WorkspaceCase):
                             execute="user-stories")
         self.drive_past("workspace-detection")
         self.drive_past("reverse-engineering")
+        self.drive_past("product-brainstorm")
         self.drive_past("requirements-analysis")
         directive = self.next()
         self.assertEqual(directive["stage"], "workflow-planning")
@@ -376,7 +382,9 @@ class RoutingTests(WorkspaceCase):
         self.drive_past("workspace-detection")
         ack = self.report("reverse-engineering", "skipped",
                           "greenfield, no legacy code")
-        self.assertEqual(ack["current_stage"], "requirements-analysis")
+        self.report("product-brainstorm", "skipped",
+                    "not applicable, no product wish")
+        self.assertEqual(ack["current_stage"], "product-brainstorm")
         self.assertEqual(self.marks()["reverse-engineering"], "S")
         self.set_plan_lines(skip="reverse-engineering (greenfield)")
         self.assertEqual(self.status()["integrity"], "ok")
@@ -388,7 +396,10 @@ class RoutingTests(WorkspaceCase):
         # is written, the pointer re-routes past the stage and the report
         # is no longer addressable.
         self.drive_past("workspace-detection")
-        self.set_plan_lines(skip="reverse-engineering (greenfield)")
+        self.set_plan_lines(
+            skip="reverse-engineering (greenfield), "
+                 "product-brainstorm (not applicable)"
+        )
         self.assert_error(
             lambda: self.report("reverse-engineering", "skipped",
                                 "greenfield"),
@@ -457,6 +468,9 @@ class RoutingTests(WorkspaceCase):
         self.drive_past("workspace-detection")
         self.report(
             "reverse-engineering", "skipped", reason="greenfield"
+        )
+        self.report(
+            "product-brainstorm", "skipped", reason="not applicable"
         )
         directive = self.next()
         self.assertEqual(directive["stage"], "requirements-analysis")
@@ -775,6 +789,7 @@ class JumpTests(WorkspaceCase):
     def test_backward_jump_resets(self):
         self.drive_past("workspace-detection")
         self.drive_past("reverse-engineering")
+        self.drive_past("product-brainstorm")
         self.drive_past("requirements-analysis")
         ack = self.jump(slug="reverse-engineering")
         self.assertEqual(ack["direction"], "backward")
@@ -1156,12 +1171,13 @@ class StatusRecoveryTests(WorkspaceCase):
     def test_recent_events_last_five(self):
         self.drive_past("workspace-detection")
         self.report("reverse-engineering", "skipped", "greenfield")
+        self.report("product-brainstorm", "skipped", "not applicable")
         self.report("requirements-analysis", "approved")
         self.report("user-stories", "skipped", "not needed")
         self.report("workflow-planning", "approved")
         result = self.status()
         events = result["recent_events"]
-        self.assertEqual(result["audit_entries"], 6)
+        self.assertEqual(result["audit_entries"], 7)
         self.assertEqual(len(events), 5)
         for event in events:
             self.assertEqual(
@@ -1172,7 +1188,7 @@ class StatusRecoveryTests(WorkspaceCase):
         self.assertEqual(
             [e["event"] for e in events],
             [
-                "STAGE_COMPLETED",
+                "STAGE_SKIPPED",
                 "STAGE_SKIPPED",
                 "STAGE_APPROVED",
                 "STAGE_SKIPPED",
@@ -1182,14 +1198,14 @@ class StatusRecoveryTests(WorkspaceCase):
         self.assertEqual(
             [e["stage"] for e in events],
             [
-                "workspace-detection",
                 "reverse-engineering",
+                "product-brainstorm",
                 "requirements-analysis",
                 "user-stories",
                 "workflow-planning",
             ],
         )
-        self.assertEqual(events[1]["reason"], "greenfield")
+        self.assertEqual(events[0]["reason"], "greenfield")
         self.assertEqual(events[3]["reason"], "not needed")
 
     def test_recent_events_ignore_forged_model_section(self):
@@ -1352,6 +1368,7 @@ class StatusRecoveryTests(WorkspaceCase):
     def test_resumed_artifacts_for_current_stage(self):
         self.drive_past("workspace-detection")
         self.report("reverse-engineering", "skipped", "greenfield")
+        self.report("product-brainstorm", "skipped", "not applicable")
         self.make_doc("inception/requirements/requirements.md")
         alerts = [
             a for a in self.status()["artifact_alerts"]
@@ -1374,6 +1391,7 @@ class StatusRecoveryTests(WorkspaceCase):
     def test_alerts_still_computed_when_integrity_violated(self):
         self.drive_past("workspace-detection")
         self.report("reverse-engineering", "skipped", "greenfield")
+        self.report("product-brainstorm", "skipped", "not applicable")
         self.make_doc("inception/requirements/requirements.md")
         text = self.state_text().replace(
             "- [ ] operations", "- [x] operations"
@@ -1505,7 +1523,9 @@ class StatusRecoveryTests(WorkspaceCase):
 
     def _complete_inception(self):
         text = self.state_text()
-        for slug in STAGE_ORDER[:7]:
+        # Inception has 8 stages since product-brainstorm joined (RE, PB,
+        # RA, US, WP, AD, UG after workspace-detection).
+        for slug in STAGE_ORDER[:8]:
             text = text.replace("- [ ] %s" % slug, "- [x] %s" % slug)
         self.write_state(text)
         self.rebase()
@@ -1809,6 +1829,7 @@ class ReportWarningTests(WorkspaceCase):
         self.init()
         self.drive_past("workspace-detection")
         self.report("reverse-engineering", "skipped", "greenfield")
+        self.report("product-brainstorm", "skipped", "not applicable")
 
     def test_report_approved_flags_missing_produces(self):
         ack = self.report("requirements-analysis", "approved")

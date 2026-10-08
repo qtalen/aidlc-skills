@@ -17,13 +17,14 @@ context at Workflow Planning time.
 
 Nothing is pre-skipped. The five ALWAYS stages (workspace-detection,
 requirements-analysis, workflow-planning, code-generation, build-and-test)
-form the spine; the CONDITIONAL stages (reverse-engineering, user-stories,
-application-design, units-generation, functional-design, nfr-requirements,
-nfr-design, infrastructure-design, operations) decide from context exactly as
+form the spine; the CONDITIONAL stages (reverse-engineering,
+product-brainstorm, user-stories, application-design, units-generation,
+functional-design, nfr-requirements, nfr-design, infrastructure-design,
+operations) decide from context exactly as
 their `condition` fields describe. Choose another scope when the task shape is
 known up front and you want the pruning done before the questions start.
 
 ## Membership
 
-All 14 stages are EXECUTE or CONDITIONAL; nothing is SKIP. No keyword
+All 15 stages are EXECUTE or CONDITIONAL; nothing is SKIP. No keyword
 triggers — selected by name or by default.

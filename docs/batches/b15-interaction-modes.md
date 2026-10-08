@@ -2,10 +2,10 @@
 
 | 项 | 值 |
 |---|---|
-| 状态 | 🔄 其六已冻结（五轮审核，门禁结论见计划审核节末轮）· 段一待实施 |
+| 状态 | 🔄 段一已实施（2026-10-08，机械验证全绿：240 测试+生成器零漂移+交叉引用核验）· dogfood #1 待跑 · 段二待启动 |
 | 触发 | 原立项：问卷制缺少自由讨论形态；〔2026-10-08 重定义〕非技术用户"一句话许愿式编程"→柏拉图式共建设计对话→产品演进闭环（把 demo 变成长期演进的真实产品） |
 | 关联决策 | D19（本批产出，子裁决扩编至 44 项：1~34 存量[Chat 收集语义相关已退役] + 其六新增 35~44）；**D20 全量并入**（自 B16 合并，编号保留、实施归属改挂本批，逐条处置见其六处置表）；与 D16-D18（AM 链）在 AM 延迟激活面耦合 |
-| 测试基线 | 立项时 237；2026-10-07 实施至 238，2026-10-08 证伪回滚回 237；v3 重实施预期 237±N（stage 断言同步，见工序 C9） |
+| 测试基线 | 立项时 237；2026-10-07 实施至 238，2026-10-08 证伪回滚回 237；**段一落地后 240**（+3：test_rule_invariants.py 规则文本断言[slug 四处共在/豁免措辞成对/classic 计数]；stage 断言同步 10 处见实施节） |
 | 材料来源 | 2026-10-07 会话讨论链（v2.0 §3 考证 → 用户三决策 → 五轮边界迭代 → 计划 v1 → reviewer 审核 → v2 终稿）；v2.0 证据：`opencode/.aidlc/aidlc-common/protocols/stage-protocol.md` §3（:330-530）、`opencode/.aidlc/skills/aidlc/question-rendering.md`；Trellis 二次吸收（同日其二）：`opencode-suit/trellis`（主出处 brainstorm SKILL，忠实度经 reviewer 11 项对照核验）；重设计（2026-10-08 其六）：OpenSpec `openspec-explore` SKILL + superpowers `brainstorming` SKILL（外部仓库路径 `D:\Documents\PythonProject\opencode-suit\`，非 git 跟踪）+ B16 档案全量吸收 + 实施计划 v2（已并入本档案工序/改动面/验证节，独立文件删除） |
 
 ## 立项与裁决
@@ -274,7 +274,30 @@
 
 ## 实施与实施期裁决
 
-（2026-10-07 曾实施、2026-10-08 证伪回滚——记录见其五；其六已冻结（五轮审核），段一按工序节两段推进）
+（2026-10-07 曾实施、2026-10-08 证伪回滚——记录见其五；其六冻结后段一按工序节两段推进）
+
+### 段一实施记录（2026-10-08，C1~C11 全量落地）
+
+| # | 落地内容 |
+|---|---|
+| C1 | `references/inception/product-brainstorm.md` 新建（~250 行英文：frontmatter 按 D19.35 六 scope 全填[classic/infra CONDITIONAL，bugfix/refactor/security-patch/express SKIP]；正文=stance/开场判据宣告与优雅退出/理解回写/证据+声明即事实双边界/第一性原理私有脚手架/对话纪律含红旗表与一次一问/工具混用免问题文件/拆分判据 H1H2+S1~S4+用户自带拆分审计+D20.15/结晶分节确认+四查+一次性写盘+存在性检查/产物结构+深度棘轮+一页纸下限+roadmap 节格式[承接 B16 模板]/AM 延迟与快路径与 park 取舍/门与审计粒度） |
+| C4 | RA：consumes +product-design（required:false）/requires_stage +product-brainstorm/Step 1 加载 product-design 与再入三条（迭代子集+组合边界影响+RE 一致性检查，D20.12 全量）/Step 2.6 路由兜底（含"本会话已拒绝"守卫与载体说明）/Step 5 六领域×roadmap 对账（含无问题文件时的审计一行汇报）/Step 7 迭代范围限定 |
+| C2 | qfg：豁免表 +PB 对话行（"only"改"A single-shot"）/Rule 节括注改双例外/Summary ❌ 行双例外 |
+| C3 | session-continuity #12 半句豁免 |
+| C5 | workflow-changes：Re-Entering 两路径声明（改形→PB 仅 classic 可达+plan 过滤注记）+ 新增"Design-Level Changes at Gates and the Product Roadmap"半节（huddle 二分结局+roadmap 时间戳修订注记+段二扩节指针） |
+| C6 | autonomous-mode：概览行半句/AM-02 顶部延迟条款（宣告+审计+不写 Enabled+RA 入口全新 AM-02+可取消+不跨会话+快路径指路）/AM-05 触发增列（任何途径成为 current：jump 或 plan-line 复活，in-round 停用非 AM-10 边界）/AM-10.2 澄清（mid-round jump≠边界，完成态再入无论目标=边界 2） |
+| C7 | classic.md：CONDITIONAL 清单 +product-brainstorm、Membership "All 14"→"All 15"；infra.md：Membership 补 PB=CONDITIONAL 半句（罕见例外=带产品维度的 infra 愿望） |
+| C8 | generate.py 7 区再生成（stage-list/ascii-diagram/artifact-loading/execution-plan-mermaid/-stages/scope-matrix/stage-graph.json），`--check` 零漂移 |
+| C9 | test_engine：STAGE_ORDER 15（PB=RE 后 RA 前，layer+字母序实现）/inception 切片 `[:7]`→`[:8]`/邻接断言群 10 处同步（三个 plan-line 测试+backward_jump 插 PB 驱动；report_before_skip/next_stage_prediction/resumed_artifacts/alerts_integrity/ReportWarningTests.setUp 插 PB skipped；skip_line_before_report 计划行加 PB；recent_events_last_five 全量重算[entries 6→7/事件窗移位/reason 索引 1→0]）；test_generate：RA consumes 期望值 +product-design 条目；**重建 test_rule_invariants.py**（3 断言：slug 四处共在[qfg+RA+session-continuity+SKILL.md]/豁免措辞成对/classic"All 15 stages"） |
+| C10 | SKILL.md 手写块 `## Product Brainstorm (CONDITIONAL)`（RE 块后 RA 块前，与既有块同构）+ 目录树 inception 块 `product-design/` 行 |
+| C11 | integration-plan（§4 计数 15/§3 B15 行段一态+240/§6 B15 行）；engine-contract.md :259 "15-stage"；engine-illustrated.md :17/:20/:322 三处计数；b16 档案头部"（段一已实施·段二待实施）"；本档案状态/基线/实施节；AGENTS.md（Phase 3.4 行/待实施行/§3.1 测试数 240） |
+
+**实施期裁决与发现**：
+- **测试反哺**：`test_plan_execute_adds_back_scope_skip`（bugfix scope）在 PB 落地后**零改动继续通过**——bugfix 矩阵值 SKIP 使 PB 自动出计划，顺手成为 D19.35 scope 矩阵的免费行为验证（测试注释已注明）；同序列的 classic 测试则需插 PB 驱动——矩阵分层的正确性由同一套驱动的分歧行为背书。
+- C1 condition 散文将 D19.38 skip_if② 的"完整设计"判据（覆盖定位+演进、足以让 RA 直接开工）内联进 skip_if 文本（引擎不解析散文，判据写给模型，浅映射契约不变）。
+- C5 半节标题定为"Design-Level Changes at Gates and the Product Roadmap"，段二 D1 四节扩写时以此为锚替换。
+
+**机械验证（全过）**：240 测试全绿（237 基线+3）；`generate.py --check` 退出码 0；交叉引用六文件互指（PB↔qfg↔RA↔session-continuity↔AM↔SKILL.md，grep 核验）；生成区零手改；welcome ASCII 对齐一眼检过；只读目录零触碰；英文撰写；harness 中立。
 
 ## 验证（v3 预定验收标准，2026-10-08；v1 标准随其五回滚作废）
 

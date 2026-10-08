@@ -11,9 +11,12 @@ consumes:
   - artifact: inception/reverse-engineering/*
     required: true
     conditional_on: brownfield
+  - artifact: inception/product-design/product-design.md
+    required: false
 requires_stage:
   - workspace-detection
   - reverse-engineering
+  - product-brainstorm
 depth: adaptive
 scopes:
   classic: EXECUTE
@@ -45,6 +48,15 @@ scopes:
 - Load `aidlc-docs/inception/reverse-engineering/component-inventory.md`
 - Load `aidlc-docs/inception/reverse-engineering/technology-stack.md`
 - Use these to understand existing system when analyzing request
+
+**Load product design (if present)**:
+- Load `aidlc-docs/inception/product-design/product-design.md` when it exists (produced by the Product Brainstorm stage)
+- It is input context: the positioning, key decisions, and evolution direction constrain the requirements; the iteration roadmap scopes this run (see Step 7)
+
+**IF re-entering from a completed iteration (iteration N+1, roadmap present)** — three mandatory additions:
+1. **Iteration subset scope**: this run's requirements = the roadmap subset assigned to iteration N+1 (plus anything Deferred into it) — not a fresh full-product analysis. FR numbering continues after the highest used number; deferred/reserved numbers are never recycled.
+2. **Combination boundary impact analysis**: for every new interactive or behavioral dimension this iteration introduces, analyze its combination with the features delivered in iterations ≤N (the Step 7 combination boundary check, applied against delivered functionality — the recurring blind spot is "new element × behavior shipped last iteration").
+3. **RE / design artifact consistency check**: verify the Reverse Engineering and design artifacts still match the codebase as shipped (they were produced against an earlier state); record discrepancies as questions or revision notes, and treat stale artifacts as evidence, not truth.
 
 ### Step 2: Analyze User Request (Intent Analysis)
 
@@ -115,6 +127,14 @@ would never use. The scope catalog below is generated from the scope registry
 
 **Effect**: stages marked `SKIP` by the selected scope are excluded from the plan from this point on (e.g. a `bugfix` scope never offers User Stories); `CONDITIONAL` stages still self-select from context. Workflow Planning presents the resulting plan for approval and still allows per-stage fine-tuning.
 
+### Step 2.6: Product Brainstorm Backstop (routing)
+
+After the intent analysis, if the request is judged **Vague or Incomplete at product level** AND no `aidlc-docs/inception/product-design/product-design.md` exists (Product Brainstorm was skipped), suggest going back — one line only: "This looks like a new product wish without a design yet — would you like to talk the product shape through first (Product Brainstorm), or continue here?"
+
+- **Guard**: if the user has already declined this suggestion earlier in this session, do not suggest it again (the guard lives in session memory only; a new session or re-entry may ask once more).
+- If the product design exists, this step never triggers — proceed and let Step 1's product-design context do the work.
+- On agreement, the return is a normal backward re-route (`engine.py jump --stage product-brainstorm`, classic scope); on refusal or silence, continue with Step 3.
+
 ### Step 3: Determine Requirements Depth
 
 **Start from the active scope's default depth (Step 2.5), then adjust for problem complexity. The user may override at any gate.**
@@ -156,6 +176,8 @@ Analyze whatever the user has provided:
 - **Technical Context**: Integration points, data requirements, system boundaries
 - **Quality Attributes**: Reliability, maintainability, testability, accessibility
 
+**Six-domain × product-design reconciliation** (when `product-design.md` is loaded from Step 1): walk each of the six domains against the product design and its iteration roadmap — every domain gap the product design already answers is settled from it (no re-asking settled decisions); every gap it does NOT answer becomes a question. Report the reconciliation outcome in one line in the questions file preamble or, when requirements are exceptionally clear and no questions file is created, in the audit entry (e.g. "6 domains checked against product-design.md: 5 settled, 1 gap → Q3").
+
 **When in doubt, ask questions** - incomplete requirements lead to poor implementations.
 
 ### Step 5.1: Extension Opt-In Prompts
@@ -194,6 +216,7 @@ Present the question file to the user and STOP.
 ### Step 7: Generate Requirements Document
    - **PREREQUISITE**: Step 6 gate must be passed — all answers received and analyzed
    - Create `aidlc-docs/inception/requirements/requirements.md`
+   - **Iteration scope limit (when a product-design roadmap is present)**: this document covers the **current iteration only** — the roadmap's Scope subset for the current iteration number (plus items Deferred into it). Requirements for later iterations are NOT analyzed here; they stay on the roadmap as planned scope and get their own requirements analysis on iteration re-entry. State the iteration boundary explicitly at the top of the document (e.g. "Iteration 1 of 3 — FRs below cover the roadmap subset for this iteration").
    - Include intent analysis summary at the top:
      - User request
      - Request type

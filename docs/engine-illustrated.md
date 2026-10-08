@@ -14,10 +14,10 @@
 | **工作区** (workspace) | 被开发的项目所在目录，引擎在其中创建 `aidlc-docs/` |
 | **状态文件** (`aidlc-state.md`) | 工作区的"进度存折"：走到哪个阶段、哪些做完了、完整性指纹 |
 | **审计文件** (`audit.md`) | "银行流水"：只追加、不修改的事件日志 |
-| **阶段** (stage) | 工作流的一步，比如需求分析、代码生成；有 14 个 |
+| **阶段** (stage) | 工作流的一步，比如需求分析、代码生成；有 15 个 |
 | **模型** (AI model) | 负责干活的 AI：做判断、写文档、回答问题 |
 | **digest**（指纹） | 对一段文字算出的 sha256 哈希值。内容哪怕改一个字符，指纹就完全不同——用来发现"有人偷偷改过文件" |
-| **图** (`stage-graph.json`) | 编译产物：把 14 个阶段的规则压缩成引擎好读的一张 JSON 地图 |
+| **图** (`stage-graph.json`) | 编译产物：把 15 个阶段的规则压缩成引擎好读的一张 JSON 地图 |
 
 记住一句话就够了：**判断归 AI，精确归工具，决定归人类。** 引擎就是那个"工具"。
 
@@ -319,7 +319,7 @@ JSON ack {"kind":"reported", "current_stage": <next pending>}
 status -> state:none                        bootstrap probe
    |
    v
-init -> STATE_CREATED (14 stages)           graph + state + audit created
+init -> STATE_CREATED (15 stages)           graph + state + audit created
    |
    v
 next  -> run-stage: workspace-detection     first pending in plan order

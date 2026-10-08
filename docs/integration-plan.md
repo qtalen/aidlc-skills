@@ -79,7 +79,7 @@
 | B12 | [文档减法清理批](batches/b12-doc-slimming.md)（D-清系列） | 09-29 | ✅ | D-清1~9 | 231→237 | 必加载集 -24.5%；判据权威收编 frontmatter；10-06 双臂验收方向性通过 |
 | B13 | [备份遗产清理批](batches/b13-backup-legacy.md) | 09-28 立项 | ⏳ 待实施 | D11/D14 | 237→238 | `.backup` 惯例改条件式 + resumed-artifacts 排除 `.backup`；规格就绪 |
 | B14 | [文档重组批](batches/b14-doc-restructure.md) | 10-07 | ✅ | — | —（docs-only） | integration-plan 拆分为主文档 + 13 批次档案 + 1 冻结档案，三层体系（Phase/B/D）归一 |
-| B15 | [产品头脑风暴阶段批](batches/b15-interaction-modes.md)（原提问交互三模式批，其五证伪重定义） | 10-07 立项；10-08 实施后回滚+重设计 | 🔄 其六已落·待段一实施 | D19+D20 | 237（回滚后）；重实施 237±N | 头脑风暴阶段 product-brainstorm（三层门控）+ 对话纪律（opsx+superpowers B1~B8）+ product-design.md/roadmap + 迭代交付环与完成仪式（B16 全量并入）；Phase 3.4 重定义产品演进闭环——见档案其五/其六 |
+| B15 | [产品头脑风暴阶段批](batches/b15-interaction-modes.md)（原提问交互三模式批，其五证伪重定义） | 10-07 立项；10-08 实施后回滚+重设计 | 🔄 段一已实施（240 绿）·dogfood #1 待跑 | D19+D20 | 240（237+3 规则文本断言） | 头脑风暴阶段 product-brainstorm（三层门控）+ 对话纪律（opsx+superpowers B1~B8）+ product-design.md/roadmap + 迭代交付环与完成仪式（B16 全量并入）；Phase 3.4 重定义产品演进闭环——见档案其五/其六/实施节 |
 | B16 | [迭代交付批](batches/b16-iterative-delivery.md)（Phase 3.4） | 10-07 立项；10-08 并入 | ♻️ 已并入 B15（未实施） | D20 | —（随 B15） | roadmap 活文档 + 迭代作用域 + 完成仪式三分支 + 拆分判据（Trellis parent/child 同构）；D20.1~19 逐条处置见 B15 档案其六，档案保留为 D20 语义之家 |
 
 ---
@@ -88,7 +88,7 @@
 
 - **引擎**：`scripts/engine.py` 单文件纯 stdlib（约 1800 行），8 子命令（status/init/next/report/jump[含 --fresh]/rebase/park/stamp）；状态分区所有权 + State Digest 完整性校验 + 审计交叉核验。
 - **作者期工具**：`generate.py`（1290 行，9 个生成区）编译 `scripts/data/stage-graph.json`；`trace-matrix.py`（追溯矩阵，不进 CI）。CI：contract-check.yml（--check + 全测试套件）。
-- **阶段体系**：3 相位 14+1 阶段（product-brainstorm 已立项待实施，D19 其六——落地后 15），全部带机器可读契约；6 scope 裁剪矩阵；CONDITIONAL 判据唯一权威 = frontmatter `condition` 浅映射（D-清9）。
+- **阶段体系**：3 相位 15 阶段（含 product-brainstorm，D19 其六，2026-10-08 段一落地），全部带机器可读契约；6 scope 裁剪矩阵；CONDITIONAL 判据唯一权威 = frontmatter `condition` 浅映射（D-清9）。
 - **测试**：237 例全绿（engine 154 + trace-matrix 22 + generate 61）。
 - **文档负载**：必加载集 73.3KB（B12 前 97.1KB）；SKILL.md 343 行 / 26.6KB。
 - **AM 现状**：单问激活（仅 Code-Gen Hold）+ 全阶段自动批准 + 问题 auto-recommended + 轮次绑定过期（D16-D18 链）。
@@ -180,7 +180,7 @@
 | 项 | 状态/触发 | 出处 |
 |---|---|---|
 | B13 备份遗产清理批 | ⏳ 规格就绪，可开工 | batches/b13 |
-| B15 产品头脑风暴阶段批（含 B16 合并） | 🔄 其六已冻结（五轮审核，末轮换模型复检维持）——段一实施待启动 | batches/b15 |
+| B15 产品头脑风暴阶段批（含 B16 合并） | 🔄 段一已实施（2026-10-08，机械验证全绿：240 测试+生成器零漂移）——dogfood #1 待跑，段二（交付环 8 项）待启动 | batches/b15 |
 | B16 迭代交付批（Phase 3.4 首批） | ♻️ 已并入 B15（未实施，2026-10-08 全量合并——处置见 B15 其六） | batches/b16 |
 | Operations 实义化（部署/监控/告警/回滚——"线上持续运行"通路；B16 DoD 占位字段待升格） | Phase 3.4 第二批候选（B17+） | B16 立项 |
 | 阶段规则审查透镜：强制步骤必须在当阶段实际加载的文件里有锚点，否则被静默跳过（Trellis breadcrumb 不变量，两次事故实证） | 观察项（批次审查时核对） | B15 规格修订 |

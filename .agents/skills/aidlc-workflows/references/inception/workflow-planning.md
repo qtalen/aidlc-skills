@@ -138,6 +138,7 @@ The active scope (selected and confirmed during Requirements Analysis, recorded 
 |---|---|---|---|---|---|---|---|
 | 🔵 Inception | Workspace Detection | EXECUTE | EXECUTE | EXECUTE | EXECUTE | EXECUTE | EXECUTE |
 | 🔵 Inception | Reverse Engineering | CONDITIONAL | CONDITIONAL | CONDITIONAL | SKIP | CONDITIONAL | CONDITIONAL |
+| 🔵 Inception | Product Brainstorm | CONDITIONAL | SKIP | SKIP | CONDITIONAL | SKIP | SKIP |
 | 🔵 Inception | Requirements Analysis | EXECUTE | EXECUTE | EXECUTE | EXECUTE | EXECUTE | EXECUTE |
 | 🔵 Inception | User Stories | CONDITIONAL | SKIP | SKIP | SKIP | SKIP | SKIP |
 | 🔵 Inception | Workflow Planning | EXECUTE | EXECUTE | EXECUTE | EXECUTE | EXECUTE | EXECUTE |
@@ -154,6 +155,7 @@ The active scope (selected and confirmed during Requirements Analysis, recorded 
 **CONDITIONAL Stage Criteria (authoritative)**
 
 - **Reverse Engineering** — Execute IF: an existing codebase is detected and no prior reverse-engineering artifacts exist; Skip IF: greenfield project, or prior reverse-engineering artifacts already exist
+- **Product Brainstorm** — Execute IF: a product-shaped wish with no usable product design — a new product, a new capability direction, or a major evolution of the product, including wording that is vague but carries product-level intent; Skip IF: an existing product-design.md roadmap already covers the request with no shape change (iteration re-entry), or the user has already provided a complete design (covering positioning and evolution — enough for Requirements Analysis to start directly), or the request does not change product features or design (bugfix, refactor, security patch, ops, or pure implementation of an already-designed iteration)
 - **User Stories** — Execute IF: user-facing features or workflow changes, multiple user types or personas, complex business requirements needing acceptance criteria, cross-team collaboration or customer-facing API changes; borderline cases default to inclusion; Skip IF: pure internal refactoring with zero user impact, simple bug fixes with clear isolated scope, infrastructure changes with no user-facing effects, technical debt cleanup with no functional changes, documentation-only or developer-tooling updates
 - **Application Design** — Execute IF: new components or services needed, component methods and business rules need definition, service layer design required, component dependencies need clarification; Skip IF: changes within existing component boundaries, no new components or methods, pure implementation changes
 - **Units Generation** — Execute IF: the system needs decomposition into multiple units of work, multiple services/modules/packages require changes, a complex system needs structured breakdown or a multi-package change sequence; Skip IF: single simple unit, no decomposition needed, straightforward single-component implementation, UI-only or configuration-only changes
@@ -275,6 +277,7 @@ flowchart TD
     subgraph INCEPTION["🔵 INCEPTION PHASE"]
         WorkspaceDetection["Workspace Detection<br/><b>STATUS</b>"]
         ReverseEngineering["Reverse Engineering<br/><b>STATUS</b>"]
+        ProductBrainstorm["Product Brainstorm<br/><b>STATUS</b>"]
         RequirementsAnalysis["Requirements Analysis<br/><b>STATUS</b>"]
         UserStories["User Stories<br/><b>STATUS</b>"]
         WorkflowPlanning["Workflow Planning<br/><b>STATUS</b>"]
@@ -297,8 +300,11 @@ flowchart TD
     
     Start --> WorkspaceDetection
     WorkspaceDetection -.-> ReverseEngineering
+    WorkspaceDetection -.-> ProductBrainstorm
+    ReverseEngineering -.-> ProductBrainstorm
     WorkspaceDetection --> RequirementsAnalysis
     ReverseEngineering --> RequirementsAnalysis
+    ProductBrainstorm --> RequirementsAnalysis
     RequirementsAnalysis -.-> UserStories
     RequirementsAnalysis --> WorkflowPlanning
     UserStories --> WorkflowPlanning
@@ -339,6 +345,8 @@ flowchart TD
 - [ ] Workspace Detection - EXECUTE (ALWAYS)
   - **Rationale**: [Why this stage is needed]
 - [ ] Reverse Engineering - [EXECUTE/SKIP]
+  - **Rationale**: [Why executing or skipping]
+- [ ] Product Brainstorm - [EXECUTE/SKIP]
   - **Rationale**: [Why executing or skipping]
 - [ ] Requirements Analysis - EXECUTE (ALWAYS)
   - **Rationale**: [Why this stage is needed]

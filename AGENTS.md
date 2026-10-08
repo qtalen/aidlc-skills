@@ -46,7 +46,7 @@
 - 引擎 `scripts/engine.py` 是**必选运行时组件**：独占跨阶段路由（`next`）、状态机转移（`report` 是唯一写入口）、审计转移条目、状态完整性校验（State Digest sha256 + 审计交叉核验 + `rebase`）、改道（`jump`/`jump --fresh`；工作流完成态下 `jump --stage` 放行为**同产品再入**——目标及其后重置、语义同 backward redo，`--fresh` 留给新产品意图，D15）、会话泊车注记（`park --note`：写状态文件 Last Parked 行 + `aidlc-docs/handoff.md`，不改 marks/current、不写审计）、权威时间戳读取（`stamp`，零副作用）。`aidlc-docs/handoff.md` 为引擎独写，模型不得手改。
 - 引擎**只读**作者期编译产物 `scripts/data/stage-graph.json`（generate.py 生成，--check 覆盖其漂移），**永不解析 frontmatter，也永不解析 condition 散文**（CONDITIONAL 阶段照常发射 `conditional: true`，模型判断不适用则 `report --result skipped --reason`）。
 - 状态文件分区所有权（`references/common/engine-contract.md`）：`<!-- BEGIN/END ENGINE-STATE -->` 标记区内（Stage Progress/Current Status/Unit Progress/State Digest）引擎独占、digest 覆盖；区外（Project Information/Execution Plan Summary/Autonomous Mode/Extension Configuration 等）模型按模板写。Execution Plan Summary 的结构化行（Scope/Depth/Stages to Execute/Skip）是模型写-引擎读的 load-bearing 通道（Autonomous Mode 区的 `autonomous` 键与 Extension Configuration 表的 checkpoint 探测同属模型写-引擎读，引擎只宽容读取、不改变所有权）。**唯一引擎写模型区例外（AM-10 轮次边界过期，2026-09-28）**：引擎在完成转移与再入 jump 两个确定性边界可把 Autonomous Mode 区的 `Enabled` 行翻转为 No（连同既存 Last Updated 行），宽容 no-op；触发互斥是纪律约定非机制保证（该区不在 digest、无锁），见契约 §6。
-- 引擎测试与生成器测试同套件（`scripts/tests/`，共 237 例）：改引擎后必跑 `python -m unittest discover -s .agents\skills\aidlc-workflows\scripts\tests`。
+- 引擎测试与生成器测试同套件（`scripts/tests/`，共 240 例，2026-10-08 起含 test_rule_invariants.py 规则文本断言）：改引擎后必跑 `python -m unittest discover -s .agents\skills\aidlc-workflows\scripts\tests`。
 
 ### 4. 编辑纪律
 
@@ -63,8 +63,8 @@
 - **Phase 3 建设期收尾批 ✅（2026-09-22~24）**：会话连续性 park/恢复简报/传感器第一代（B04，D13/D14）→ Trellis 借鉴立即批（B05）→ dogfood 反馈批 stamp/autonomous 键/Type 10/trace-matrix（B06）
 - **演化期小批 ✅（2026-09-27~29）**：完成态再入修复（B07，D15）→ AM 生命周期（B08，D16）→ 收尾小批（B09）→ AM 简化+Code-Gen Hold（B10，D17）→ AM 提问零配置（B11，D18）→ 文档减法清理（B12，D-清1~9，必加载集 -24.5%，10-06 双臂 dogfood 验收方向性通过）
 - **文档重组批 ✅（2026-10-07）**：integration-plan 拆分为主文档 + 批次档案 + 冻结档案，Phase/B/D 三层体系归一（B14）
-- **Phase 3.4 ⏳（2026-10-07 立项，10-08 重定义）**：产品演进闭环（首批=合并批 B15，D19 其六 + D20 全量并入）——头脑风暴阶段 + roadmap 活文档 + 迭代交付环 + 完成仪式；后续 Operations 实义化（B17+ 候选，开放项挂账）
-- **待实施**：备份遗产清理批（B13，规格就绪）；产品头脑风暴阶段批（B15，其六已冻结[五轮审核]·含 B16 全量合并·Phase 3.4 重定义产品演进闭环，段一待实施，D19+D20）；代码批·旧格式兼容层退役等见主文档开放项总账
+- **Phase 3.4 ⏳（2026-10-07 立项，10-08 重定义；段一已实施）**：产品演进闭环（首批=合并批 B15，D19 其六 + D20 全量并入）——头脑风暴阶段 + roadmap 活文档 + 迭代交付环 + 完成仪式；段一（战略层 11 项）已落地（240 绿），dogfood #1 与段二（交付环 8 项）待跑；后续 Operations 实义化（B17+ 候选，开放项挂账）
+- **待实施**：备份遗产清理批（B13，规格就绪）；产品头脑风暴阶段批 B15 **段二**（交付环 8 项 D1~D8 + dogfood #2，规格见档案改动面 v3）；代码批·旧格式兼容层退役等见主文档开放项总账
 - **Phase 4**：Team Construction（unit-major 波次地基 → claim/release + worktree 多会话团队 → single 重跑 → swarm；设计输入见主文档路线图）
 - **Phase 5A/5B + 不排期**：5A 知识树与学习闭环 / 5B reviewer 及其他；④档三项带触发条件（详见主文档路线图与不排期节）
 

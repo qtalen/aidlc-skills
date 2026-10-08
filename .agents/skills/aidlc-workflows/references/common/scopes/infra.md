@@ -28,4 +28,7 @@ it is the stage that writes the IaC.
 
 Keyword triggers: `infrastructure`, `deploy`, `infra`. The ALWAYS spine plus
 nfr-requirements, nfr-design, and infrastructure-design run; reverse-
-engineering and the application design chain are SKIP.
+engineering and the application design chain are SKIP. product-brainstorm is
+CONDITIONAL: infra work rarely changes product shape, so it self-selects from
+its `condition` (usually skipped — an infra wish with a genuinely new product
+dimension is the exception).

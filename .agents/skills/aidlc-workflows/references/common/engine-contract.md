@@ -256,7 +256,7 @@ When to jump: a user asks to redo, revisit, reorder, or skip ahead — any delib
 | Subcommand | Mutates state? | Purpose |
 |---|---|---|
 | `status` | No | Bootstrap probe + session-recovery data source. Returns `state`, `scope`, `depth`, `current_stage`, `last_completed`, `integrity`, `completed`, `remaining`, plus the recovery keys `resume_note` (+ `note_age_seconds`), `recent_events`, `audit_entries`, `audit_bytes`, `artifact_alerts`, `alerts_unavailable`, `autonomous` (active/completed states only — see §10). |
-| `init` | Yes (create) | Deterministically create `aidlc-docs/aidlc-state.md` (model-region placeholders + `ENGINE-STATE` region: the 14-stage slug checklist, Current Status, reserved Unit Progress, State Digest) and the `audit.md` header. Errors if the state file already exists. |
+| `init` | Yes (create) | Deterministically create `aidlc-docs/aidlc-state.md` (model-region placeholders + `ENGINE-STATE` region: the 15-stage slug checklist, Current Status, reserved Unit Progress, State Digest) and the `audit.md` header. Errors if the state file already exists. |
 | `next` | No | Pure-read routing. Returns exactly one directive: `run-stage`, `done`, or `error`. |
 | `report` | Yes | The only transition entry point. `--stage <slug> --result <r> [--reason]`. See §5. On the completing transition, the AM-10 expiry ack field `autonomous_expired` (§5/§6). |
 | `park` | Yes (annotation) | Park in-flight work. `--note <text>` required. Writes the `Last Parked` line into Current Status (inside the digest) and appends to `aidlc-docs/handoff.md`; marks, current stage, and the audit log are untouched. See §5.5. |

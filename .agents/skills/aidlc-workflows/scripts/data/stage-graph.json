@@ -49,6 +49,37 @@
       }
     },
     {
+      "slug": "product-brainstorm",
+      "name": "Product Brainstorm",
+      "phase": "inception",
+      "execution": "CONDITIONAL",
+      "gate": "approve-continue",
+      "for_each": false,
+      "workspace_writes": false,
+      "produces": [
+        "inception/product-design/product-design.md"
+      ],
+      "consumes": [
+        {
+          "artifact": "inception/reverse-engineering/*",
+          "required": false,
+          "conditional_on": null
+        }
+      ],
+      "requires_stage": [
+        "workspace-detection",
+        "reverse-engineering"
+      ],
+      "scopes": {
+        "classic": "CONDITIONAL",
+        "bugfix": "SKIP",
+        "express": "SKIP",
+        "infra": "CONDITIONAL",
+        "refactor": "SKIP",
+        "security-patch": "SKIP"
+      }
+    },
+    {
       "slug": "requirements-analysis",
       "name": "Requirements Analysis",
       "phase": "inception",
@@ -65,11 +96,17 @@
           "artifact": "inception/reverse-engineering/*",
           "required": true,
           "conditional_on": "brownfield"
+        },
+        {
+          "artifact": "inception/product-design/product-design.md",
+          "required": false,
+          "conditional_on": null
         }
       ],
       "requires_stage": [
         "workspace-detection",
-        "reverse-engineering"
+        "reverse-engineering",
+        "product-brainstorm"
       ],
       "scopes": {
         "classic": "EXECUTE",

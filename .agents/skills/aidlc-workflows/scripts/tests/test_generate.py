@@ -845,7 +845,12 @@ class StageGraphTests(unittest.TestCase):
                     "artifact": "inception/reverse-engineering/*",
                     "required": True,
                     "conditional_on": "brownfield",
-                }
+                },
+                {
+                    "artifact": "inception/product-design/product-design.md",
+                    "required": False,
+                    "conditional_on": None,
+                },
             ],
         )
         self.assertEqual(

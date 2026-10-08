@@ -13,11 +13,25 @@ Users may request changes to the execution plan or stage execution during the wo
 When the workflow has reached `done` and the user brings new work, classify it first:
 
 - **Same product** — a new feature, a fix, a requirement change on the existing product. Re-enter in place:
-  1. Run `engine.py jump --stage <most upstream affected slug>` (typically `requirements-analysis`). This resets the target stage and everything after it; stages before it keep their marks. The plan lines from the previous iteration remain — update them (e.g., via Type 1/2/9) if the new iteration's task shape differs. If you update the plan lines first and `status` already shows the workflow active again (removing Skip lines self-reactivates it — the pointer is recomputed from the plan lines on every call), do not jump: just run `next` (jumping to a stage that has become the current stage is rejected with `invalid-jump`). Autonomous Mode is off in the new round: the engine expires a stale `Enabled: Yes` at the jump (ack `autonomous_expired: true`); on the plan-line self-revival path above, the model flips it per AM-10 before continuing.
+  1. Run `engine.py jump --stage <most upstream affected slug>`, choosing the path by what the new work changes:
+     - **It changes the product design** (new capability direction, positioning/evolution change, roadmap shape change) → jump to `product-brainstorm` (classic scope only — Product Brainstorm is SKIP in bugfix/refactor/security-patch/express scopes, and `jump` does not bypass plan filtering);
+     - **It does not** (feature inside the designed shape, fix, requirement change) → jump to `requirements-analysis` (the typical path).
+     This resets the target stage and everything after it; stages before it keep their marks. The plan lines from the previous iteration remain — update them (e.g., via Type 1/2/9) if the new iteration's task shape differs. If you update the plan lines first and `status` already shows the workflow active again (removing Skip lines self-reactivates it — the pointer is recomputed from the plan lines on every call), do not jump: just run `next` (jumping to a stage that has become the current stage is rejected with `invalid-jump`). Autonomous Mode is off in the new round: the engine expires a stale `Enabled: Yes` at the jump (ack `autonomous_expired: true`); on the plan-line self-revival path above, the model flips it per AM-10 before continuing.
   2. Revise artifacts **in place**: read the existing files first (the `resumed-artifacts` alert says the same), append rather than rewrite. Q&A and decision history text is DOC-04 protected — record corrections as appended revision notes, never rewrite history.
   3. **Deferred/Reserved numbering is never recycled** — postponed FRs keep their IDs; new requirements continue after the highest used number (Type 10 discipline).
   4. Re-walk the stages through their gates as usual.
 - **New product intent** — a different product or an explicit clean restart. Confirm with the user, then `engine.py jump --fresh` (archives `aidlc-docs/`) or start a new git version. Do NOT use Start Fresh for same-product iterations: it archives the tree and severs cross-iteration traceability (FR numbering, Deferred records, audit continuity).
+
+---
+
+## Design-Level Changes at Gates and the Product Roadmap
+
+A design-level discussion may surface at any gate — AI-proposed or user-initiated (the AI may propose one, never start it unprompted). Resolve it as a **binary outcome**:
+
+- **Direction unchanged** (the discussion settles without changing the product design): record it in `audit.md` and continue.
+- **Direction changed**: write the change back to the roadmap section of `aidlc-docs/inception/product-design/product-design.md` as a **timestamped revision note** in its `Revision Record` (append-only, DOC-04: when, why, and what changed — never rewrite existing entries; `Shipped` rows are immutable). When no roadmap is present (non-classic scopes), route through the change types above instead. If artifacts already generated depend on the changed direction, redo backward via `engine.py jump --stage <slug>` per Types 3/4/10.
+
+*(Full iteration lifecycle detail — Roadmap Changes at the three revision time-points, splitting an oversized iteration, and the iteration completion ritual — lives in this file's iteration sections, expanded by the delivery-loop batch.)*
 
 ---
 

@@ -31,6 +31,7 @@ AI-DLC is a structured yet flexible software development process that adapts to 
         +---------------------------------------+
         | * Workspace Detection (ALWAYS)        |
         | * Reverse Engineering (COND)          |
+        | * Product Brainstorm (COND)           |
         | * Requirements Analysis (ALWAYS)      |
         | * User Stories (COND)                 |
         | * Workflow Planning (ALWAYS)          |
