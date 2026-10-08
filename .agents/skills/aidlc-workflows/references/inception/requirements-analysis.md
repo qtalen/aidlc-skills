@@ -168,6 +168,8 @@ Analyze whatever the user has provided:
 
 **Evidence-First gate**: resolve anything explorable from the codebase and existing artifacts before asking (Evidence-First Policy, references/common/question-format-guide.md); only preference-driven or exploration-inconclusive items become questions.
 
+**Preference questions are never waived**: preference-driven decisions (implementation technology stack, deployment form, UI language, ...) stay questions with a recommendation — a user-profile or runtime-form inference is never grounds to skip them. Evidence-First exempts only evidence-resolvable items and category facts.
+
 **MANDATORY**: Evaluate ALL of these areas and ask questions for ANY that are unclear:
 - **Functional Requirements**: Core features, user interactions, system behaviors
 - **Non-Functional Requirements**: Performance, security, scalability, usability
@@ -183,6 +185,8 @@ Analyze whatever the user has provided:
 ### Step 5.1: Extension Opt-In Prompts
 
 **MANDATORY**: Scan all loaded `*.opt-in.md` files (loaded at workflow start from `../extensions/` subdirectories) for an `## Opt-In Prompt` section. For each extension that declares one, include that question in the clarifying questions file created in Step 6. Present each opt-in question in the same language as the user's conversation.
+
+**When no questions file is created** (Step 6's exceptional-clarity path — the file is skipped entirely): present the opt-in prompts independently instead — a choice card in chat, one per extension, with your recommendation. Record the answers in the `## Extension Configuration` table and the audit entry as usual. An opt-in prompt must never be orphaned by the file-less path.
 
 After receiving answers:
 1. Record each extension's enablement status in `aidlc-docs/aidlc-state.md` under `## Extension Configuration`:

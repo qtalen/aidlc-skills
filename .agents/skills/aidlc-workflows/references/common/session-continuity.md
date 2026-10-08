@@ -20,7 +20,7 @@ Here's your current status:
 - **Last Completed**: [last_completed]
 - **Last Parked**: [stage] — [note] (or "none" when `resume_note` is null)
 - **Autonomous Mode**: [off — or "on" when the `autonomous` key shows enabled (the code-gen hold state is read from the state section per AM-09, not from the key); in a completed workflow it is always off (AM-10 round expiry)]
-- **Next Step**: [next stage from the `remaining` list, or "none — workflow complete"]
+- **Next Step**: [next stage from the `remaining` list, or "none — workflow complete" — for a multi-iteration product, also preview the next iteration from the roadmap (see `workflow-changes.md`, Iteration Completion Ritual)]
 
 **What would you like to work on today?**
 
@@ -86,6 +86,7 @@ The Markdown menu is presentation only. Execute the chosen option with the match
 - **A) Continue** → `engine.py next` (follow the returned directive)
 - **B) Jump to another stage** → `engine.py jump --stage <slug>` (always pass the **slug**, never the display name). A backward jump resets the target stage **and every stage after it** to `[ ]` — warn the user about this before executing; full semantics in `engine-contract.md` §8
 - **C) Start Fresh** → `engine.py jump --fresh` (archives `aidlc-docs/` to `aidlc-docs-archive-<timestamp>/` and resets state)
+- **Completed workflow**: for a multi-iteration product, present the next-iteration preview from the roadmap as part of the status (see `workflow-changes.md`, Iteration Completion Ritual) before routing the request below.
 - **Completed workflow + same-product request**: prefer **B** — `jump --stage <most upstream affected slug>` (typically `requirements-analysis`) re-enters the workflow, resetting that stage and everything after it while keeping the artifact tree, FR numbering, and Deferred records continuous (see `workflow-changes.md`, Re-Entering a Completed Workflow). Start Fresh archives the tree and severs cross-iteration traceability; reserve it for a new product intent or an explicit clean restart.
 - **Autonomous Mode after re-entry**: the new round always starts in standard mode — the engine flips a stale `Enabled: Yes` at `jump --stage` (the ack carries `autonomous_expired: true`); on the plan-line self-revival path the model flips it per AM-10. Re-activation is a fresh AM-02 (the activation question — the code-gen hold — is asked fresh).
 

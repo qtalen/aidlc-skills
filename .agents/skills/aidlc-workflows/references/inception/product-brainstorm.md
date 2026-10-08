@@ -88,6 +88,7 @@ The fact list becomes the skeleton for your conversation threads. (Deliberately 
 - **One focused question at a time** per message — the highest-value one (the decision that unblocks the most downstream thinking) — and say which decision it unlocks. Free-form responses to topics the *user* raises are unrestricted; serializing applies only to your questions.
 - **Recommend with a trade-off**: when you hold a well-founded recommendation, state it and what choosing otherwise costs.
 - **YAGNI**: fight scope the user did not ask for — every "while we're at it" addition is a question, not a default.
+- **Preference questions are never waived**: preference-driven decisions (implementation stack, deployment form, UI language, ...) remain questions even under a "non-technical user" picture or an inferred runtime shape. Evidence-First exempts only evidence-resolvable items and category facts — a persona is a lens, not a classifier, and a runtime-form inference (e.g. "zero-dependency page") constrains the recommendation, never the asking.
 - **Red flags** — check yourself against these:
   - "The wish is too small for a roadmap" — a one-page design *is* a valid roadmap.
   - "The user answers quickly, skip the write-back" — fast answers make the checkpoint *more* valuable, not less.
@@ -122,6 +123,8 @@ Think in iterations from the start; the roadmap section of the artifact records 
 3. **Four-way self-check** before writing: placeholders left? internal contradictions? ambiguous phrasing? scope creep beyond the dialogue?
 4. **One-time write**: create `aidlc-docs/inception/product-design/product-design.md` in a single write at the end. During the dialogue there are **zero product writes** (audit entries are the only exception — they are not product artifacts). Verify after the write that the file exists and is non-empty.
 5. **Gate**: present the artifact for approval (approve-continue). Record via `engine.py report --stage product-brainstorm --result approved | rejected | revised` (fall back to `python3`). Never hand-edit the engine-owned state region.
+
+**Small finishing decisions are asked one by one**: telemetry, icons, naming, and similar small calls each get their own question with a recommendation — never a bundled "approve all defaults" package that a single rejection voids wholesale.
 
 **Audit granularity**: log milestone-level entries — the opening announcement, the understanding write-back, the crystallization, the gate — not every dialogue round.
 

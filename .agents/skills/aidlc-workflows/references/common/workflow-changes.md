@@ -31,7 +31,40 @@ A design-level discussion may surface at any gate — AI-proposed or user-initia
 - **Direction unchanged** (the discussion settles without changing the product design): record it in `audit.md` and continue.
 - **Direction changed**: write the change back to the roadmap section of `aidlc-docs/inception/product-design/product-design.md` as a **timestamped revision note** in its `Revision Record` (append-only, DOC-04: when, why, and what changed — never rewrite existing entries; `Shipped` rows are immutable). When no roadmap is present (non-classic scopes), route through the change types above instead. If artifacts already generated depend on the changed direction, redo backward via `engine.py jump --stage <slug>` per Types 3/4/10.
 
-*(Full iteration lifecycle detail — Roadmap Changes at the three revision time-points, splitting an oversized iteration, and the iteration completion ritual — lives in this file's iteration sections, expanded by the delivery-loop batch.)*
+## Roadmap Changes (Three Revision Time-Points)
+
+The roadmap lives in the `Iteration Roadmap` section of `aidlc-docs/inception/product-design/product-design.md`. It is a living document with **three revision time-points**; every revision lands as a timestamped entry in its `Revision Record` (append-only, DOC-04: when, why, and what changed — map old → new where rows moved).
+
+1. **Iteration boundary** — the natural point, folded into the Iteration Completion Ritual below: collect the user's production observations in the closing exchange, then revise (re-split future iterations, pull Deferred items in, drop others). Shipped iterations are never touched here.
+2. **Mid-iteration** — a *small* idea lands as a numbered `Deferred / Backlog` entry (identifiers are never recycled — the Type 10 discipline); a *directional* change follows the design-level protocol above (binary outcome) **and** syncs the roadmap in the same interaction with a timestamped revision note.
+3. **RA–WP window** — the Workflow Planning approval gate doubles as the roadmap ↔ execution-plan consistency checkpoint: the plan's Iteration Scope section must match the roadmap's current iteration; drift is fixed before the gate passes. The two gates never substitute for each other (roadmap approval happened at the brainstorm gate; this checks consistency, not the split itself).
+
+**Shipped rows are immutable**: `Status: shipped` entries and `Shipped Log` lines are never rewritten. Rolling a shipped iteration back is a git revert or a new iteration — never an edit. When no roadmap is present (non-classic scopes, or a design delivered without iterations), route changes through the change types below instead.
+
+## Splitting an Oversized Iteration
+
+Discovered mid-iteration that the current iteration is too thick — the one-sentence narrative breaks (you need a list to say what it delivers), or an H1 violation surfaces late (a capability the current iteration depends on turns out to be scheduled for a later one):
+
+1. **Finish the in-flight unit first** — never split mid-unit; the unit is the atomic build granularity.
+2. **Revise the roadmap** at the next boundary (Roadmap Changes time-point 1): split the remaining scope into smaller iterations against the hard criteria (H1 downward closure, H2 observable outcome) — vertical slices, not layers.
+3. **Re-plan**: the re-entered round's Workflow Planning picks up the revised roadmap.
+4. When the user insists on keeping the oversized shape, record the risk note on the roadmap and proceed — their split wins (same ruling as the brainstorm's splitting discipline; "suggest a smaller split" with its cost is the approved middle path, never silent compliance and never refusal).
+
+Prevention beats cure: the brainstorm applies these criteria before the split is approved. This section is the mid-flight escape hatch, not the default path.
+
+## Iteration Completion Ritual
+
+When the engine emits `done`, the closing summary is a **three-branch ritual** (the `done` directive semantics are unchanged — this scripts the summary's content):
+
+- **Branch 1 — a next iteration exists on the roadmap**: read the roadmap and present the **next-iteration preview** (goal, scope subset, DoD) as part of the closing summary, then **stop at the human gate** — the user's confirmation to start the next iteration is required before any re-entry (`jump --stage <slug>` per Re-Entering above). This iteration-start gate is NOT the roadmap approval gate (that happened at the brainstorm gate); the two never substitute for each other. **No AM auto-continuation**: the completion transition always stops, in every mode — automatic iteration chaining is a non-goal.
+- **Branch 2 — this was the last iteration**: present a **product-level final review** — acceptance against the full product design (positioning, evolution direction), roadmap closure registration (every iteration shipped or dropped; Deferred items dispositioned), and what "keep evolving" would open next. The last iteration shipping is NOT the roadmap being complete — the final review is a distinct, coarser-grained closing, never collapsed into the last delivery message.
+- **Branch 3 — no roadmap** (single-iteration product, or no product-design artifact): current behavior — the standard closing summary, nothing added.
+
+**Order within the same interaction**: closing summary (with this branch's preview or final review) first, then the AM round-end announcement if Autonomous Mode was on (AM-10's existing clause — the ritual never precedes or suppresses it).
+
+**Shipped marking timing**: flip the current iteration's row to `shipped` and write its `Shipped Log` rollup line (one compressed line + git pointer) **at the iteration boundary — inside the Build-and-Test commit batch** (`product-design.md` ships marked; see the Commit Protocol in `references/construction/build-and-test.md`). Once written, the line is immutable. A non-git workspace records that fact in the Git column — the marking itself still happens.
+
+**Lightweight feedback loopback**: the ritual's closing exchange invites the user's production observations ("how did it feel to use"); they flow into the next Roadmap Changes revision (time-point 1). Telemetry-grade loopback depends on Operations becoming real and is out of scope here.
 
 ---
 

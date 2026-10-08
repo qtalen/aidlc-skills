@@ -178,6 +178,14 @@ Then fine-tune: the user may add individual SKIP stages or remove EXECUTE/CONDIT
 
 **Implicit single unit**: when Units Generation is not in the plan (skipped by the scope and not added back), treat the whole task as one implicit unit — use the project or task name as the unit name, and each per-unit construction stage in the plan runs exactly once for it, taking its inputs from `aidlc-docs/inception/requirements/requirements.md` and (brownfield) the reverse-engineering artifacts instead of unit artifacts. State this explicitly in the execution plan when it applies.
 
+### 3.1 Iteration Scope Verification (multi-iteration products)
+
+When a product-design roadmap is present and defines more than one iteration:
+
+- **Verify the current iteration's split** against the hard criteria: **H1** downward closure (the current iteration must not depend on capabilities planned for a later iteration — check by FR dependency against the roadmap's Scope subsets) and **H2** observable outcome (the iteration ends with something externally checkable — no dark iterations). The brainstorm shaped the split against these; this is the re-entry checkpoint, and Units Generation re-checks H1 at unit granularity (see `units-generation.md`, Iteration Scope).
+- **Report violations with their cost** at the approval gate (Step 9). The user's explicit split always wins on insistence — record the risk note on the roadmap and proceed.
+- **N=1 is legal**: a single-iteration roadmap needs no verification here; non-classic scopes do not split by default.
+
 ## Step 4: Note Adaptive Detail
 
 **See [depth-levels.md](../common/depth-levels.md) for adaptive depth explanation**
@@ -244,6 +252,12 @@ Create `aidlc-docs/inception/plans/execution-plan.md`:
 - **Scope**: [scope name from aidlc-state.md]
 - **Depth**: [minimal/standard/comprehensive]
 - **Per-stage Overrides**: [Stages added/removed relative to the scope baseline, with reasons]
+
+## Iteration Scope
+[IF a multi-iteration product-design roadmap exists]
+- **Current Iteration**: [K of N]
+- **FR/US Subset**: [the roadmap's Scope subset for iteration K, plus Deferred items pulled into it]
+- **Roadmap**: `aidlc-docs/inception/product-design/product-design.md` (iteration K row)
 
 ## Detailed Analysis Summary
 
@@ -454,6 +468,7 @@ I've created a comprehensive execution plan based on:
 - Existing system: [Summary if brownfield]
 - Requirements: [Summary if executed]
 - User stories: [Summary if executed]
+- Roadmap: [IF multi-iteration] Iteration [K] of [N] — [goal one-liner; scope subset summary]
 
 **Detailed Analysis**:
 - Risk level: [Level]

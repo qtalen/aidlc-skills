@@ -46,6 +46,12 @@ This stage decomposes the system into manageable units of work through two integ
 
 **Terminology**: Use "Service" for independently deployable components, "Module" for logical groupings within a service, "Unit of Work" for planning context.
 
+### Iteration Scope (multi-iteration products)
+
+- **Scope = the current iteration**: units cover the current iteration's FR/US subset only (from the execution plan's Iteration Scope section / the product-design roadmap). Capabilities planned for later iterations stay out of the unit set.
+- **Downward-closure check (H1)**: if a unit in iteration K depends on a capability scheduled for iteration >K, do NOT silently pull the future scope in — report it as a roadmap defect back to Workflow Planning; the plan and the roadmap must be re-aligned before generation proceeds.
+- **Incremental update on re-entry**: when a later iteration re-enters the workflow, update the existing unit artifacts in place — add or revise units for the new subset, keep unaffected units as-is; never regenerate the whole unit set from scratch.
+
 ## Prerequisites
 - Workspace Detection must be complete
 - Requirements Analysis recommended (provides functional scope)

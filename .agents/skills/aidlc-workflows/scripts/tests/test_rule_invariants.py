@@ -53,5 +53,73 @@ class ProductBrainstormCoPresenceTests(unittest.TestCase):
         )
 
 
+class IterationDeliveryCoPresenceTests(unittest.TestCase):
+    """B15 segment 2 (delivery loop, D20 merged): the three iteration
+    sections in workflow-changes and every coordinating sentence that
+    points at them must stay co-present across files."""
+
+    def test_workflow_changes_three_sections(self):
+        text = _read("references/common/workflow-changes.md")
+        for heading in (
+            "## Roadmap Changes (Three Revision Time-Points)",
+            "## Splitting an Oversized Iteration",
+            "## Iteration Completion Ritual",
+        ):
+            self.assertIn(heading, text, heading)
+
+    def test_shipped_immutability_and_marking_paired(self):
+        # D20.14/D20.16: immutability lives in workflow-changes; the B&T
+        # commit protocol carries the marking rule and the artifact name
+        # (roadmap lives inside product-design.md since D20.2's override).
+        self.assertIn(
+            "never rewritten", _read("references/common/workflow-changes.md")
+        )
+        bt = _read("references/construction/build-and-test.md")
+        self.assertIn("product-design.md", bt)
+        self.assertIn("Shipped Log rollup line", bt)
+
+    def test_iteration_scope_wp_and_ug(self):
+        # WP plans the subset (template section + verification); UG scopes
+        # units to it and re-checks H1 at unit granularity.
+        wp = _read("references/inception/workflow-planning.md")
+        self.assertIn("## Iteration Scope", wp)
+        self.assertIn("Iteration Scope Verification", wp)
+        ug = _read("references/inception/units-generation.md")
+        self.assertIn("Iteration Scope (multi-iteration products)", ug)
+        self.assertIn("roadmap defect back to Workflow Planning", ug)
+
+    def test_ritual_pointers_from_entry_files(self):
+        # The two engine-directive entry points must point at the ritual.
+        for rel in ("SKILL.md", "references/common/session-continuity.md"):
+            self.assertIn("Iteration Completion Ritual", _read(rel), rel)
+
+    def test_preference_never_waived_paired(self):
+        # P8 ruling (dogfood #1): the same sentence lands in both the
+        # brainstorm dialogue discipline and RA's completeness analysis.
+        for rel in (
+            "references/inception/product-brainstorm.md",
+            "references/inception/requirements-analysis.md",
+        ):
+            self.assertIn(
+                "Preference questions are never waived", _read(rel), rel
+            )
+
+    def test_no_bundled_defaults_package(self):
+        # P10 ruling (dogfood #1): small finishing decisions are asked one
+        # by one — no approve-all defaults bundle.
+        self.assertIn(
+            "never a bundled",
+            _read("references/inception/product-brainstorm.md"),
+        )
+
+    def test_optin_not_orphaned_without_questions_file(self):
+        # P7 ruling (dogfood #1): the file-less path still presents opt-in
+        # prompts independently.
+        self.assertIn(
+            "never be orphaned",
+            _read("references/inception/requirements-analysis.md"),
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2,7 +2,7 @@
 
 | 项 | 值 |
 |---|---|
-| 状态 | 🔄 段一已实施（240 绿）· dogfood #1 **全程完成**（含建到 done：8/8 验收 + 发现 P7~P12，见验证节）· 段二待启动 |
+| 状态 | 🔄 段一已实施（240 绿）· dogfood #1 **全程完成**（含建到 done：8/8 验收 + 发现 P7~P12，见验证节）· 段二已实施（**247 绿**+P7/P8/P10 修复，见实施节）· **dogfood #2 待启动** |
 | 触发 | 原立项：问卷制缺少自由讨论形态；〔2026-10-08 重定义〕非技术用户"一句话许愿式编程"→柏拉图式共建设计对话→产品演进闭环（把 demo 变成长期演进的真实产品） |
 | 关联决策 | D19（本批产出，子裁决扩编至 44 项：1~34 存量[Chat 收集语义相关已退役] + 其六新增 35~44）；**D20 全量并入**（自 B16 合并，编号保留、实施归属改挂本批，逐条处置见其六处置表）；与 D16-D18（AM 链）在 AM 延迟激活面耦合 |
 | 测试基线 | 立项时 237；2026-10-07 实施至 238，2026-10-08 证伪回滚回 237；**段一落地后 240**（+3：test_rule_invariants.py 规则文本断言[slug 四处共在/豁免措辞成对/classic 计数]；stage 断言同步 10 处见实施节） |
@@ -127,9 +127,9 @@
 ### 工序（v3，2026-10-08 重写；v1 工序随其五回滚作废）
 
 1. ~~v1 计划审核~~ ✅ + ~~v1 实施~~（证伪回滚，见其五）+ ~~v3 实施计划制定与三轮审核~~ ✅（见计划审核节第三轮）
-2. **其六二轮审核**（同 reviewer 会话第四轮）：重点=condition 散文可判定性 / B16 处置表忠实度 / D19.35 字段集与 generate.py 兼容 / AM 第四场景 → 规格冻结
+2. ~~其六二轮审核~~ ✅（同 reviewer 会话第四轮）：重点=condition 散文可判定性 / B16 处置表忠实度 / D19.35 字段集与 generate.py 兼容 / AM 第四场景 → 规格冻结（记录见计划审核节第四轮；工序行 ✅ 漏标由段二实施顺带补齐）
 3. **段一实施（战略层，11 项）** ✅ → 机械验证 ✅（240 绿+零漂移）→ **dogfood #1** ✅（8/8+P7~P10，2026-10-08，见验证节实施记录）→ 【止损点：通过——段一独立可交付（单迭代无交付环可走通）】→ **续建完成** ✅（同日：AD→UG→FD×2→CG×2→B&T 五门全过，workflow done，roadmap flipped shipped——见验证节续建记录）
-4. **段二实施（交付环，8 项）** → 机械验证 → **dogfood #2**
+4. ~~段二实施（交付环，8 项）~~ ✅ → 机械验证 ✅（**247 绿**+零漂移，2026-10-08，含 P7/P8/P10 三句修复——见实施节段二记录）→ **dogfood #2**（待启动）
 5. 收口（四节回填/状态翻转/遗留登记/分段 commit，每步用户开口）
 
 ## 计划审核（reviewer，实施前，2026-10-07）
@@ -298,6 +298,24 @@
 - C5 半节标题定为"Design-Level Changes at Gates and the Product Roadmap"，段二 D1 四节扩写时以此为锚替换。
 
 **机械验证（全过）**：240 测试全绿（237 基线+3）；`generate.py --check` 退出码 0；交叉引用六文件互指（PB↔qfg↔RA↔session-continuity↔AM↔SKILL.md，grep 核验）；生成区零手改；welcome ASCII 对齐一眼检过；只读目录零触碰；英文撰写；harness 中立。
+
+### 段二实施记录（2026-10-08，D1~D8 + P7/P8/P10 落地）
+
+| # | 落地内容 |
+|---|---|
+| D1 | workflow-changes：C5 锚行替换为三节全量——**Roadmap Changes (Three Revision Time-Points)**（迭代边界/迭代中/RA-WP 窗口三时点+shipped 不可改写"never rewritten"+修订 append-only+与 huddle 半节合流[方向性变更引用其上二分结局]）、**Splitting an Oversized Iteration**（视野破裂/H1 迟发触发→完成在飞单元→边界修订→重计划；禁单元中途拆；用户坚持=风险注记+照做，D20.15 出口援引）、**Iteration Completion Ritual**（三分支：下一迭代预览+人工门≠roadmap 门/最后迭代=产品级收尾审查[shipping≠roadmap 完成]/无 roadmap=现状；交互内顺序=closing summary→AM 轮末宣告；shipped 标记时机=B&T 提交批当刻；轻量反馈回灌+遥测限定） |
+| D2 | WP：新增 §3.1 Iteration Scope Verification（H1/H2 复核+违例呈报+用户拆分赢+N=1 合法，援引 UG 复核闭环）；Step 7 模板加 `## Iteration Scope` 节（K of N/FR-US 子集/roadmap 指针，IF 多迭代）；Step 9 模板加 Roadmap 摘要行。frontmatter 未动（D20.18 语义反转后 PB 已显式 produces） |
+| D3 | UG：Overview 后新增 Iteration Scope 小节三条（作用域=当前迭代子集/H1 下行闭包违例→报 roadmap 缺陷回 WP 不静默拉入未来范围/再入增量更新不重生成） |
+| D4 | SKILL.md：`completed` 行前置 roadmap 路由（多迭代先呈下一迭代预览）；`done` 行补三分支压缩指针（详规指 workflow-changes） |
+| D5 | B&T Commit Protocol：插规则 3（多迭代产品迭代边界提交批含 product-design.md shipped 标记+Shipped Log 压行，标记发生在本门提交批当刻；非 git 工作区规则 5 适用但标记照做），原 3~6 顺延为 4~7。文件名随 D20.2 取代注记用 product-design.md |
+| D6 | session-continuity：Welcome Back "Next Step" 行完成态加下一迭代预览指引；Menu Execution 新增 "Completed workflow" 条目（多迭代先呈 roadmap 预览再路由） |
+| D8 | user-stories：Purpose 后一句（迭代范围撰写=经 RA 继承的当前迭代子集；再入续编 US 编号，不回收不改写）——规格期裁决方向落地 |
+| P7/P8/P10 | 三句规则文本修复（dogfood #1 发现）：P7=RA Step 5.1 免问题文件路径 opt-in 独立呈送（选择卡+配置表+审计，"never be orphaned"）；P8="Preference questions are never waived" 双落点（PB 对话纪律+RA Step 5，画像不是分类器/运行时形态约束推荐不约束提问）；P10=PB 结晶节小件逐项推荐问（"never a bundled" 捆绑否决包废止） |
+| 测试 | test_rule_invariants 新增 `IterationDeliveryCoPresenceTests` 7 断言：三节标题共在/shipped 不可改写×B&T 标记规则成对（含 product-design.md 文件名）/WP 模板节+复核位/UG 子集+回 WP 短语/SKILL+session-continuity 仪式指针/P8 双落点成对/P10+P7 关键句 |
+
+**机械验证（全过）**：**247 测试全绿**（240 基线+7）；`generate.py --check` 退出码 0（零 frontmatter 改动，预期零漂移成立）；engine.py/generate.py/stage-graph.json 零触碰；生成区零手改；英文撰写。
+
+**实施期注记**：工序 step 2（其六二轮审核）实际完成于段一实施前（:158 记录），当时工序行漏标 ✅——本次顺带补标。
 
 ## 验证（v3 预定验收标准，2026-10-08；v1 标准随其五回滚作废）
 

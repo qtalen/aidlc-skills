@@ -79,7 +79,7 @@
 | B12 | [文档减法清理批](batches/b12-doc-slimming.md)（D-清系列） | 09-29 | ✅ | D-清1~9 | 231→237 | 必加载集 -24.5%；判据权威收编 frontmatter；10-06 双臂验收方向性通过 |
 | B13 | [备份遗产清理批](batches/b13-backup-legacy.md) | 09-28 立项 | ⏳ 待实施 | D11/D14 | 237→238 | `.backup` 惯例改条件式 + resumed-artifacts 排除 `.backup`；规格就绪 |
 | B14 | [文档重组批](batches/b14-doc-restructure.md) | 10-07 | ✅ | — | —（docs-only） | integration-plan 拆分为主文档 + 13 批次档案 + 1 冻结档案，三层体系（Phase/B/D）归一 |
-| B15 | [产品头脑风暴阶段批](batches/b15-interaction-modes.md)（原提问交互三模式批，其五证伪重定义） | 10-07 立项；10-08 实施后回滚+重设计 | 🔄 段一已实施·dogfood #1 全程完成（8/8+P7~P12+提问不可免定律；迭代 1 建到 done，roadmap shipped）·段二待启动 | D19+D20 | 240（237+3 规则文本断言） | 头脑风暴阶段 product-brainstorm（三层门控）+ 对话纪律（opsx+superpowers B1~B8）+ product-design.md/roadmap + 迭代交付环与完成仪式（B16 全量并入）；Phase 3.4 重定义产品演进闭环——见档案其五/其六/实施节/验证节 |
+| B15 | [产品头脑风暴阶段批](batches/b15-interaction-modes.md)（原提问交互三模式批，其五证伪重定义） | 10-07 立项；10-08 实施后回滚+重设计 | 🔄 段一已实施·dogfood #1 全程完成（8/8+P7~P12+提问不可免定律；迭代 1 建到 done，roadmap shipped）·段二已实施（P7/P8/P10 修复随交付环落地）·dogfood #2 待启动 | D19+D20 | 247（237+3+7 规则文本断言） | 头脑风暴阶段 product-brainstorm（三层门控）+ 对话纪律（opsx+superpowers B1~B8）+ product-design.md/roadmap + 迭代交付环与完成仪式（B16 全量并入）；Phase 3.4 重定义产品演进闭环——见档案其五/其六/实施节/验证节 |
 | B16 | [迭代交付批](batches/b16-iterative-delivery.md)（Phase 3.4） | 10-07 立项；10-08 并入 | ♻️ 已并入 B15（未实施） | D20 | —（随 B15） | roadmap 活文档 + 迭代作用域 + 完成仪式三分支 + 拆分判据（Trellis parent/child 同构）；D20.1~19 逐条处置见 B15 档案其六，档案保留为 D20 语义之家 |
 
 ---
@@ -180,7 +180,7 @@
 | 项 | 状态/触发 | 出处 |
 |---|---|---|
 | B13 备份遗产清理批 | ⏳ 规格就绪，可开工 | batches/b13 |
-| B15 产品头脑风暴阶段批（含 B16 合并） | 🔄 段一已实施（240 绿）；dogfood #1 **全程完成**（2026-10-08：8/8+发现 P7~P12 与提问不可免定律——P7/P8/P10 段二修、P9 已知弱点挂账 B17+、P11 待 #2 对照、P12 流程实证；迭代 1 同日建到 done，E2E file:// 实证，roadmap flipped shipped）；段二待启动 | batches/b15 |
+| B15 产品头脑风暴阶段批（含 B16 合并） | 🔄 段一已实施（240 绿）；dogfood #1 **全程完成**（2026-10-08：8/8+发现 P7~P12 与提问不可免定律——P9 已知弱点挂账 B17+、P11 待 #2 对照、P12 流程实证；迭代 1 同日建到 done，E2E file:// 实证，roadmap flipped shipped）；段二已实施（**247 绿**：交付环 D1~D8 全量 + P7/P8/P10 三句修复）；**dogfood #2 待启动**（自迭代 1 完成态续跑） | batches/b15 |
 | B16 迭代交付批（Phase 3.4 首批） | ♻️ 已并入 B15（未实施，2026-10-08 全量合并——处置见 B15 其六） | batches/b16 |
 | Operations 实义化（部署/监控/告警/回滚——"线上持续运行"通路；B16 DoD 占位字段待升格） | Phase 3.4 第二批候选（B17+） | B16 立项 |
 | 阶段规则审查透镜：强制步骤必须在当阶段实际加载的文件里有锚点，否则被静默跳过（Trellis breadcrumb 不变量，两次事故实证） | 观察项（批次审查时核对） | B15 规格修订 |

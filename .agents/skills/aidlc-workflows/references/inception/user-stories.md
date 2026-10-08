@@ -41,6 +41,8 @@ User Stories focus on:
 - Establishing shared understanding across teams
 - Providing testable specifications for implementation
 
+**Iteration-scoped authoring (multi-iteration products)**: when a product-design roadmap scopes this round to its current iteration, write stories for that iteration's requirement subset only (inherited via Requirements Analysis); on iteration re-entry, continue US numbering from the highest used number — never recycle numbers, never rewrite prior iterations' stories.
+
 ## Prerequisites
 - Workspace Detection must be complete
 - Requirements Analysis recommended (can reference requirements if available)

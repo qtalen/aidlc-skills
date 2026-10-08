@@ -376,10 +376,11 @@ Protocol:
 
 1. **Dirty-file triage**: classify every dirty workspace path by whether this session's tool calls actually wrote it. First class: artifacts produced by this workflow. Every other dirty file is second class — list it, NEVER stage it silently.
 2. **One-shot commit plan presentation**: list first-class files grouped by their owning stage and unit; list second-class files as a plain inventory (never staged automatically).
-3. **No amend, no push** — unless the user explicitly asks.
-4. **Non-git workspace**: align with the AUD-02 precedent — no git → mark commit information `unknown`, do not block the flow, and skip this entire protocol.
-5. **Audit**: write the commit plan and its confirmation outcome to `audit.md`; record the resulting commit hashes in `build-and-test-summary.md`.
-6. **Commit order**: commit work results first; IF any archival/handoff pending items exist at that point, commit them afterward (conditional — at build-and-test time these typically do not exist).
+3. **Multi-iteration products (iteration-boundary batch)**: the commit batch includes `aidlc-docs/inception/product-design/product-design.md` with the current iteration marked `shipped` and its Shipped Log rollup line already written — the marking happens at this ship transition moment (see `workflow-changes.md`, Iteration Completion Ritual), which this gate's commit batch anchors. Non-git workspaces: rule 4 applies, the marking still happens.
+4. **No amend, no push** — unless the user explicitly asks.
+5. **Non-git workspace**: align with the AUD-02 precedent — no git → mark commit information `unknown`, do not block the flow, and skip this entire protocol.
+6. **Audit**: write the commit plan and its confirmation outcome to `audit.md`; record the resulting commit hashes in `build-and-test-summary.md`.
+7. **Commit order**: commit work results first; IF any archival/handoff pending items exist at that point, commit them afterward (conditional — at build-and-test time these typically do not exist).
 
 **Autonomous Mode (AM-03)**: never commit automatically under Autonomous Mode — the completion message lists the pending-to-commit inventory and the user decides (see `../extensions/workflow/autonomous-mode/autonomous-mode.md`).
 
