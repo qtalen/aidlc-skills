@@ -79,25 +79,13 @@ Stage-specific failure patterns (contradictions, ambiguous answers, incomplete p
 
 **Scenario**: User is unhappy with stage results and wants to redo
 
-**Recovery Steps**:
-1. Confirm user wants to restart (data will be lost)
-2. Archive existing artifacts: `{artifact}.backup`
-3. Execute the restart through the engine: `python <skill>/scripts/engine.py jump --stage <slug>` (a redo resets the target stage and every stage after it; never hand-edit the stage status)
-4. Clear stage checkboxes in plan files
-5. Re-execute stage from beginning
+**Recovery**: follow `references/common/workflow-changes.md` — Type 3 (Restarting Current Stage) / Type 4 (Restarting Previous Stage). Essentials: confirm the user accepts that existing work will be lost; execute only through the engine — `engine.py jump --stage <slug>` resets the target stage and every stage after it (never hand-edit the stage status); clear the stage checkboxes in the plan files; re-execute from the beginning.
 
 ### User Wants to Skip Stage
 
 **Scenario**: User wants to skip a stage that was planned
 
-**Recovery Steps**:
-1. Confirm user understands implications
-2. Document skip reason in `audit.md`
-3. Record the skip through the engine — **order matters** (never hand-edit the stage checkboxes):
-   - If the stage is the current stage and CONDITIONAL: `python <skill>/scripts/engine.py report --stage <slug> --result skipped --reason "<reason>"` **first**, then record it on the `Stages to Skip` line (a Skip line written first re-routes the pointer past the stage and the report is rejected)
-   - Otherwise: record `- **Stages to Skip**: slug (reason)` in Execution Plan Summary, then run `engine.py next` (the engine never emits the stage). Never `jump` to "route past" it — a forward jump marks the in-flight current stage `[S]`
-4. Proceed to next stage
-5. Note: May cause issues in later stages if dependencies missing
+**Recovery**: follow `references/common/workflow-changes.md` — Type 2 (Skipping a Planned Stage): confirm impact and get explicit confirmation, record the skip through the engine (the **order matters** rule and the exact command sequence live there), and document the reason in `audit.md`. Later stages may need manual setup if dependencies are missing.
 
 ## Escalation Guidelines
 
@@ -126,12 +114,11 @@ Stage-specific failure patterns (contradictions, ambiguous answers, incomplete p
 **Never fresh-start triggers**: significant requirement changes and architectural reversals are **same-product evolution** — handle them in place per `references/common/workflow-changes.md` (Re-Entering a Completed Workflow when the workflow has completed; Type 7 / Type 10 mid-workflow). Do not archive a working tree for these.
 
 **Before Starting Over**:
-1. Archive all existing work
-2. Document lessons learned
-3. Identify what to preserve
-4. Get user confirmation
-5. Create new execution plan
-6. Reset through the engine: `python <skill>/scripts/engine.py jump --fresh` (archives `aidlc-docs/` and resets state) — never rebuild the state file by hand
+1. Document lessons learned
+2. Identify what to preserve
+3. Get user confirmation
+4. Create new execution plan
+5. Reset through the engine: `python <skill>/scripts/engine.py jump --fresh` (archives `aidlc-docs/` and resets state) — never rebuild the state file by hand; archival is owned exclusively by this engine step, never done manually before it
 
 ## Session Resumption Errors
 

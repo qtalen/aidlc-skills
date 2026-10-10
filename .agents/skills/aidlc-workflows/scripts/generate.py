@@ -906,7 +906,7 @@ def build_render_map(ordered, scope_order):
             lines.append("   - **%s**: Read %s" % (stage.name, text))
         return "\n".join(lines)
 
-    def render_mermaid(status_mode):
+    def render_mermaid():
         blank = "    "
         lines = ["```mermaid", "flowchart TD", '    Start(["User Request"])', blank]
         for phase in PHASE_ORDER:
@@ -918,10 +918,8 @@ def build_render_map(ordered, scope_order):
             for stage in ps(phase):
                 if stage.phase == "operations":
                     label = "PLACEHOLDER"
-                elif status_mode:
-                    label = "STATUS"
                 else:
-                    label = tag(stage)
+                    label = "STATUS"
                 lines.append(
                     '        %s["%s<br/><b>%s</b>"]'
                     % (_node_id(stage.slug), stage.name, label)
@@ -964,44 +962,10 @@ def build_render_map(ordered, scope_order):
                 )
 
         lines.append(blank)
-        if status_mode:
-            lines.append(
-                "    %% Replace STATUS with COMPLETED, SKIP, EXECUTE as appropriate"
-            )
-            lines.append("    %% Apply styling based on status")
-        else:
-            for stage in ordered:
-                if stage.execution == "ALWAYS":
-                    lines.append(
-                        "    style %s fill:#4CAF50,stroke:#1B5E20,stroke-width:3px,color:#fff"
-                        % _node_id(stage.slug)
-                    )
-            for stage in ordered:
-                if stage.execution == "CONDITIONAL" and stage.phase != "operations":
-                    lines.append(
-                        "    style %s fill:#FFA726,stroke:#E65100,stroke-width:3px,stroke-dasharray: 5 5,color:#000"
-                        % _node_id(stage.slug)
-                    )
-            lines.append(
-                "    style Operations fill:#BDBDBD,stroke:#424242,stroke-width:2px,stroke-dasharray: 5 5,color:#000"
-            )
-            lines.append(
-                "    style INCEPTION fill:#BBDEFB,stroke:#1565C0,stroke-width:3px, color:#000"
-            )
-            lines.append(
-                "    style CONSTRUCTION fill:#C8E6C9,stroke:#2E7D32,stroke-width:3px, color:#000"
-            )
-            lines.append(
-                "    style OPERATIONS fill:#FFF59D,stroke:#F57F17,stroke-width:3px, color:#000"
-            )
-            lines.append(
-                "    style Start fill:#CE93D8,stroke:#6A1B9A,stroke-width:3px,color:#000"
-            )
-            lines.append(
-                "    style End fill:#CE93D8,stroke:#6A1B9A,stroke-width:3px,color:#000"
-            )
-            lines.append(blank)
-            lines.append("    linkStyle default stroke:#333,stroke-width:2px")
+        lines.append(
+            "    %% Replace STATUS with COMPLETED, SKIP, EXECUTE as appropriate"
+        )
+        lines.append("    %% Apply styling based on status")
         lines.append("```")
         return "\n".join(lines)
 
@@ -1132,7 +1096,7 @@ def build_render_map(ordered, scope_order):
         "stage-list-operations": lambda: render_stage_list("operations"),
         "ascii-diagram": render_ascii,
         "artifact-loading": render_artifact_loading,
-        "execution-plan-mermaid": lambda: render_mermaid(True),
+        "execution-plan-mermaid": render_mermaid,
         "execution-plan-stages": render_execution_plan_stages,
         "scope-catalog": render_scope_catalog,
         "scope-matrix": render_scope_matrix,

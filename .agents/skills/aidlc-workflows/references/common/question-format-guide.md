@@ -225,6 +225,7 @@ Look for unclear or borderline responses:
 - Answers that could fit multiple classifications
 - Responses that lack specificity
 - Conflicting indicators across multiple questions
+- Vague hedging phrases ("depends", "maybe", "not sure", "mix of", "somewhere between") and undefined terms or references to unexplained external concepts
 
 #### Creating Clarification Questions
 If contradictions or ambiguities detected:
