@@ -46,7 +46,7 @@
 - 引擎 `scripts/engine.py` 是**必选运行时组件**：独占跨阶段路由（`next`）、状态机转移（`report` 是唯一写入口）、审计转移条目、状态完整性校验（State Digest sha256 + 审计交叉核验 + `rebase`）、改道（`jump`/`jump --fresh`；工作流完成态下 `jump --stage` 放行为**同产品再入**——目标及其后重置、语义同 backward redo，`--fresh` 留给新产品意图，D15）、会话泊车注记（`park --note`：写状态文件 Last Parked 行 + `aidlc-docs/handoff.md`，不改 marks/current、不写审计）、权威时间戳读取（`stamp`，零副作用）。`aidlc-docs/handoff.md` 为引擎独写，模型不得手改。
 - 引擎**只读**作者期编译产物 `scripts/data/stage-graph.json`（generate.py 生成，--check 覆盖其漂移），**永不解析 frontmatter，也永不解析 condition 散文**（CONDITIONAL 阶段照常发射 `conditional: true`，模型判断不适用则 `report --result skipped --reason`）。
 - 状态文件分区所有权（`references/common/engine-contract.md`）：`<!-- BEGIN/END ENGINE-STATE -->` 标记区内（Stage Progress/Current Status/Unit Progress/State Digest）引擎独占、digest 覆盖；区外（Project Information/Execution Plan Summary/Autonomous Mode/Extension Configuration 等）模型按模板写。Execution Plan Summary 的结构化行（Scope/Depth/Stages to Execute/Skip）是模型写-引擎读的 load-bearing 通道（Autonomous Mode 区的 `autonomous` 键与 Extension Configuration 表的 checkpoint 探测同属模型写-引擎读，引擎只宽容读取、不改变所有权）。**唯一引擎写模型区例外（AM-10 轮次边界过期，2026-09-28）**：引擎在完成转移与再入 jump 两个确定性边界可把 Autonomous Mode 区的 `Enabled` 行翻转为 No（连同既存 Last Updated 行），宽容 no-op；触发互斥是纪律约定非机制保证（该区不在 digest、无锁），见契约 §6。
-- 引擎测试与生成器测试同套件（`scripts/tests/`，共 248 例，2026-10-08 起含 test_rule_invariants.py 规则文本断言）：改引擎后必跑 `python -m unittest discover -s .agents\skills\aidlc-workflows\scripts\tests`。
+- 引擎测试与生成器测试同套件（`scripts/tests/`，共 253 例，2026-10-08 起含 test_rule_invariants.py 规则文本断言，2026-10-12 起含 test_extension_layout.py 扩展发现不变量）：改引擎后必跑 `python -m unittest discover -s .agents\skills\aidlc-workflows\scripts\tests`。
 
 ### 4. 编辑纪律
 

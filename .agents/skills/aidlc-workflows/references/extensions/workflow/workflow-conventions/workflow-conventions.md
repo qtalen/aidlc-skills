@@ -28,7 +28,7 @@ All rules are **blocking** by default, with one exception: rules explicitly mark
 After any approved change (new/modified requirement, UI tweak, signature/enum/value-range change), BEFORE the completion message:
 1. List affected keywords, numeric ranges, type signatures, component names, counts
 2. Search the entire `aidlc-docs/` tree for occurrences of those terms (including superseded values)
-3. Update every artifact containing stale references, marking the change origin where the artifact format supports it. When the Context Checkpointing extension is enabled, this sweep includes checkpoint files under `aidlc-docs/checkpoints/` — they are current-state artifacts, not historical records (see CTX-01), so in-place updates to stale checkpoint content are required and do not violate DOC-04
+3. Update every artifact containing stale references, marking the change origin where the artifact format supports it
 
 Typical mapping: functionality → requirements/stories/business rules; enums/ranges → domain entities, logic models, component methods; signatures → component methods, interaction flows; new components → inventories, structure trees, summaries; test counts → summary coverage sections.
 
@@ -58,7 +58,7 @@ Shared workflow rule files MUST contain no project-specific identifiers (project
 When creating or substantially updating an `aidlc-docs/` **content artifact of 300+ total lines**, maintain a task→section navigation table at the top of the file — one row per H2 heading (section title + one-line purpose) — so readers can locate the relevant section without reading the whole file.
 
 - The navigation table MUST cover **all H2 headings** of the file (mechanically checkable by comparing table rows against the file's H2 list).
-- **Exclusions**: `audit.md` (append-only log, mutually exclusive with a maintained index), `aidlc-docs/aidlc-state.md` and `aidlc-docs/handoff.md` (engine-owned), checkpoint files under `aidlc-docs/checkpoints/` (bounded by the 200-line cap, never triggers this rule), and question files (QT / DOC-04 jurisdiction).
+- **Exclusions**: `audit.md` (append-only log, mutually exclusive with a maintained index), `aidlc-docs/aidlc-state.md` and `aidlc-docs/handoff.md` (engine-owned), and question files (QT / DOC-04 jurisdiction).
 - **Nature**: advisory — a missing or incomplete navigation index is NOT a blocking finding. When found missing, list it as a reminder in the completion message and continue; never block the flow over it.
 
 ---

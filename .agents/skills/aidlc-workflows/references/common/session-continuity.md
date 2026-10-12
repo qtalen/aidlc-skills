@@ -74,7 +74,6 @@ Park the current work with the engine whenever you are about to stop mid-stage, 
 
 - **When to park**: the user asks to pause or end the session; the conversation is about to switch topics away from in-flight stage work; or, mid-long-task, you sense an imminent interruption (context pressure, long wait).
 - **How to park**: run `engine.py park --note "in-flight <X>; next <Y>; caveat <Z>"` (prefer `python`, fall back to `python3`, as above). The note is written to the state file's Last Parked line and to `aidlc-docs/handoff.md`; stage marks, `current_stage`, and the audit log are untouched — parking is not a transition.
-- **Checkpoint boundary (CTX-01)**: if the Context Checkpointing extension is enabled and a CTX-01 checkpoint is active for the current phase/unit, park **dual-writes**: in addition to the engine park, append a one-line breakpoint entry (timestamp + note) to that checkpoint's **Open Items** section.
 
 ## Anti-Abandonment Rule
 
