@@ -1,3 +1,37 @@
+---
+slug: functional-design
+phase: construction
+execution: CONDITIONAL
+condition:
+  execute_if: new data models or schemas, complex business logic, business rules needing detailed design
+  skip_if: simple logic changes, no new business logic
+gate: two-option
+produces:
+  - construction/plans/{unit-name}-functional-design-plan.md
+  - construction/{unit-name}/functional-design/business-logic-model.md
+  - construction/{unit-name}/functional-design/business-rules.md
+  - construction/{unit-name}/functional-design/domain-entities.md
+  - construction/{unit-name}/functional-design/frontend-components.md
+consumes:
+  - artifact: inception/requirements/requirements.md
+    required: true
+  - artifact: inception/application-design/unit-of-work.md
+    required: true
+  - artifact: inception/application-design/*
+    required: false
+requires_stage:
+  - units-generation
+  - requirements-analysis
+for_each: unit-of-work
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: EXECUTE
+  security-patch: SKIP
+  infra: SKIP
+  express: SKIP
+---
+
 # Functional Design
 
 ## Purpose
@@ -12,7 +46,7 @@ Functional Design focuses on:
 **Note**: This builds upon high-level component design from Application Design (INCEPTION phase)
 
 ## Prerequisites
-- Units Generation must be complete
+- Units Generation must be complete, **or** the execution plan has no Units Generation stage — in that case this stage runs exactly once for the whole task as an implicit single unit (see `workflow-planning.md` Step 3.0), using `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts as its inputs in place of unit artifacts
 - Unit of work artifacts must be available
 - Application Design recommended (provides high-level component structure)
 - Execution plan must indicate Functional Design stage should execute
@@ -23,8 +57,8 @@ Design detailed business logic for the unit, technology-agnostic and focused pur
 ## Steps to Execute
 
 ### Step 1: Analyze Unit Context
-- Read unit definition from `aidlc-docs/inception/application-design/unit-of-work.md`
-- Read assigned stories from `aidlc-docs/inception/application-design/unit-of-work-story-map.md`
+- Read unit definition from `aidlc-docs/inception/application-design/unit-of-work.md` — **if the execution plan has no Units Generation stage, this stage runs exactly once for the whole task as an implicit single unit (see `workflow-planning.md` Step 3.0); in that case read `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts instead**
+- Read assigned stories from `aidlc-docs/inception/application-design/unit-of-work-story-map.md` — **skip when the execution plan has no Units Generation stage (no unit story map exists)**
 - Understand unit responsibilities and boundaries
 
 ### Step 2: Create Functional Design Plan
@@ -34,6 +68,8 @@ Design detailed business logic for the unit, technology-agnostic and focused pur
 
 ### Step 3: Generate Context-Appropriate Questions
 **DIRECTIVE**: Thoroughly analyze the unit definition and functional design artifacts to identify ALL areas where clarification would improve the functional design. Be proactive in asking questions to ensure comprehensive understanding.
+
+**Evidence-First gate**: resolve anything explorable from the codebase and existing artifacts before asking (Evidence-First Policy, references/common/question-format-guide.md); only preference-driven or exploration-inconclusive items become questions.
 
 **CRITICAL**: Default to asking questions when there is ANY ambiguity or missing detail that could affect functional design quality. It's better to ask too many questions than to make incorrect assumptions.
 
@@ -116,4 +152,5 @@ Design detailed business logic for the unit, technology-agnostic and focused pur
 ### Step 9: Record Approval and Update Progress
 - Log approval in audit.md with timestamp
 - Record the user's approval response with timestamp
-- Mark Functional Design stage complete in aidlc-state.md
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage functional-design --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
+- **Per-unit note**: this stage is emitted once by the engine for the whole unit loop. Run the gate per unit as defined above, but call `report` exactly once — after the LAST unit's gate outcome. If a later unit is rejected, do not call `report` again; the stage stays current until all units pass.

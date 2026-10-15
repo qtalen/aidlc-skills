@@ -1,3 +1,37 @@
+---
+slug: code-generation
+phase: construction
+execution: ALWAYS
+condition: Always executes for each unit — generates code, tests, and artifacts through an approved two-part plan
+gate: two-option
+produces:
+  - construction/plans/{unit-name}-code-generation-plan.md
+  - construction/{unit-name}/code/*
+consumes:
+  - artifact: inception/application-design/unit-of-work.md
+    required: true
+  - artifact: construction/{unit-name}/functional-design/*
+    required: true
+  - artifact: construction/{unit-name}/nfr-design/*
+    required: true
+  - artifact: construction/{unit-name}/infrastructure-design/*
+    required: true
+requires_stage:
+  - functional-design
+  - infrastructure-design
+  - nfr-design
+  - units-generation
+for_each: unit-of-work
+workspace_writes: true
+scopes:
+  classic: EXECUTE
+  bugfix: EXECUTE
+  refactor: EXECUTE
+  security-patch: EXECUTE
+  infra: EXECUTE
+  express: EXECUTE
+---
+
 # Code Generation - Detailed Steps
 
 ## Overview
@@ -8,10 +42,12 @@ This stage generates code for each unit of work through two integrated parts:
 **Note**: For brownfield projects, "generate" means modify existing files when appropriate, not create duplicates.
 
 ## Prerequisites
-- Unit Design Generation must be complete for the unit
+- Unit Design Generation must be complete for the unit, **or** the execution plan has no Units Generation stage — in that case this stage runs exactly once for the whole task as an implicit single unit (see `workflow-planning.md` Step 3.0), using `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts as its inputs in place of unit artifacts
 - NFR Implementation (if executed) must be complete for the unit
 - All unit design artifacts must be available
 - Unit is ready for code generation
+
+**Autonomous Mode (AM-11)**: when the state section shows `Code-Gen Hold: Pending`, present the hold announcement and wait for the user's go-ahead BEFORE starting this stage's work — the stop lands before the FIRST unit and occurs at most once per activation (see `../extensions/workflow/autonomous-mode/autonomous-mode.md`).
 
 ---
 
@@ -87,8 +123,7 @@ This stage generates code for each unit of work through two integrated parts:
 - [ ] Mark the approval status clearly
 
 ## Step 9: Update Progress
-- [ ] Mark Code Generation Part 1 (Planning) complete in `aidlc-state.md`
-- [ ] Update the "Current Status" section
+- [ ] Track Part 1 (Planning) progress in the plan file — the Stage Progress / Current Status sections of `aidlc-state.md` are engine-owned; never hand-edit them
 - [ ] Prepare for transition to Code Generation
 
 ---
@@ -116,7 +151,7 @@ This stage generates code for each unit of work through two integrated parts:
 ## Step 12: Update Progress
 - [ ] Mark the completed step as [x] in the unit code generation plan
 - [ ] Mark associated unit stories as [x] when their generation is finished
-- [ ] Update `aidlc-docs/aidlc-state.md` current status
+- [ ] Do not hand-edit `aidlc-docs/aidlc-state.md` — its progress sections are engine-owned
 - [ ] **Brownfield only**: Verify no duplicate files created (e.g., no `ClassName_modified.java` alongside `ClassName.java`)
 - [ ] Save all generated artifacts
 
@@ -165,7 +200,8 @@ This stage generates code for each unit of work through two integrated parts:
 ## Step 16: Record Approval and Update Progress
 - Log approval in audit.md with timestamp
 - Record the user's approval response with timestamp
-- Mark Code Generation stage as complete for this unit in aidlc-state.md
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage code-generation --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
+- **Per-unit note**: this stage is emitted once by the engine for the whole unit loop. Run the gate per unit as defined above, but call `report` exactly once — after the LAST unit's gate outcome. If a later unit is rejected, do not call `report` again; the stage stays current until all units pass.
 
 ---
 

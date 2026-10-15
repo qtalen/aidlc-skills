@@ -1,53 +1,93 @@
 # Session Continuity Templates
 
 ## Welcome Back Prompt Template
-When a user returns to continue work on an existing AI-DLC project, present this prompt:
+When a user returns to continue work on an existing AI-DLC project, first run the engine status probe (prefer `python`, fall back to `python3`):
+
+```
+python <skill>/scripts/engine.py status
+python3 <skill>/scripts/engine.py status
+```
+
+The single JSON object on stdout is the source of truth for recovery. Then present this prompt (presentation only — every option below is executed by an engine subcommand):
 
 ```markdown
 **Welcome back! I can see you have an existing AI-DLC project in progress.**
 
-Based on your aidlc-state.md, here's your current status:
+Here's your current status:
 - **Project**: [project-name]
-- **Current Phase**: [INCEPTION/CONSTRUCTION/OPERATIONS]
-- **Current Stage**: [Stage Name]
-- **Last Completed**: [Last completed step]
-- **Next Step**: [Next step to work on]
+- **Scope / Depth**: [scope / depth]
+- **Current Stage**: [current_stage]
+- **Last Completed**: [last_completed]
+- **Last Parked**: [stage] — [note] (or "none" when `resume_note` is null)
+- **Autonomous Mode**: [off — or "on" when the `autonomous` key shows enabled (the code-gen hold state is read from the state section per AM-09, not from the key); in a completed workflow it is always off (AM-10 round expiry)]
+- **Next Step**: [next stage from the `remaining` list, or "none — workflow complete" — for a multi-iteration product, also preview the next iteration from the roadmap (see `workflow-changes.md`, Iteration Completion Ritual)]
 
 **What would you like to work on today?**
 
 A) Continue where you left off ([Next step description])
 
-B) Review a previous stage ([Show available stages])
+B) Jump to another stage ([Show available stages])
+
+C) Start Fresh (archive this project's aidlc-docs and reset state — for a new product intent or an explicit clean restart, NOT for a new iteration on the same product)
 
 [Answer]: 
 ```
 
 ## MANDATORY: Session Continuity Instructions
-1. **Always read aidlc-state.md first** when detecting existing project
-2. **Parse current status** from the workflow file to populate the prompt
-3. **MANDATORY: Load Previous Stage Artifacts** - Before resuming any stage, automatically read all relevant artifacts from previous stages:
-   - **Reverse Engineering**: Read architecture.md, code-structure.md, api-documentation.md
-   - **Requirements Analysis**: Read requirements.md, requirement-verification-questions.md
-   - **User Stories**: Read stories.md, personas.md, story-generation-plan.md
-   - **Application Design**: Read application-design artifacts (components.md, component-methods.md, services.md)
-   - **Design (Units)**: Read unit-of-work.md, unit-of-work-dependency.md, unit-of-work-story-map.md
-   - **Per-Unit Design**: Per-unit artifacts live under `aidlc-docs/construction/{unit-name}/` in
-     `functional-design/`, `nfr-requirements/`, `nfr-design/`, and `infrastructure-design/`
-     subdirectories. On resume, determine the in-progress unit from `aidlc-state.md` and load that
-     unit's design artifacts, plus the design artifacts of any units it depends on (per
-     `unit-of-work-dependency.md`). The exact files in each subdirectory are enumerated by the
-     corresponding construction stage rules.
-   - **Code Stages**: Read all code files, plans, AND all previous artifacts
-4. **Smart Context Loading by Stage**:
-   - **Early Stages (Workspace Detection, Reverse Engineering)**: Load workspace analysis
-   - **Requirements/Stories**: Load reverse engineering + requirements artifacts
-   - **Design Stages**: Load requirements + stories + architecture + design artifacts
-   - **Code Stages**: Load ALL artifacts + existing code files
-5. **Adapt options** based on architectural choice and current phase
-6. **Show specific next steps** rather than generic descriptions
-7. **Log the continuity prompt** in audit.md with timestamp
-8. **Context Summary**: After loading artifacts, provide brief summary of what was loaded for user awareness
-9. **Asking questions**: ALWAYS ask clarification or user feedback questions by placing them in .md files. DO NOT place the multiple-choice questions in-line in the chat session.
+1. **Run `engine.py status` first** when an existing project is detected — its JSON is the sole source of truth for `state`, `scope`, `depth`, `current_stage`, `last_completed`, `integrity`, `completed`, `remaining`, **plus the recovery keys `resume_note`, `note_age_seconds` (objective age of the parked note), `recent_events` (last 5 transitions with timestamps), `artifact_alerts`, `alerts_unavailable`, and `autonomous`**. Read all of these from the JSON, never by reading or editing stage checkboxes. Honor the active Scope's SKIP set; if no Scope is recorded, treat it as `classic`. Never hand-edit the engine-owned stage checkboxes. Early-exit branches (`none`/`legacy`/`corrupt`) carry none of the recovery keys — follow the `hint` field in the status output and the bootstrap table in [engine-contract.md](engine-contract.md) §10.
+2. **If `integrity` is `violated`**: the engine-owned state region drifted from its State Digest. Do NOT proceed with normal work; present the drift to the user, get explicit confirmation, then run `engine.py rebase` (existing entries are preserved) to re-baseline before resuming.
+3. **Populate the prompt from the status JSON** (never by reading or editing stage checkboxes).
+4. **Recovery briefing**: if `resume_note` is non-null, first state "Last parked at [stage]: [note]" to the user, using `recent_events` as the timeline reference; `note_age_seconds` tells you how old the note is (objective number — you judge whether it is stale). If `autonomous` is non-null and `enabled`, announce Autonomous Mode in the briefing (code-gen hold state, last updated — the hold state comes from reading the section, per AM-09) and continue under AM rules per AM-09; `null` means read the section yourself and apply AM-09. A completed workflow never carries a live mode — AM-10 expired it at round end; a stale `Enabled: Yes` in a completed workspace is treated as expired (flip it per AM-08 before continuing a new round, including the plan-line self-revival path).
+5. **Respond to `artifact_alerts`**:
+   - `missing-produces` (warning — a completed stage's produced artifacts are all missing): report it to the user. **NEVER regenerate or fabricate the missing artifacts yourself.**
+   - `resumed-artifacts` (info — the current stage's artifacts already exist): **read the existing files first, then append / continue writing instead of rewriting** (sole exception: a rejected/revised redo cycle explicitly permits a full rewrite).
+   - `checkpoint-missing` (warning — a CTX phase checkpoint anchor is reached but the checkpoint file is missing): report it to the user. **NEVER fabricate the checkpoint just to silence the alert.**
+6. **Tiered reading** (replaces former load-all behavior — it is physically impossible and unnecessary to "read everything"):
+   1. Engine output (`status` / `next` JSON);
+   2. Only the current stage's **required consumes** — take the `consumes` list from the `next` directive (tier-1 engine output). In the map below, each **upstream** stage's row lists that stage's produces; the map is a lookup map for locating those inputs, not a load list;
+   3. Everything else strictly on demand:
+<!-- BEGIN GENERATED: artifact-loading | do not hand-edit — regenerated by scripts/generate.py from stage frontmatter (see references/common/stage-contract.md) -->
+   - **Reverse Engineering**: Read inception/reverse-engineering/*
+   - **Product Brainstorm**: Read inception/product-design/product-design.md
+   - **Requirements Analysis**: Read inception/requirements/requirements.md, inception/requirements/requirement-verification-questions.md
+   - **User Stories**: Read inception/plans/user-stories-assessment.md, inception/plans/story-generation-plan.md, inception/user-stories/stories.md, inception/user-stories/personas.md, inception/user-stories/*-questions.md
+   - **Workflow Planning**: Read inception/plans/execution-plan.md
+   - **Application Design**: Read inception/plans/application-design-plan.md, inception/application-design/components.md, inception/application-design/component-methods.md, inception/application-design/services.md, inception/application-design/component-dependency.md, inception/application-design/application-design.md
+   - **Units Generation**: Read inception/plans/unit-of-work-plan.md, inception/application-design/unit-of-work.md, inception/application-design/unit-of-work-dependency.md, inception/application-design/unit-of-work-story-map.md
+   - **Functional Design**: Read construction/plans/{unit-name}-functional-design-plan.md, construction/{unit-name}/functional-design/business-logic-model.md, construction/{unit-name}/functional-design/business-rules.md, construction/{unit-name}/functional-design/domain-entities.md, construction/{unit-name}/functional-design/frontend-components.md
+   - **NFR Requirements**: Read construction/plans/{unit-name}-nfr-requirements-plan.md, construction/{unit-name}/nfr-requirements/nfr-requirements.md, construction/{unit-name}/nfr-requirements/tech-stack-decisions.md
+   - **NFR Design**: Read construction/plans/{unit-name}-nfr-design-plan.md, construction/{unit-name}/nfr-design/nfr-design-patterns.md, construction/{unit-name}/nfr-design/logical-components.md
+   - **Infrastructure Design**: Read construction/plans/{unit-name}-infrastructure-design-plan.md, construction/{unit-name}/infrastructure-design/infrastructure-design.md, construction/{unit-name}/infrastructure-design/deployment-architecture.md, construction/shared-infrastructure.md
+   - **Code Generation**: Read construction/plans/{unit-name}-code-generation-plan.md, construction/{unit-name}/code/*, plus all generated application code
+   - **Build and Test**: Read construction/build-and-test/build-instructions.md, construction/build-and-test/unit-test-instructions.md, construction/build-and-test/integration-test-instructions.md, construction/build-and-test/performance-test-instructions.md, construction/build-and-test/contract-test-instructions.md, construction/build-and-test/security-test-instructions.md, construction/build-and-test/e2e-test-instructions.md, construction/build-and-test/build-and-test-summary.md
+<!-- END GENERATED: artifact-loading -->
+7. **Incremental continuation**: build on files that already exist instead of regenerating from zero (sole exception: rejected/revised redo cycles, as in step 5).
+8. **Adapt options** based on architectural choice and current phase
+9. **Show specific next steps** rather than generic descriptions
+10. **Log the continuity prompt** in audit.md with timestamp
+11. **Context Summary**: after the tiered load, briefly state what was loaded and what was deliberately deferred
+12. **Asking questions**: ALWAYS ask clarification or user feedback questions by placing them in .md files. DO NOT place the multiple-choice questions in-line in the chat session (exceptions: the scope-selection chat question in Requirements Analysis Step 2.5; the Product Brainstorm stage dialogue — exempt for its whole duration, see `references/inception/product-brainstorm.md`; and the file-less-path extension opt-in choice card — Requirements Analysis Step 5.1).
+
+## Park Ritual
+
+Park the current work with the engine whenever you are about to stop mid-stage, so the next session can resume from a precise breakpoint:
+
+- **When to park**: the user asks to pause or end the session; the conversation is about to switch topics away from in-flight stage work; or, mid-long-task, you sense an imminent interruption (context pressure, long wait).
+- **How to park**: run `engine.py park --note "in-flight <X>; next <Y>; caveat <Z>"` (prefer `python`, fall back to `python3`, as above). The note is written to the state file's Last Parked line and to `aidlc-docs/handoff.md`; stage marks, `current_stage`, and the audit log are untouched — parking is not a transition.
+
+## Anti-Abandonment Rule
+
+When resumption looks tedious — the context feels lost, the alert list is noisy — the correct path is still instruction 1: run `engine.py status` and let the recovery keys rebuild just enough context. That is far cheaper than blindly restarting the whole stage. Do NOT discard, redo, or re-decide already-completed artifacts because "the context is lost": a wholesale restart throws away verified work and re-opens approved decisions.
+
+## Menu Execution (presentation → engine)
+
+The Markdown menu is presentation only. Execute the chosen option with the matching engine subcommand:
+- **A) Continue** → `engine.py next` (follow the returned directive)
+- **B) Jump to another stage** → `engine.py jump --stage <slug>` (always pass the **slug**, never the display name). A backward jump resets the target stage **and every stage after it** to `[ ]` — warn the user about this before executing; full semantics in `engine-contract.md` §8
+- **C) Start Fresh** → `engine.py jump --fresh` (archives `aidlc-docs/` to `aidlc-docs-archive-<timestamp>/` and resets state)
+- **Completed workflow**: for a multi-iteration product, present the next-iteration preview from the roadmap as part of the status (see `workflow-changes.md`, Iteration Completion Ritual) before routing the request below.
+- **Completed workflow + same-product request**: prefer **B** — `jump --stage <most upstream affected slug>` (typically `requirements-analysis`) re-enters the workflow, resetting that stage and everything after it while keeping the artifact tree, FR numbering, and Deferred records continuous (see `workflow-changes.md`, Re-Entering a Completed Workflow). Start Fresh archives the tree and severs cross-iteration traceability; reserve it for a new product intent or an explicit clean restart.
+- **Autonomous Mode after re-entry**: the new round always starts in standard mode — the engine flips a stale `Enabled: Yes` at `jump --stage` (the ack carries `autonomous_expired: true`); on the plan-line self-revival path the model flips it per AM-10. Re-activation is a fresh AM-02 (the activation question — the code-gen hold — is asked fresh).
 
 ## Error Handling
 If artifacts are missing or corrupted during session resumption, see [error-handling.md](error-handling.md) for guidance on recovery procedures. 

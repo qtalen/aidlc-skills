@@ -1,3 +1,34 @@
+---
+slug: user-stories
+phase: inception
+execution: CONDITIONAL
+condition:
+  execute_if: user-facing features or workflow changes, multiple user types or personas, complex business requirements needing acceptance criteria, cross-team collaboration or customer-facing API changes; borderline cases default to inclusion
+  skip_if: pure internal refactoring with zero user impact, simple bug fixes with clear isolated scope, infrastructure changes with no user-facing effects, technical debt cleanup with no functional changes, documentation-only or developer-tooling updates
+gate: approve-continue
+produces:
+  - inception/plans/user-stories-assessment.md
+  - inception/plans/story-generation-plan.md
+  - inception/user-stories/stories.md
+  - inception/user-stories/personas.md
+  - inception/user-stories/*-questions.md
+consumes:
+  - artifact: inception/requirements/requirements.md
+    required: true
+  - artifact: inception/reverse-engineering/*
+    required: false
+    conditional_on: brownfield
+requires_stage:
+  - requirements-analysis
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: SKIP
+  security-patch: SKIP
+  infra: SKIP
+  express: SKIP
+---
+
 # User Stories - Detailed Steps
 
 ## Purpose
@@ -10,12 +41,16 @@ User Stories focus on:
 - Establishing shared understanding across teams
 - Providing testable specifications for implementation
 
+**Iteration-scoped authoring (multi-iteration products)**: when a product-design roadmap scopes this round to its current iteration, write stories for that iteration's requirement subset only (inherited via Requirements Analysis); on iteration re-entry, continue US numbering from the highest used number — never recycle numbers, never rewrite prior iterations' stories.
+
 ## Prerequisites
 - Workspace Detection must be complete
 - Requirements Analysis recommended (can reference requirements if available)
 - Workflow Planning must indicate User Stories stage should execute
 
 ## Intelligent Assessment Guidelines
+
+*Authoritative criteria: this stage's frontmatter `condition` mapping (rendered into the CONDITIONAL Stage Criteria list under the scope matrix in workflow-planning.md). The guidelines below are the execution-time assessment procedure — on any conflict, the frontmatter wins.*
 
 **WHEN TO EXECUTE USER STORIES**: Use this enhanced assessment before proceeding:
 
@@ -123,6 +158,8 @@ For medium priority cases, execute user stories if ANY of these apply:
 
 ## Step 3: Generate Context-Appropriate Questions
 **DIRECTIVE**: Thoroughly analyze the requirements and context to identify ALL areas where clarification would improve story quality and team understanding. Be proactive in asking questions to ensure comprehensive user story development.
+
+**Evidence-First gate**: resolve anything explorable from the codebase and existing artifacts before asking (Evidence-First Policy, references/common/question-format-guide.md); only preference-driven or exploration-inconclusive items become questions.
 
 **CRITICAL**: Default to asking questions when there is ANY ambiguity or missing detail that could affect story quality. It's better to ask too many questions than to create incomplete or unclear stories.
 
@@ -240,7 +277,7 @@ If the analysis in step 9 reveals ANY ambiguous answers, you MUST:
 
 ## Step 17: Update Progress
 - [ ] Mark the completed step as [x] in the story generation plan
-- [ ] Update `aidlc-docs/aidlc-state.md` current status
+- [ ] Do not hand-edit `aidlc-docs/aidlc-state.md` — its progress sections are engine-owned
 - [ ] Save all generated artifacts
 
 ## Step 18: Continue or Complete Generation
@@ -297,8 +334,7 @@ If the analysis in step 9 reveals ANY ambiguous answers, you MUST:
 - Mark the approval status clearly
 
 ## Step 23: Update Progress
-- Mark User Stories stage complete in `aidlc-state.md`
-- Update the "Current Status" section
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage user-stories --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
 - Prepare for transition to next stage
 
 ---

@@ -1,8 +1,41 @@
+---
+slug: nfr-requirements
+phase: construction
+execution: CONDITIONAL
+condition:
+  execute_if: performance, security, or scalability requirements exist, monitoring or observability is needed, tech stack selection is required
+  skip_if: no NFR requirements, tech stack already determined, existing NFR setup sufficient, simple changes with no NFR impact
+gate: two-option
+produces:
+  - construction/plans/{unit-name}-nfr-requirements-plan.md
+  - construction/{unit-name}/nfr-requirements/nfr-requirements.md
+  - construction/{unit-name}/nfr-requirements/tech-stack-decisions.md
+consumes:
+  - artifact: inception/requirements/requirements.md
+    required: true
+  - artifact: inception/application-design/unit-of-work.md
+    required: true
+  - artifact: construction/{unit-name}/functional-design/*
+    required: true
+requires_stage:
+  - functional-design
+  - requirements-analysis
+  - units-generation
+for_each: unit-of-work
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: SKIP
+  security-patch: EXECUTE
+  infra: EXECUTE
+  express: SKIP
+---
+
 # NFR Requirements
 
 ## Prerequisites
-- Functional Design must be complete for the unit
-- Unit functional design artifacts must be available
+- Units Generation must be complete, **or** the execution plan has no Units Generation stage — in that case this stage runs exactly once for the whole task as an implicit single unit (see `workflow-planning.md` Step 3.0), using `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts as its inputs in place of unit artifacts
+- Functional Design must be complete for the unit and its artifacts available, **or** the execution plan has no Functional Design stage — in that case work from `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts instead
 - Execution plan must indicate NFR Requirements stage should execute
 
 ## Overview
@@ -11,7 +44,7 @@ Determine non-functional requirements for the unit and make tech stack choices.
 ## Steps to Execute
 
 ### Step 1: Analyze Functional Design
-- Read functional design artifacts from `aidlc-docs/construction/{unit-name}/functional-design/`
+- Read functional design artifacts from `aidlc-docs/construction/{unit-name}/functional-design/` (if the plan includes Functional Design)
 - Understand business logic complexity and requirements
 
 ### Step 2: Create NFR Requirements Plan
@@ -21,6 +54,8 @@ Determine non-functional requirements for the unit and make tech stack choices.
 
 ### Step 3: Generate Context-Appropriate Questions
 **DIRECTIVE**: Thoroughly analyze the functional design to identify ALL areas where NFR clarification would improve system quality and architecture decisions. Be proactive in asking questions to ensure comprehensive NFR coverage.
+
+**Evidence-First gate**: resolve anything explorable from the codebase and existing artifacts before asking (Evidence-First Policy, references/common/question-format-guide.md); only preference-driven or exploration-inconclusive items become questions.
 
 **CRITICAL**: Default to asking questions when there is ANY ambiguity or missing detail that could affect system quality. It's better to ask too many questions than to make incorrect NFR assumptions.
 
@@ -96,4 +131,5 @@ Determine non-functional requirements for the unit and make tech stack choices.
 ### Step 9: Record Approval and Update Progress
 - Log approval in audit.md with timestamp
 - Record the user's approval response with timestamp
-- Mark NFR Requirements stage complete in aidlc-state.md
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage nfr-requirements --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
+- **Per-unit note**: this stage is emitted once by the engine for the whole unit loop. Run the gate per unit as defined above, but call `report` exactly once — after the LAST unit's gate outcome. If a later unit is rejected, do not call `report` again; the stage stays current until all units pass.

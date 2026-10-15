@@ -4,10 +4,10 @@
 
 MANDATORY cross-cutting rules for every AI-DLC workflow execution. This file has no `.opt-in.md` — it is ALWAYS enforced and loaded at workflow start. It consolidates four rule groups:
 
-- **DOC-01~05** Documentation Consistency — keep aidlc-docs artifacts synchronized with code after every change
+- **DOC-01~06** Documentation Consistency — keep aidlc-docs artifacts synchronized with code after every change
 - **APG-01~05** Approval Gate Semantics — how user responses at stage approval gates are classified and handled
-- **AUD-01~04** Audit Attribution — authorship fields on audit.md entries
-- **QT-01~04** Question Tool Flow — after generating a question file, collect answers via the `question` tool, write them back to the file, then proceed
+- **AUD-01~05** Audit Discipline — authorship fields and append discipline on audit.md entries
+- **QT-01~04** Question Tool Flow — after generating a question file, collect answers via the harness's structured question tool, write them back to the file, then proceed
 
 **Enforcement**: At each applicable stage/gate, and after every change request, verify compliance with the applicable rules BEFORE presenting the completion message. Include a compliance summary (compliant / non-compliant / N/A per rule, with brief rationale for N/A).
 
@@ -18,7 +18,7 @@ A **blocking finding** means:
 2. Do NOT present "Continue to Next Stage" until resolved (present only "Request Changes" with explanation; for APG/AUD violations, correct the handling/entry first)
 3. Log the finding in `aidlc-docs/audit.md` with rule ID, description, and stage context
 
-All rules are **blocking** by default. Rules not applicable to the current stage/change are marked N/A (not a finding).
+All rules are **blocking** by default, with one exception: rules explicitly marked **Advisory** in their own entry (currently DOC-06) are listed as reminders in the completion message but never block the flow. Rules not applicable to the current stage/change are marked N/A (not a finding).
 
 ---
 
@@ -34,6 +34,8 @@ Typical mapping: functionality → requirements/stories/business rules; enums/ra
 
 **Verification**: grep of `aidlc-docs/` shows no stale pre-change values in maintained artifacts; new concepts appear in every artifact enumerating that category; cross-reference/coverage tables include changed items.
 
+A sweep-completion claim (stating "sweep completed" / "no stale references" in a completion message or audit entry) MUST include the actual grep/search pattern set used and the scanned scope (paths), making the claim verifiable rather than self-attested (guarding against self-attestation).
+
 ### DOC-02: Same-Interaction Plan Tracking
 Every change request — including small fixes and visual tweaks — MUST be appended as a step to the relevant stage plan file and marked `[x]` in the SAME interaction where the work completes.
 
@@ -47,14 +49,25 @@ Question-and-answer files, clarification sections of plan files, and `audit.md` 
 
 **Verification**: no historical Q&A answer or audit entry edited in place; superseded decisions followed by newer timestamped entries.
 
+**Worked example (protection boundary)**: within a single scope reduction, the two text classes are treated differently. Plan checklist steps and current-state artifacts (requirements/stories, design documents, the state file's model-area plan lines) are updated in place; question-and-answer history (`[Answer]:` records), clarification/decision prose inside plan files, and audit entries are append-only — corrections are recorded as appended timestamped amendment notes mapping old → new. Verified precedent: a scope reduction moved a pattern out of the iteration — the FR subsection of requirements.md was rewritten in place with one explanatory entry appended to the revision-record blockquote at the top of the file, while the Q&A in requirement-verification-questions.md and the audit.md entries were left untouched word-for-word; affected FR numbers were marked Deferred and kept, not recycled. The discriminator in one sentence: **"would a later reader be misled if this text changed?" — history that records what was asked/decided/answered is append-only; state that must reflect the current truth is updated in place, with the change origin noted where the format supports it.**
+
 ### DOC-05: Generic Artifacts, No Cross-Project Leakage
 Shared workflow rule files MUST contain no project-specific identifiers (project names, requirement/story numbering from one project). Project-specific content belongs in the project's `aidlc-docs/`, never in shared rules.
+
+### DOC-06: Navigation Index for Long Content Artifacts (Advisory)
+When creating or substantially updating an `aidlc-docs/` **content artifact of 300+ total lines**, maintain a task→section navigation table at the top of the file — one row per H2 heading (section title + one-line purpose) — so readers can locate the relevant section without reading the whole file.
+
+- The navigation table MUST cover **all H2 headings** of the file (mechanically checkable by comparing table rows against the file's H2 list).
+- **Exclusions**: `audit.md` (append-only log, mutually exclusive with a maintained index), `aidlc-docs/aidlc-state.md` and `aidlc-docs/handoff.md` (engine-owned), and question files (QT / DOC-04 jurisdiction).
+- **Nature**: advisory — a missing or incomplete navigation index is NOT a blocking finding. When found missing, list it as a reminder in the completion message and continue; never block the flow over it.
 
 ---
 
 ## Group 2: Approval Gate Semantics (APG)
 
 Stage completion messages keep their standardized two-option templates unchanged — this group is an interpretation layer for the user's free-form response.
+
+**Autonomous Mode override**: When Autonomous Mode is active (see `../autonomous-mode/autonomous-mode.md`), AM-03 suspends APG-01~04 waiting behavior for **every stage**. APG-05 always applies. Two mechanisms keep a human in the loop: the Code-Gen Hold (AM-11) may stop right before Code Generation, and a Pause (AM-05) ends the mode and continues in standard mode to the next approval gate.
 
 ### APG-01: Approval Intent Classification
 At every approval gate, classify the user's reply into exactly one intent BEFORE acting:
@@ -72,16 +85,16 @@ At every approval gate, classify the user's reply into exactly one intent BEFORE
 
 ### APG-02: Approve-and-Hold Behavior
 On Approve-and-Hold, in the SAME interaction:
-1. Mark stage complete in `aidlc-docs/aidlc-state.md` as approved and awaiting continuation (e.g., "approved (hold) - awaiting continue to [Next Stage]")
+1. Record the stage transition with the engine: `python <skill>/scripts/engine.py report --stage <slug> --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned; the "awaiting continuation" hold is a behavior state, not a hand-written status
 2. Log approval in audit.md with complete raw input and intent "approve-hold"
 3. Do NOT begin any next-stage work (no artifacts, no plans, no execution)
 4. End the reply with an explicit continuation question naming the exact next stage
 
 ### APG-03: Approve-and-Continue Behavior
-On Approve-and-Continue: treat exactly as the standard "Approve & Continue" option — mark complete, log with intent "approve-continue", immediately proceed in the same interaction.
+On Approve-and-Continue: treat exactly as the standard "Approve & Continue" option — record the transition with the engine (`python <skill>/scripts/engine.py report --stage <slug> --result approved`), log with intent "approve-continue", immediately proceed in the same interaction.
 
 ### APG-04: Resume from Hold
-- A continuation signal at a held gate proceeds to the recorded next stage WITHOUT re-approval; update state and log resumption.
+- A continuation signal at a held gate proceeds to the recorded next stage WITHOUT re-approval (the approval transition was already recorded through the engine at hold time); log the resumption in `audit.md` — never hand-edit the engine-owned state region.
 - New instructions (e.g., change requests) at a held gate are handled while the gate stays held until an explicit continuation signal.
 
 **Verification**: resuming never re-asks approval; state file never shows a held gate after the next stage started; intervening requests don't lose the hold state.
@@ -91,7 +104,7 @@ Completion message templates and the "NO EMERGENT BEHAVIOR" constraint remain ex
 
 ---
 
-## Group 3: Audit Attribution (AUD)
+## Group 3: Audit Discipline (AUD)
 
 ### AUD-01: Authorship Fields on Every New Entry
 Every NEW entry appended to `aidlc-docs/audit.md` MUST include these two lines immediately after the `**Context**` line:
@@ -104,10 +117,17 @@ Every NEW entry appended to `aidlc-docs/audit.md` MUST include these two lines i
 Applies to ALL entry types, including automated `[No user input]` entries.
 
 ### AUD-02: Value Resolution from Git Configuration
-Resolve dynamically at write time, never hardcoded:
+Resolve dynamically, never hardcoded:
 1. Run `git config user.name` and `git config user.email` in the workspace repository (local config takes precedence automatically)
 2. Unresolvable (no git / not a repo / key unset) → write `unknown`, never block the workflow
-3. Re-resolve on each audit write (no cross-session caching)
+3. Resolve ONCE per session at workflow start (or session resumption) and cache in memory for all subsequent audit writes in that session; re-resolve during the session ONLY if the initial resolution failed. NEVER cache across sessions
+
+### Timestamp Acquisition
+- Preferred source: the `timestamp` field carried by the output JSON of any engine subcommand run in the SAME interaction (`status`, `next`, `init`, `report`, `park`, `jump`, `rebase`, `stamp` — successes and errors alike). This costs zero extra commands: reuse the value the engine already printed. When the interaction needs the engine's clock but no other subcommand, `engine.py stamp` is the dedicated zero-side-effect way to obtain it
+- Annotate the source on each entry's `**Timestamp**` line so compliance is checkable: append `(engine)` for a subcommand-output value, `(stamp)` for a `stamp`-obtained value, or `(clock)` for the fallback — e.g. `**Timestamp**: 2026-09-24T08:00:00Z (stamp)`
+- Fallback ONLY when the engine cannot supply a timestamp while the session is otherwise running (every engine invocation errors): obtain the full ISO 8601 timestamp (YYYY-MM-DDTHH:MM:SSZ) from the system clock (e.g. a `python -c` one-liner on Windows cmd — this presumes a working Python). At a bootstrap HARD STOP the workflow never starts and no audit entries are written, so no timestamp is ever needed
+- ONE timestamp acquisition per interaction suffices: multiple audit entries written in the same interaction MAY share it
+- Batch the fallback acquisition with the AUD-02 git config resolution in a single command at workflow start
 
 ### AUD-03: Historical Entries Untouched
 Applies only to entries created after adoption; existing entries MUST NOT be retroactively edited (aligns with DOC-04).
@@ -115,32 +135,44 @@ Applies only to entries created after adoption; existing entries MUST NOT be ret
 ### AUD-04: Generic Rule Text
 This rule file MUST NOT contain any real person's name or email — placeholders and resolution instructions only.
 
+### AUD-05: Append at End, Never Anchor on Headings
+Every NEW `audit.md` entry is appended at the END of the file (after the last existing entry and its `---` separator), in a single edit. NEVER anchor an insertion on an existing entry's heading line (`## ...`) and never insert a new entry between historical entries — heading-anchored edits on a long file have repeatedly overwritten neighboring titles and orphaned entry bodies. If a new entry seems to belong mid-file chronologically, that signals an earlier mistake: append a correction note at the end instead of inserting.
+
 ---
 
 ## Group 4: Question Tool Flow (QT)
 
 Applies to every `{phase-name}-questions.md` file (including `-clarification-questions.md` variants) created under `aidlc-docs/`. Does NOT apply to stage completion approval gates — those remain in-chat, template-bound, per APG-05.
 
+**Autonomous Mode override**: When Autonomous Mode is active (see `../autonomous-mode/autonomous-mode.md` AM-04), QT-01's tool-based collection is suspended — the AI selects recommended answers and writes them back with attribution (fixed behavior; sole exception: a single undecidable question escalated per AM-04 point 6).
+
 ### QT-01: Immediate Question Tool Invocation
-After creating a question file, call the `question` tool with the file's questions in the SAME interaction. Do NOT stop and wait for the user to manually edit the file.
+**Structured question tool**: any tool that, within the SAME interaction, presents a set of option-bearing questions to the user and returns the answers qualifies for this rule, whatever its name — identify it by capability signature, not by name. Reference implementations include OpenCode's `question` and Claude Code's `AskUserQuestion` (each is one example, not the only one); concrete parameter names at call time follow the harness's tool schema — the mapping requirements below are semantic.
 
-Mapping rules:
-- Each markdown question → one tool entry: question text → `question`; short topic (e.g., "Q3 Database") → `header` (≤30 chars).
-- Options A/B/C/... → `options` array: condensed 1-5 word `label`, full option text in `description`.
-- Do NOT add an explicit "Other" option — the tool's built-in custom input covers it.
+After creating a question file, invoke the structured question tool with the file's questions in the SAME interaction. Do NOT stop and wait for the user to manually edit the file.
+
+Mapping rules (semantic):
+- Each markdown question → one tool entry: the question text as written, plus a short topic of ≤30 characters (e.g., "Q3 Database").
+- Each option → a condensed 1-5 word short label, with the full option text placed in the description slot.
 - If a recommended option exists, place it first with "(Recommended)" in its label.
-- Single-choice questions use `multiple: false`; multi-select questions use `multiple: true`.
+- Declare single-choice vs multi-select per the question's own semantics.
 
-**Verification**: no question file is left with "fill in the file and let me know when you're done" as the stopping point; the tool is invoked in the same interaction as file creation.
+Capability-gap handling:
+- The tool does not support multi-select → split into multiple single-choice questions (or rephrase as per-item confirmation); never silently downgrade a multi-select question to single-choice semantics.
+- The tool has no built-in custom input → add an explicit "Other" option row; omit the explicit "Other" option ONLY when the tool has built-in custom input.
+
+**Verification**: no question file is left with "fill in the file and let me know when you're done" as the stopping point; the structured question tool is invoked in the same interaction as file creation.
 
 ### QT-02: Answer Write-Back
 Write the tool's answers back into the question file immediately: fill the matching letter after each `[Answer]:` tag (e.g., `[Answer]: C`). For custom answers, write the "Other" option's letter plus the user's verbatim custom text. Question text and option lists MUST NOT be altered during write-back (aligns with DOC-04).
+
+Do the write-back with your harness's file-edit tool (the same capability class QT-01 assumes for tools), anchoring each edit on a unique context string that contains the question title or the adjacent option text in the same block, so that each `[Answer]:` line is matched unambiguously. Do NOT generate a temporary script file to perform the write-back.
 
 ### QT-03: Proceed Without Manual Confirmation
 After write-back, run the standard validation from `question-format-guide.md` (completeness check + contradiction/ambiguity detection) and proceed to the next step directly — do NOT wait for the user to say "done". If validation produces clarification questions, the clarification file also follows QT-01.
 
 ### QT-04: Tool Fallback
-If the `question` tool is unavailable, errors out, or returns without answers, fall back to the base manual flow (inform the user, wait for completion confirmation per `question-format-guide.md`) and note the fallback in `aidlc-docs/audit.md`.
+If no structured question tool is available (none recognized for this harness), or it errors out, or it returns without answers, fall back to the base manual flow (inform the user, wait for completion confirmation per `question-format-guide.md`) and note the fallback in `aidlc-docs/audit.md`.
 
 ---
 
@@ -151,7 +183,9 @@ If the `question` tool is unavailable, errors out, or returns without answers, f
 | Every stage completion + every change request | DOC-01, DOC-02, DOC-03 |
 | Historical record handling | DOC-04 |
 | Shared rule file edits | DOC-05 |
+| Creating or substantially updating a long (300+ line) aidlc-docs content artifact | DOC-06 (advisory — narrow context; list reminder if missing, never block) |
 | Every approval gate (all stages, inception + construction) | APG-01 ~ APG-05 |
-| Every audit.md write | AUD-01, AUD-02, AUD-03 |
+| Every audit.md write | AUD-01, AUD-02, AUD-03, AUD-05 |
 | Every question file creation (requirements, stories, design, clarification) | QT-01 ~ QT-04 |
+| Autonomous Mode trigger / gates / questions / pause / resume / round expiry / code-gen hold | AM-01 ~ AM-11 (see `../autonomous-mode/autonomous-mode.md`; AM-06 number retired) |
 | This file's own maintenance | DOC-05, AUD-04 |

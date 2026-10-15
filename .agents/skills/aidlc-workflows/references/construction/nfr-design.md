@@ -1,3 +1,30 @@
+---
+slug: nfr-design
+phase: construction
+execution: CONDITIONAL
+condition:
+  execute_if: NFR Requirements was executed and NFR patterns need to be incorporated
+  skip_if: no NFR requirements, or NFR Requirements was skipped
+gate: two-option
+produces:
+  - construction/plans/{unit-name}-nfr-design-plan.md
+  - construction/{unit-name}/nfr-design/nfr-design-patterns.md
+  - construction/{unit-name}/nfr-design/logical-components.md
+consumes:
+  - artifact: construction/{unit-name}/nfr-requirements/*
+    required: true
+requires_stage:
+  - nfr-requirements
+for_each: unit-of-work
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: SKIP
+  security-patch: SKIP
+  infra: EXECUTE
+  express: SKIP
+---
+
 # NFR Design
 
 ## Prerequisites
@@ -21,6 +48,8 @@ Incorporate NFR requirements into unit design using patterns and logical compone
 
 ### Step 3: Generate Context-Appropriate Questions
 **DIRECTIVE**: Thoroughly analyze the NFR requirements to identify ALL areas where clarification would improve NFR design quality. Be proactive in asking questions to ensure comprehensive non-functional design coverage.
+
+**Evidence-First gate**: resolve anything explorable from the codebase and existing artifacts before asking (Evidence-First Policy, references/common/question-format-guide.md); only preference-driven or exploration-inconclusive items become questions.
 
 **CRITICAL**: Default to asking questions when there is ANY ambiguity or missing detail that could affect NFR design quality. It's better to ask too many questions than to make incorrect assumptions about non-functional patterns.
 
@@ -92,4 +121,5 @@ Incorporate NFR requirements into unit design using patterns and logical compone
 ### Step 9: Record Approval and Update Progress
 - Log approval in audit.md with timestamp
 - Record the user's approval response with timestamp
-- Mark NFR Design stage complete in aidlc-state.md
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage nfr-design --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
+- **Per-unit note**: this stage is emitted once by the engine for the whole unit loop. Run the gate per unit as defined above, but call `report` exactly once — after the LAST unit's gate outcome. If a later unit is rejected, do not call `report` again; the stage stays current until all units pass.

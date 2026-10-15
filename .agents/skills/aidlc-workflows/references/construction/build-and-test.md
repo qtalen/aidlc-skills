@@ -1,3 +1,32 @@
+---
+slug: build-and-test
+phase: construction
+execution: ALWAYS
+condition: Always executes after all units complete — generates comprehensive build and test instructions for all units
+gate: approve-continue
+produces:
+  - construction/build-and-test/build-instructions.md
+  - construction/build-and-test/unit-test-instructions.md
+  - construction/build-and-test/integration-test-instructions.md
+  - construction/build-and-test/performance-test-instructions.md
+  - construction/build-and-test/contract-test-instructions.md
+  - construction/build-and-test/security-test-instructions.md
+  - construction/build-and-test/e2e-test-instructions.md
+  - construction/build-and-test/build-and-test-summary.md
+consumes:
+  - artifact: construction/{unit-name}/code/*
+    required: true
+requires_stage:
+  - code-generation
+scopes:
+  classic: EXECUTE
+  bugfix: EXECUTE
+  refactor: EXECUTE
+  security-patch: EXECUTE
+  infra: EXECUTE
+  express: EXECUTE
+---
+
 # Build and Test
 
 **Purpose**: Build all units and execute comprehensive testing strategy
@@ -290,7 +319,7 @@ Create `aidlc-docs/construction/build-and-test/build-and-test-summary.md`:
 - **Ready for Operations**: [Yes/No]
 
 ## Next Steps
-[If all pass]: Ready to proceed to Operations phase for deployment planning
+[If all pass]: Build and test verified; the engine's `next` directive decides what follows (Operations applies only in scopes/plans that include it)
 [If failures]: Address failing tests and rebuild
 ```
 
@@ -298,9 +327,7 @@ Create `aidlc-docs/construction/build-and-test/build-and-test-summary.md`:
 
 ## Step 8: Update State Tracking
 
-Update `aidlc-docs/aidlc-state.md`:
-- Mark Build and Test stage as complete
-- Update current status
+Stage progress is engine-owned. After the user approves at the gate (Step 9), run `python <skill>/scripts/engine.py report --stage build-and-test --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned.
 
 ---
 
@@ -333,10 +360,29 @@ Present completion message in this structure:
 > **You may:**
 >
 > 🔧 **Request Changes** - Ask for modifications to the build and test instructions based on your review
-> ✅ **Approve & Continue** - Approve build and test results and proceed to **Operations**
+> ✅ **Approve & Continue** - Approve build and test results and continue (the engine routes what follows)
 
 ---
 ```
+
+### Commit Protocol
+
+Timing is fixed: the completion message at this gate presents the commit plan in its body → the user's "Approve & Continue" counts as both stage approval and authorization to execute the commit plan → only then run `python <skill>/scripts/engine.py report --stage build-and-test --result approved` (per Step 8) → execute the commit plan. The plan is never presented after the approval click, and no git write happens before `report approved`.
+
+- Presenting the commit plan in the message body is compatible with APG-05 ("No Template Modification"): the two-option template stays untouched — the plan is plain prose in the message body, not a third visible option.
+- **Request Changes path, or the user preferring to handle commits manually** → execute NO git write operations.
+
+Protocol:
+
+1. **Dirty-file triage**: classify every dirty workspace path by whether this session's tool calls actually wrote it. First class: artifacts produced by this workflow. Every other dirty file is second class — list it, NEVER stage it silently.
+2. **One-shot commit plan presentation**: list first-class files grouped by their owning stage and unit; list second-class files as a plain inventory (never staged automatically).
+3. **Products with an iteration roadmap (iteration-boundary batch)**: the commit batch includes `aidlc-docs/inception/product-design/product-design.md` with the current iteration marked `shipped` and its Shipped Log rollup line already written — the marking happens at this ship transition moment (see `workflow-changes.md`, Iteration Completion Ritual), which this gate's commit batch anchors. This applies to ANY product carrying an iteration roadmap, including a single-iteration one (N=1 marks its only row; its completion ritual takes Branch 2). Non-git workspaces: the git protocol is skipped per rule 5; the shipped marking (a workflow action) still happens.
+4. **No amend, no push** — unless the user explicitly asks.
+5. **Non-git workspace**: align with the AUD-02 precedent — no git → mark commit information `unknown`, do not block the flow, and skip this entire protocol.
+6. **Audit**: write the commit plan and its confirmation outcome to `audit.md`; record the resulting commit hashes in `build-and-test-summary.md`.
+7. **Commit order**: commit work results first; IF any archival/handoff pending items exist at that point, commit them afterward (conditional — at build-and-test time these typically do not exist).
+
+**Autonomous Mode (AM-03)**: never commit automatically under Autonomous Mode — the completion message lists the pending-to-commit inventory and the user decides (see `../extensions/workflow/autonomous-mode/autonomous-mode.md`).
 
 ---
 

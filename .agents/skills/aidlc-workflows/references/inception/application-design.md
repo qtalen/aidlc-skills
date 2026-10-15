@@ -1,3 +1,38 @@
+---
+slug: application-design
+phase: inception
+execution: CONDITIONAL
+condition:
+  execute_if: new components or services needed, component methods and business rules need definition, service layer design required, component dependencies need clarification
+  skip_if: changes within existing component boundaries, no new components or methods, pure implementation changes
+gate: approve-continue
+produces:
+  - inception/plans/application-design-plan.md
+  - inception/application-design/components.md
+  - inception/application-design/component-methods.md
+  - inception/application-design/services.md
+  - inception/application-design/component-dependency.md
+  - inception/application-design/application-design.md
+consumes:
+  - artifact: inception/requirements/requirements.md
+    required: true
+  - artifact: inception/user-stories/stories.md
+    required: false
+  - artifact: inception/reverse-engineering/*
+    required: false
+    conditional_on: brownfield
+requires_stage:
+  - workflow-planning
+  - requirements-analysis
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: SKIP
+  security-patch: SKIP
+  infra: SKIP
+  express: SKIP
+---
+
 # Application Design - Detailed Steps
 
 ## Purpose
@@ -38,7 +73,9 @@ Application Design focuses on:
   - [ ] Validate design completeness and consistency
 
 ### 4. Generate Context-Appropriate Questions
-**DIRECTIVE**: Analyze the requirements and stories to generate questions relevant to THIS specific application design. Use the categories below as guidance. Evaluate each category and, when in doubt about applicability, ask the question rather than skipping it — overconfidence leads to poor outcomes (see overconfidence-prevention.md).
+**DIRECTIVE**: Analyze the requirements and stories to generate questions relevant to THIS specific application design. Use the categories below as guidance. Evaluate each category and, when in doubt about applicability, ask the question rather than skipping it — overconfidence leads to poor outcomes.
+
+**Evidence-First gate**: resolve anything explorable from the codebase and existing artifacts before asking (Evidence-First Policy, references/common/question-format-guide.md); only preference-driven or exploration-inconclusive items become questions.
 
 - EMBED questions using [Answer]: tag format
 - Focus on ANY ambiguities, missing information, or areas needing clarification
@@ -142,6 +179,5 @@ If the analysis in step 8 reveals ANY ambiguous answers, you MUST:
 - Mark the approval status clearly
 
 ### 15. Update Progress
-- Mark Application Design stage complete in `aidlc-docs/aidlc-state.md`
-- Update the "Current Status" section
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage application-design --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned.
 - Prepare for transition to next stage

@@ -1,7 +1,42 @@
+---
+slug: infrastructure-design
+phase: construction
+execution: CONDITIONAL
+condition:
+  execute_if: infrastructure services need mapping, deployment architecture required, cloud resources need specification
+  skip_if: no infrastructure changes, infrastructure already defined
+gate: two-option
+produces:
+  - construction/plans/{unit-name}-infrastructure-design-plan.md
+  - construction/{unit-name}/infrastructure-design/infrastructure-design.md
+  - construction/{unit-name}/infrastructure-design/deployment-architecture.md
+  - construction/shared-infrastructure.md
+consumes:
+  - artifact: inception/application-design/unit-of-work.md
+    required: true
+  - artifact: construction/{unit-name}/functional-design/*
+    required: true
+  - artifact: construction/{unit-name}/nfr-design/*
+    required: true
+requires_stage:
+  - functional-design
+  - nfr-design
+  - units-generation
+for_each: unit-of-work
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: SKIP
+  security-patch: SKIP
+  infra: EXECUTE
+  express: SKIP
+---
+
 # Infrastructure Design
 
 ## Prerequisites
-- Functional Design must be complete for the unit
+- Units Generation must be complete, **or** the execution plan has no Units Generation stage — in that case this stage runs exactly once for the whole task as an implicit single unit (see `workflow-planning.md` Step 3.0), using `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts as its inputs in place of unit artifacts
+- Functional Design must be complete for the unit, **or** the execution plan has no Functional Design stage — in that case work from `aidlc-docs/inception/requirements/requirements.md` and (brownfield) `aidlc-docs/inception/reverse-engineering/` artifacts instead
 - NFR Design recommended (provides logical components to map)
 - Execution plan must indicate Infrastructure Design stage should execute
 
@@ -11,7 +46,7 @@ Map logical software components to actual infrastructure choices for deployment 
 ## Steps to Execute
 
 ### Step 1: Analyze Design Artifacts
-- Read functional design from `aidlc-docs/construction/{unit-name}/functional-design/`
+- Read functional design from `aidlc-docs/construction/{unit-name}/functional-design/` (if the plan includes Functional Design)
 - Read NFR design from `aidlc-docs/construction/{unit-name}/nfr-design/` (if exists)
 - Identify logical components needing infrastructure
 
@@ -22,6 +57,8 @@ Map logical software components to actual infrastructure choices for deployment 
 
 ### Step 3: Generate Context-Appropriate Questions
 **DIRECTIVE**: Thoroughly analyze the functional and NFR design to identify ALL areas where clarification would improve infrastructure decisions. Be proactive in asking questions to ensure comprehensive infrastructure coverage.
+
+**Evidence-First gate**: resolve anything explorable from the codebase and existing artifacts before asking (Evidence-First Policy, references/common/question-format-guide.md); only preference-driven or exploration-inconclusive items become questions.
 
 **CRITICAL**: Default to asking questions when there is ANY ambiguity or missing detail that could affect infrastructure quality. It's better to ask too many questions than to make incorrect infrastructure assumptions.
 
@@ -96,4 +133,5 @@ Map logical software components to actual infrastructure choices for deployment 
 ### Step 9: Record Approval and Update Progress
 - Log approval in audit.md with timestamp
 - Record the user's approval response with timestamp
-- Mark Infrastructure Design stage complete in aidlc-state.md
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage infrastructure-design --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
+- **Per-unit note**: this stage is emitted once by the engine for the whole unit loop. Run the gate per unit as defined above, but call `report` exactly once — after the LAST unit's gate outcome. If a later unit is rejected, do not call `report` again; the stage stays current until all units pass.

@@ -8,8 +8,10 @@
 
 ## Stage Selection vs Detail Level
 
-### Stage Selection (Binary)
-- **Workflow Planning** decides: EXECUTE or SKIP for each stage
+### Stage Selection (Two Layers)
+- **Requirements Analysis** selects the **workflow scope** (classic/bugfix/refactor/security-patch/infra/express), which supplies the starting EXECUTE/SKIP/CONDITIONAL plan and the default depth
+- **Workflow Planning** takes the scope's baseline, decides CONDITIONAL stages from project context, and fine-tunes individual stages
+- The user may add or remove stages at any gate
 - **If EXECUTE**: Stage runs and creates ALL its defined artifacts
 - **If SKIP**: Stage doesn't run at all
 
@@ -24,7 +26,7 @@ The model considers these factors when determining appropriate detail:
 
 1. **Request Clarity**: How clear and complete is the user's request?
 2. **Problem Complexity**: How intricate is the solution space?
-3. **Scope**: Single file, component, multiple components, or system-wide?
+3. **Change footprint**: Single file, component, multiple components, or system-wide?
 4. **Risk Level**: What's the impact of errors or omissions?
 5. **Available Context**: Greenfield vs brownfield, existing documentation
 6. **User Preferences**: Has user expressed preference for brevity or detail?
@@ -49,19 +51,20 @@ The model considers these factors when determining appropriate detail:
 
 ## Example: Application Design Artifacts
 
-**All scenarios create the same artifacts**:
+**All scenarios create the same artifacts** (the authoritative list is the stage's frontmatter `produces`):
+- `application-design-plan.md`
+- `components.md`, `component-methods.md`, `services.md`, `component-dependency.md`
 - `application-design.md`
-- `component-diagram.md`
 
 **Detail level varies by complexity**:
 
 ### Simple Scenario (Single Component)
 - **application-design.md**: Basic component description, key methods
-- **component-diagram.md**: Simple diagram with essential relationships
+- **components.md**: Essential components and their relationships, briefly described
 
 ### Complex Scenario (Multi-Component System)
 - **application-design.md**: Detailed component responsibilities, all methods with signatures, design patterns, alternatives considered
-- **component-diagram.md**: Comprehensive diagram with all relationships, data flows, integration points
+- **components.md** / **component-dependency.md**: All relationships, data flows, and integration points comprehensively mapped
 
 ## Guiding Principle for Model
 

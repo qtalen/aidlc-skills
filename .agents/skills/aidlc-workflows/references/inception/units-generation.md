@@ -1,3 +1,40 @@
+---
+slug: units-generation
+phase: inception
+execution: CONDITIONAL
+condition:
+  execute_if: the system needs decomposition into multiple units of work, multiple services/modules/packages require changes, a complex system needs structured breakdown or a multi-package change sequence
+  skip_if: single simple unit, no decomposition needed, straightforward single-component implementation, UI-only or configuration-only changes
+gate: approve-continue
+produces:
+  - inception/plans/unit-of-work-plan.md
+  - inception/application-design/unit-of-work.md
+  - inception/application-design/unit-of-work-dependency.md
+  - inception/application-design/unit-of-work-story-map.md
+consumes:
+  - artifact: inception/requirements/requirements.md
+    required: true
+  - artifact: inception/application-design/components.md
+    required: false
+  - artifact: inception/application-design/component-methods.md
+    required: false
+  - artifact: inception/application-design/services.md
+    required: false
+  - artifact: inception/application-design/component-dependency.md
+    required: false
+requires_stage:
+  - workflow-planning
+  - application-design
+  - requirements-analysis
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: SKIP
+  security-patch: SKIP
+  infra: SKIP
+  express: SKIP
+---
+
 # Units Generation - Detailed Steps
 
 ## Overview
@@ -8,6 +45,12 @@ This stage decomposes the system into manageable units of work through two integ
 **DEFINITION**: A unit of work is a logical grouping of stories for development purposes. For microservices, each unit becomes an independently deployable service. For monoliths, the single unit represents the entire application with logical modules.
 
 **Terminology**: Use "Service" for independently deployable components, "Module" for logical groupings within a service, "Unit of Work" for planning context.
+
+### Iteration Scope (multi-iteration products)
+
+- **Scope = the current iteration**: units cover the current iteration's FR/US subset only (from the execution plan's Iteration Scope section / the product-design roadmap). Capabilities planned for later iterations stay out of the unit set.
+- **Downward-closure check (H1)**: if a unit in iteration K depends on a capability scheduled for iteration >K, do NOT silently pull the future scope in — report it as a roadmap defect back to Workflow Planning; the plan and the roadmap must be re-aligned before generation proceeds.
+- **Incremental update on re-entry**: when a later iteration re-enters the workflow, update the existing unit artifacts in place — add or revise units for the new subset, keep unaffected units as-is; never regenerate the whole unit set from scratch.
 
 ## Prerequisites
 - Workspace Detection must be complete
@@ -36,6 +79,8 @@ This stage decomposes the system into manageable units of work through two integ
 
 ## Step 3: Generate Context-Appropriate Questions
 **DIRECTIVE**: Thoroughly analyze the requirements, stories, and application design to identify ALL areas where clarification would improve unit decomposition quality. Be proactive in asking questions to ensure comprehensive coverage of decomposition concerns.
+
+**Evidence-First gate**: resolve anything explorable from the codebase and existing artifacts before asking (Evidence-First Policy, references/common/question-format-guide.md); only preference-driven or exploration-inconclusive items become questions.
 
 **CRITICAL**: Default to asking questions when there is ANY ambiguity or missing detail that could affect unit boundaries or decomposition quality. It's better to ask too many questions than to make incorrect assumptions about how the system should be decomposed.
 
@@ -97,8 +142,7 @@ If the analysis in step 7 reveals ANY ambiguous answers, you MUST:
 - Include complete approval prompt text
 
 ## Step 11: Update Progress
-- Mark Units Generation Part 1 (Planning) complete in aidlc-state.md
-- Update the "Current Status" section
+- Track Part 1 (Planning) progress in the plan file — the Stage Progress / Current Status sections of `aidlc-state.md` are engine-owned; never hand-edit them
 - Prepare for transition to Units Generation Part 2 (Generation)
 
 ---
@@ -118,13 +162,13 @@ If the analysis in step 7 reveals ANY ambiguous answers, you MUST:
 
 ## Step 14: Update Progress
 - [ ] Mark the completed step as [x] in the unit of work plan
-- [ ] Update `aidlc-docs/aidlc-state.md` current status
+- [ ] Do not hand-edit `aidlc-docs/aidlc-state.md` — its progress sections are engine-owned
 - [ ] Save all generated artifacts
 
 ## Step 15: Continue or Complete
 - [ ] If more steps remain, return to Step 12
 - [ ] If all steps complete, verify units are ready for design stages
-- [ ] Mark Units Generation stage as complete
+- [ ] Do not hand-edit the state file — the stage completion is recorded through the engine after approval (Step 19)
 
 ## Step 16: Present Completion Message
 
@@ -155,8 +199,15 @@ If the analysis in step 7 reveals ANY ambiguous answers, you MUST:
 - Mark the approval status clearly
 
 ## Step 19: Update Progress
-- Mark Units Generation stage complete in `aidlc-docs/aidlc-state.md`
-- Update the "Current Status" section
+- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage units-generation --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned.
+- **Record the unit list in state** (model-owned region): append a `## Units` section to `aidlc-docs/aidlc-state.md` (anywhere OUTSIDE the `<!-- BEGIN/END ENGINE-STATE -->` markers) with one structured line per unit:
+
+  ```markdown
+  ## Units
+  - **Unit**: <unit-slug> | Name: <display name> | Depends-On: <unit-slugs or none> | Size: <S/M/L>
+  ```
+
+  The engine does not read this section in state version 1 — it is the structured foundation for unit-level orchestration (the engine-owned `## Unit Progress` region stays reserved until then). `Depends-On` is a reserved field: fill it when units have build order dependencies, otherwise write `none`.
 - Prepare for transition to CONSTRUCTION PHASE
 
 ---

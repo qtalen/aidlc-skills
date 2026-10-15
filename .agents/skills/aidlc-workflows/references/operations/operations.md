@@ -1,3 +1,24 @@
+---
+slug: operations
+phase: operations
+execution: CONDITIONAL
+condition:
+  execute_if: future deployment and monitoring workflows (not yet implemented)
+  skip_if: always in the current workflow - the stage is a placeholder, reported skipped so the engine emits done
+gate: none
+produces: []
+consumes: []
+requires_stage:
+  - build-and-test
+scopes:
+  classic: CONDITIONAL
+  bugfix: SKIP
+  refactor: SKIP
+  security-patch: SKIP
+  infra: SKIP
+  express: SKIP
+---
+
 # Operations
 
 **Purpose**: Placeholder for future operational phases (deployment, monitoring, maintenance)
