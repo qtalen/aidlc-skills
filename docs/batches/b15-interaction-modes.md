@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 状态 | ✅ 段一+段二已实施·dogfood #1/#2 全程完成（#1：8/8+P7~P12；#2：六项全收+P13/P14 裁决落地[P11 维持]，248 绿）· **收口中**（登记同步+提交，2026-10-08） |
-| 触发 | 原立项：问卷制缺少自由讨论形态；〔2026-10-08 重定义〕非技术用户"一句话许愿式编程"→柏拉图式共建设计对话→产品演进闭环（把 demo 变成长期演进的真实产品） |
+| 触发 | 原立项：问卷制缺少自由讨论形态；〔2026-10-08 重定义〕非技术用户"一句话许愿式编程"→柏拉图式共建设计对话→产品演进闭环（把 demo 变成长期演进的真实产品）〔2026-10-15：此处“非技术用户”系场景画像用法，定位勘误见文末附注 D19.45〕 |
 | 关联决策 | D19（本批产出，子裁决扩编至 44 项：1~34 存量[Chat 收集语义相关已退役] + 其六新增 35~44）；**D20 全量并入**（自 B16 合并，编号保留、实施归属改挂本批，逐条处置见其六处置表）；与 D16-D18（AM 链）在 AM 延迟激活面耦合 |
 | 测试基线 | 立项时 237；2026-10-07 实施至 238，2026-10-08 证伪回滚回 237；**段一落地后 240**（+3：test_rule_invariants.py 规则文本断言[slug 四处共在/豁免措辞成对/classic 计数]；stage 断言同步 10 处见实施节） |
 | 材料来源 | 2026-10-07 会话讨论链（v2.0 §3 考证 → 用户三决策 → 五轮边界迭代 → 计划 v1 → reviewer 审核 → v2 终稿）；v2.0 证据：`opencode/.aidlc/aidlc-common/protocols/stage-protocol.md` §3（:330-530）、`opencode/.aidlc/skills/aidlc/question-rendering.md`；Trellis 二次吸收（同日其二）：`opencode-suit/trellis`（主出处 brainstorm SKILL，忠实度经 reviewer 11 项对照核验）；重设计（2026-10-08 其六）：OpenSpec `openspec-explore` SKILL + superpowers `brainstorming` SKILL（外部仓库路径 `D:\Documents\PythonProject\opencode-suit\`，非 git 跟踪）+ B16 档案全量吸收 + 实施计划 v2（已并入本档案工序/改动面/验证节，独立文件删除） |
@@ -208,7 +208,7 @@
 
 ### 其六 · 重设计规格：产品头脑风暴阶段批（2026-10-08，计划审核三轮处置后收口）
 
-**裁决背景**：五项用户锁定（B15 原地变身 / slug `product-brainstorm` / 产物自适应深度 / RA 路由两边写 / 门上讨论回写 roadmap）+ 三条用户裁决（B16 全量合并 / AM 延迟至 RA / park 不设机制）+ 两外部源借鉴（opsx-explore 姿态、superpowers 八项校验点 B1~B8）。目标用户：不会用 plan 模式、不会写 PRD 的非技术许愿者。
+**裁决背景**：五项用户锁定（B15 原地变身 / slug `product-brainstorm` / 产物自适应深度 / RA 路由两边写 / 门上讨论回写 roadmap）+ 三条用户裁决（B16 全量合并 / AM 延迟至 RA / park 不设机制）+ 两外部源借鉴（opsx-explore 姿态、superpowers 八项校验点 B1~B8）。目标用户：不会用 plan 模式、不会写 PRD 的非技术许愿者。〔2026-10-15 勘误：本句“目标用户”系画像升格为定义，见文末附注 D19.45〕
 
 **新子裁决 D19.35~44**：
 
@@ -464,3 +464,29 @@
 - 与 B02 附注二"扩展配置成熟度重估（搁置）"的关系：本批不触碰该搁置项——opt-in 问题仍挂在 RA 澄清问题文件里，其"需求太清晰时不重问"盲区维持原搁置状态
 - 本批不改 7 个阶段文件的决策（D19.24 优先级条款路线）如后续 dogfood 发现阶段文件旧指令频繁误导执行，升级为改写批处理（B17+ 候选）——〔2026-10-08 注：D19.24 已随其六退役（D19.44）；7 文件的手工收集指令在 v3 下回归原状由 QT-01/QT-04 覆盖，本条历史理由失效，升级判据转由 dogfood #1 观察〕
 - 根 `AGENTS.md` 导语的 D/B 区间指针曾因本批立项漏同步（D1-D18/B01-B14 两处，另一会话发现、2026-10-07 确认）——当日补修 + integration-plan §7 新增"指针同步"纪律；本批验证节含该指针零残留核验
+
+## 附注（2026-10-15）：PB 定位勘误与范围裁定（D19.45~46）
+
+**触发**：用户矫正——“非技术许愿者”只是 PB 的典型用户画像之一，非目标用户定义（先声见实施期“提问不可免定律”裁决：用户画像是对阶段存在性的解释，不是提问资格的筛选器）。solution-shaped 开门方案（v2/v2.2，本对话内草稿）经独立审核后由用户裁定撤回，收窄为本附注；未落盘、未留痕于技能树。
+
+**D19.45 定位勘误与范围裁定**：上文“裁决背景”节“目标用户”表述系画像升格为定义，予以勘误（行内指针见上）。**本裁定为对现行 condition 的解释与维持：PB 门控维持产品级判据**——frontmatter execute_if 的 product-shaped 判据不变，技术侧请求由 skip_if ③ 自然落出，其梳理由三层网格承载（RA 澄清+Evidence-First / 设计阶段文档+门 / NFR 立项），**不新增门控规则**；禁止把画像/任务类型升格为分类器写进判据（v2 教训，APG-01 同源先例）。
+
+**D19.46 正文强调三句**（`product-brainstorm.md`，纯正文，零 frontmatter/生成区改动）：A=Purpose 点题句（"the stage's job is the brainstorm itself: help the user think, refine, and let the product's shape emerge"）；B=**新增纪律**·灵感条（Stance "Open threads" 之后："Offer what the user hasn't thought of: analogies, adjacent solutions, reframings … never a default that silently reaches the artifact"，与证据边界/YAGNI 同族——灵感以 offering 进对话、裁决归用户）；C=**新增纪律**·产品级实现视角条（Stance "Follow the answers" 之后："expert's eye on realization"，**边界=产品级可行性**——"how it could actually work as a product"；工程级机制/方案选择明文归 RA 与设计阶段 AD/NFR-Design，与 D19.45 范围裁定一致，与 P11 反向边界[FR 写作不进 PB]同向）。
+
+**负决策入档**：① solution-shaped 开门方案撤回——独立审核发现的两个连带缺陷（RA Step 2.6 兜底建议在 PB=SKIP 的 scope 下构成 jump 死路；开门措辞致 execute_if/skip_if 判据双命中）随撤回消解；② 滚动成形回写与漂移红旗否决——未决项枚举构成菜单锚定（收窄用户可能性空间），与 stance 反问卷纪律（threads from the dialogue / scaffolding never a form）冲突，“已落定”回放形式亦经用户否决；③ 过程机制零新增——能力审计结论：现行 stance 机器（理解回写/单问串行/第一性原理/结晶判据）已完整承载“厘清-灵感-落地”全过程。
+
+**落点与 C1 关系**：D19.46 三句落点为 C1 正文 Stance 章；本档案 C1 交付内容清单（正文规格表）不逐句枚举正文，属合规——追溯以本附注为准。
+
+**冲突优先级**：本附注与档案正文表述冲突时，以本附注为准（b02 附注先例）。
+
+**收口时点依据**：本附注追加时 B15 收口状态存在表述歧义（批次登记表“收口提交中” vs AGENTS.md“B15 已全量完成”）；附注形式在 integration-plan §7.2（过程中追加）与 §7.4（冻结后只追加附注）两种读法下均合规，b08:29 提供冻结后行内时点注先例。
+
+**指针无需同步**：D19.45~46 为 D19 子编号，不出 AGENTS.md “D1-D20”/“B01-B16” 区间，不触发 §7 指针同步纪律。
+
+**b16/b17 画像用法不冲突声明**：b16/b17 档案中“非技术用户/许愿者”均为场景与 dogfood 画像叙事（受众描述），非 PB 用户定义，本勘误不触及（本档案“表面张力消解注记”同范式）。
+
+**改动清单**：`references/inception/product-brainstorm.md` ×3（Purpose 追加句、Stance 两新增条）；本档案 ×3（触发行短指针、裁决背景行勘误指针、本附注节）；`docs/integration-plan.md` ×4（D19 行子裁决区间内外层齐改、批次登记表 B15 行一句话列追加、§3.4 相位定位措辞、§6 B15 行补半句）。
+
+**走查验证**（范围裁定证明链，记档防复开）——场景：迭代 N done 后用户新迭代愿望“优化页面加载速度”（技术侧、方案开放）。①边界层：完成仪式 Branch 1 呈现下迭代预览+开工人工门（workflow-changes :59），roadmap 修订时点 1 收编该愿望（:38），再入分类“不改产品设计”→ `jump --stage requirements-analysis`（:18）；②PB：skip（**skip_if ③ 主**——请求不改产品功能与设计；① 仅在 roadmap 已列该迭代时成立），正式 report skipped 入审计；③RA：意图 Vague/Incomplete → Evidence-First 先考证（bundle/图片/接口，:169）→ 偏好类进问题文件（带推荐，:171/:204）→ “优化”不命中关键词且优先级规则保护增强请求 → classic 自动选定不设门（:112-114）；④构造层：NFR Requirements 判据（performance requirements exist）命中 execute → NFR Design → B&T 全量回归+可演示验收。三层网格各就各位，无死路——技术侧梳理无 PB 亦完整。
+
+**验证记录**：`generate.py --check` 零漂移（product-brainstorm.md 不在 MARKERS 任何键中，纯正文不触生成区）；unittest 253/253 全绿（当前套件实跑；test_rule_invariants 对 PB 的断言仅 slug 共现/"Product Brainstorm stage dialogue"/"All 15 stages"/偏好句/小件句，均不触碰新文本）。
