@@ -8,6 +8,12 @@
 
 如果你希望该技能全局生效，可以将`.agents`目录复制到你的用户目录，就像其他技能一样。
 
+**使用前提**：技能目录完全自包含——唯一前提是你的 AI 编码工具能加载该技能并能执行 **Python 3.8+**（PATH 中的 `python` 或 `python3`）。技能内置编排引擎（`scripts/engine.py`，仅用标准库），负责工作流路由、阶段状态机与审计转移，无需安装任何其他组件。
+
+**运行时要求**：Python 3.8+——纯标准库，无第三方依赖、免 pip/venv。若环境中缺失 Python，可按平台一行安装：Windows `winget install Python.Python.3.12` 或 python.org 安装器 · macOS `brew install python3` 或 `xcode-select --install` · Debian/Ubuntu `sudo apt install python3`。
+
 下次编码前，只需要加载此技能即可，不需要任何额外的学习成本。
 
 有关aidlc技能的介绍，可以阅读我的文章[**From OpenSpec to AIDLC: How I Improved My Team's AI Code Quality**](https://www.dataleadsfuture.com/from-openspec-to-aidlc-how-i-improved-my-teams-ai-code-quality/)
+
+你的AIDLC工作流在长会话中总是跑偏？在v0.3.5版本中，我加入了一个基于状态机和图的脚本引擎，这个引擎会为工作流提供确定性导航，确保它不再跑偏。详情请阅读我的文章[**Your AI Coding Workflow Keeps Drifting? I Gave It a Navigator**](https://www.dataleadsfuture.com/your-ai-coding-workflow-keeps-drifting-i-gave-it-a-navigator/)
