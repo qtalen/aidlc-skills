@@ -72,3 +72,4 @@
 
 - Windows 11 + cmd.exe（不要用 PowerShell 语法或 Unix 命令）。
 - 生成器只需系统 Python（3.8+），无虚拟环境要求。
+- **Git 提交信息与 tag 标注一律使用英文**（2026-10-15 起；conventional commits 格式照旧，多词信息经临时文件 `-F` 传入）。

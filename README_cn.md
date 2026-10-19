@@ -15,3 +15,5 @@
 下次编码前，只需要加载此技能即可，不需要任何额外的学习成本。
 
 有关aidlc技能的介绍，可以阅读我的文章[**From OpenSpec to AIDLC: How I Improved My Team's AI Code Quality**](https://www.dataleadsfuture.com/from-openspec-to-aidlc-how-i-improved-my-teams-ai-code-quality/)
+
+你的AIDLC工作流在长会话中总是跑偏？在v0.3.5版本中，我加入了一个基于状态机和图的脚本引擎，这个引擎会为工作流提供确定性导航，确保它不再跑偏。详情请阅读我的文章[**Your AI Coding Workflow Keeps Drifting? I Gave It a Navigator**](https://www.dataleadsfuture.com/your-ai-coding-workflow-keeps-drifting-i-gave-it-a-navigator/)
