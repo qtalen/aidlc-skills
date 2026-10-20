@@ -11,7 +11,7 @@
 ### Stage Selection (Two Layers)
 - **Requirements Analysis** selects the **workflow scope** (classic/bugfix/refactor/security-patch/infra/express), which supplies the starting EXECUTE/SKIP/CONDITIONAL plan and the default depth
 - **Workflow Planning** takes the scope's baseline, decides CONDITIONAL stages from project context, and fine-tunes individual stages
-- The user may add or remove stages at any gate
+- The user may add or remove stages at any hard gate, or by objection at any brief
 - **If EXECUTE**: Stage runs and creates ALL its defined artifacts
 - **If SKIP**: Stage doesn't run at all
 

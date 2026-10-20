@@ -189,6 +189,10 @@ class BriefGatePostureTests(unittest.TestCase):
             self.assertNotIn("Request Approval", text, path)
             self.assertNotIn("explicitly approved by user", text, path)
             self.assertNotIn("user approval obtained", text, path)
+            self.assertNotRegex(text, r"(get|proceed to) approval", path)
+            self.assertNotRegex(text, r"approved (plan|methodology)", path)
+            self.assertNotRegex(text, r"(get|proceed to) approval", path)
+            self.assertNotRegex(text, r"approved (plan|methodology)", path)
 
 
 if __name__ == "__main__":

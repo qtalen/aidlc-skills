@@ -225,7 +225,7 @@ Before proceeding, you MUST carefully review all user answers for:
 ## Step 10: MANDATORY Follow-up Questions
 If the analysis in step 9 reveals ANY ambiguous answers, you MUST:
 - Create a separate clarification questions file using [Answer]: tags
-- DO NOT proceed to approval until ALL ambiguities are completely resolved
+- DO NOT proceed until ALL ambiguities are completely resolved
 - **CRITICAL**: Be thorough - ask follow-up questions for every unclear response
 - Examples of required follow-ups:
   - "You mentioned 'mix of A and B' - what specific criteria should determine when to use A vs B?"
@@ -269,7 +269,7 @@ If the analysis in step 9 reveals ANY ambiguous answers, you MUST:
 ## Step 16: Execute Current Step
 - [ ] Perform exactly what the current step describes
 - [ ] Generate story artifacts as specified in the plan
-- [ ] Follow the approved methodology and format from Planning
+- [ ] Follow the planned methodology and format from Planning
 - [ ] Use the story breakdown approach specified in the plan
 
 ## Step 17: Update Progress

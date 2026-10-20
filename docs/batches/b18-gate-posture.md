@@ -2,7 +2,7 @@
 
 | 项 | 值 |
 |---|---|
-| 状态 | ✅ 已实施（2026-10-19 立项·四项裁决全按推荐，10-19~20 实施完成：238 全绿 + `--check` 零漂移；D22/D23 已登记；待收口终审 + 提交） |
+| 状态 | ✅ 已实施并提交（commit e3cad57；2026-10-19 立项·四项裁决全按推荐，10-19~20 实施；两轮收口终审〔一轮 5+8+4、二轮 5+6+3〕全部处置；239 全绿 + `--check` 零漂移） |
 | 归属 | 独立姿态批（无 Phase 建设链硬依赖；Phase 5B reviewer 接线的姿态地基；与 B17 触面小交叠、先后自由） |
 | 触发 | 四会话设计讨论 2026-10-08~10-19：审批门价值分析 → AM 两难与值班模型 → reviewer 合成形态 → openspec 失败案例回灌 → 门姿态处置地图 → 只读遏制（设计底稿 = 用户级 plan brief v4，见 §9） |
 | 关联决策 | D16/D17/D18（被本批 AM 退役 D 显式取代）、D19（PB 硬门）、D20（完成仪式绝对人工门）、D15（设计级修复再入，处置地图引用）、DOC-04（取代注记纪律）、D13（本批零新生命周期动词）、B17 设计原则 P3"AM 中立"空位由本批填充 |
@@ -193,3 +193,19 @@ brief 阶段从头不产生批准记录——`completed` 就是它的诚实语�
 | 建议 ×4 | — | 升级问句无文件时落 audit；静态残留断言；welcome 措辞；QFG 字面 | 采纳全部：QFG 补"无问题文件的升级问句记 audit（含原文）"条款；test_rule_invariants 新增 `test_brief_stage_files_carry_no_approval_residue`（11 文件 × 5 禁句静态守卫，239 例之一） |
 
 **终审工具限制注记**：reviewer 会话无 shell/git 工具——`--check` 与测试套件未在其会话复跑（由主会话代跑：零漂移 + 239 绿）；其对生成区完整性的结论以渲染函数静态比对为据。
+
+## 13. 二轮终审记录（2026-10-20，reviewer 复审提交态 e3cad57，发现全部处置）
+
+**结论**：机制层再次确认干净（brief→none 映射、引擎门判定零改动、AM 残留 9 处全为墓碑、frontmatter 11×brief+2×approve-continue 与 stage-graph 完全对齐、测试计数算式自洽且 `def test_` 实测 239）；薄弱面在规则文本与治理文档——5 项第一层 + 6 改进 + 3 建议，全部处置。
+
+| # | 级别 | 发现 | 处置 |
+|---|---|---|---|
+| 2R1 | conflict | integration-plan Phase 4 dogfood 输入仍列"AM 状态注记化"未标坍缩，与 D22 冲突；:146"依赖第 1 步"指代含混 | 改坍缩登记（划线 + 指向 D22；claim 并发锁指向硬依赖链第 2 步）；:146 改"依赖硬依赖链第 1 步（unit-major 启用 Unit Progress）" |
+| 2R2 | ambiguity | RA（硬门）正文仍命令"交给用户手填并 STOP"，与 QT-01/新姿态点名 RA 走 QT 全流程互斥（预先存在，一轮清扫绕过了它） | RA Step 6 收集改 QT-01 工具流程（同交互调用、不交接文件）；GATE 块改"Answers Collected"语义；:140 "at any gate" 改硬门/异议双通道 |
+| 2R3 | ambiguity | resiliency 扩展 User Decision Points 强制问用户 vs nfr-design 简报自动答（工艺选择不落 fork 定义清单） | 双侧落笔：扩展条款注明"brief 阶段 = extension-mandated fork，结构化工具问"；QFG 例外 2 扩充"extension-mandated user decision points 计入 fork" |
+| 2R4 | conflict | welcome-message 四处仍承诺"approve the plan / approve implementation plans"，与同文件 :19 新口径自相矛盾 | 四处改新口径（真实决策门 + 偏差才问 + 异议随时 + 构造期走简报） |
+| 2R5 | ambiguity | 三个简报阶段早期章节残留"get approval / approved plan"（units-gen Overview ×2、application-design ×2、user-stories ×2）——R2 同族漏网 | 六处清理；守卫断言扩充两条正则（`(get|proceed to) approval`、`approved (plan|methodology)`） |
+| 改进 ×6 | — | RE/WP 双 report 指令（第二次必撞 invalid-transition）；QFG Summary "Always wait"；engine-illustrated 行号索引整体失准 + 类比行"自主模式"第 9 处残留；b18 状态行过期；CG 完成模板带 `[unit-name]` 后缀；守卫断言面与声明意图不符 | 全部采纳：RE/WP 各留 Step 13/Step 10 单一 report 入口；QFG 改"仅手动回退等待"；engine-illustrated 13 行行号按当前 engine.py 重排 + 类比改两行；状态行更新；模板标题改 "(all units)"；断言扩正则 |
+| 建议 ×3 | — | Code-Gen Hold 可检索括注；workflow-changes :22 对齐双姿态；depth-levels/RA "at any gate" 族 | 全部采纳（停点条款加 "(formerly Code-Gen Hold / AM-11)"；:22 双姿态化；两处 gate 措辞改） |
+
+**验证**：`--check` 零漂移 + 239 全绿（含扩充后的正则守卫——`approved plan/methodology` 与 `get/proceed-to approval` 在 11 个简报阶段文件零命中）。

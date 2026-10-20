@@ -22,7 +22,7 @@ All rules in this document are **blocking** by default. If any rule's verificati
 Verification items in this document are plain bullet points describing compliance checks. They are distinct from the `- [ ]` / `- [x]` progress-tracking checkboxes used in stage plan files. Each item should be evaluated as compliant or non-compliant during review.
 
 ### User Decision Points (the model MUST ask, NOT decide)
-This extension follows the AI-DLC principle that architectural and process decisions belong to the user, not the LLM. The model MUST present the clarifying questions defined in the rules below and use the user's answers — it MUST NOT silently choose on the user's behalf. The decisions explicitly deferred to the user are:
+This extension follows the AI-DLC principle that architectural and process decisions belong to the user, not the LLM. The model MUST present the clarifying questions defined in the rules below and use the user's answers — it MUST NOT silently choose on the user's behalf. At a `gate: brief` stage these decision points are extension-mandated forks: ask them via the structured question tool (Stage Question Posture exception 2 — never auto-answered); at hard-gate stages the normal QT flow applies. The decisions explicitly deferred to the user are:
 
 | Decision | Rule | Question presented |
 |---|---|---|

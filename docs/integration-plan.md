@@ -142,8 +142,8 @@
 
 **dogfood 反馈移入项（2026-09-24 挂档，与 Trellis 输入并列）**：
 
-1. **AM 状态注记化**（`am --on/off` 或等价机制）——AM 状态切换走引擎注记动词：digest 覆盖（当前 `## Autonomous Mode` 区模型手写，两会话并发修改互踩且不可检测）、per-claim 并发语义。**必须与 claim 并发锁同批设计**（AM 是全局还是 per-claim？两会话配置不一致以谁为准？）。B08 已先行落地两边界窄写（D16），本项收编该窄窗口并二次修订契约 §6；slug 校验子项已随 B10 的 AM-06 移除作废；Code-Gen Hold 行（模型写-模型读通道）收编时一并评估是否引擎化
-2. **per-unit checkpoint 锚点**——`unit-{unit-name}-checkpoint.md` 存在性检测（B06 只做了两条全局锚点）。依赖第 1 步 Unit Progress 启用。unit checkpoint 同时是跨会话交接核心载体
+1. ~~**AM 状态注记化**~~——**已坍缩**（B18 随 AM 退役，见 D22：AM 整体删除，`## Autonomous Mode` 区与引擎窄写窗口均不复存在；claim 并发锁设计不受影响，留硬依赖链第 2 步一并考虑）
+2. **per-unit checkpoint 锚点**——`unit-{unit-name}-checkpoint.md` 存在性检测（B06 只做了两条全局锚点）。依赖硬依赖链第 1 步（unit-major 启用 Unit Progress）。unit checkpoint 同时是跨会话交接核心载体
 3. **checkpoint 契约化（层 2，可选，视证据决定）**——阶段 frontmatter 条件产物声明 → 编译进 stage-graph.json → 复用 produces_missing 软警告管线。**前置**：checkpoint-missing finding 跑一个 dogfood 周期，误报率可接受才立项；construction 锚点以 `_is_done` 判定完成与 build-and-test 被跳过场景的张力届时一并评估
 4. **CTX 去留最终裁决**——多会话 dogfood 中做最终裁决。评估点：跨会话交接里 checkpoint 的实际价值、与知识树（Phase 5A）的分工。fx991 三周期"产出未消费"观察（B09）为输入
 5. **多会话范围变更语义（设计期开放问题，非必做）**——"一个会话砍需求、其他会话有进行中工作"的失效通知/回滚语义（jump 重置与 claim 锁的交互）在 claim 设计时一并考虑

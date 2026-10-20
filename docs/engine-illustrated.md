@@ -121,7 +121,7 @@ aidlc-state.md
 
 model-writes -> engine-reads channels (tolerant, junk degrades to null):
   _parse_plan()       engine.py:308   scope/depth/skip drive effective_stages()
-  _ctx_enabled()      engine.py:835   gates the checkpoint-missing sensor
+  _ctx_enabled()      engine.py:748   gates the checkpoint-missing sensor
 ```
 
 ### 这张图在画什么
@@ -135,7 +135,7 @@ model-writes -> engine-reads channels (tolerant, junk degrades to null):
 **两条特殊的"模型写、引擎读"通道**（图下方的注释）：模型在上半区写的结构化信息，引擎会读：
 
 1. `_parse_plan()`（engine.py:308）：读"选了哪个 scope、哪些阶段跳过"——这是引擎算出"接下来该做哪个阶段"的依据。
-2. `_ctx_enabled()`（engine.py:835）：读扩展配置表里 CTX（上下文检查点扩展）开没开——决定要不要做 checkpoint 检查。
+2. `_ctx_enabled()`（engine.py:748）：读扩展配置表里 CTX（上下文检查点扩展）开没开——决定要不要做 checkpoint 检查。
 
 （第三条通道 `_parse_autonomous()` 已随 B18 的 AM 退役删除——引擎回到"永不写、也无需读"模型区业务配置的形态。）
 
@@ -155,7 +155,7 @@ model-writes -> engine-reads channels (tolerant, junk degrades to null):
 
 ### 一句话类比
 
-> 合租公寓的记事本：公共区（上半）谁都能写；带锁抽屉（标记区）只有管理员（引擎）能开。管理员还会从公共区**抄录**三行关键信息（scope/CTX/自主模式），抄的时候很宽容——看不清的字迹就当没写。
+> 合租公寓的记事本：公共区（上半）谁都能写；带锁抽屉（标记区）只有管理员（引擎）能开。管理员还会从公共区**抄录**两行关键信息（scope/CTX），抄的时候很宽容——看不清的字迹就当没写。
 
 ---
 
@@ -379,17 +379,17 @@ status -> resume_note + note_age_seconds:6
 | engine.py:611 | `check_integrity()` | 指纹 + 审计双链核验 |
 | engine.py:686 | `effective_stages()` | 按 scope/计划裁剪后的有效阶段序列 |
 | engine.py:704/:713 | `pending_stages()` / `current_stage()` | 第一个 `[ ]` 阶段 = 当前阶段 |
-| engine.py:835 | `_ctx_enabled()` | 读扩展配置表判断 CTX 开关 |
-| engine.py:974 | `_artifact_alerts()` | 传感器：半成品/缺产出/缺 checkpoint 警报 |
-| engine.py:1086 | `cmd_status()` | 恢复简报（resume_note / recent_events / …） |
-| engine.py:1192 | `cmd_stamp()` | 权威时间戳，零副作用 |
-| engine.py:1272 | `_validate_transition()` | report 的四道验证关卡 |
-| engine.py:1330 | `cmd_report()` | 唯一转移写入口 |
-| engine.py:1382 | `cmd_jump()` | 改道（--fresh 归档重来） |
-| engine.py:1511 | `cmd_rebase()` | 按审计流水重放修复 |
-| engine.py:1625 | `cmd_park()` | 泊车注记（不碰进度、不写审计） |
-| engine.py:1671 | `_JsonArgumentParser` | 连命令行用法错误都输出 JSON |
-| engine.py:1728 | `main()` | 命令分发入口 |
+| engine.py:748 | `_ctx_enabled()` | 读扩展配置表判断 CTX 开关 |
+| engine.py:887 | `_artifact_alerts()` | 传感器：半成品/缺产出/缺 checkpoint 警报 |
+| engine.py:999 | `cmd_status()` | 恢复简报（resume_note / recent_events / …） |
+| engine.py:1104 | `cmd_stamp()` | 权威时间戳，零副作用 |
+| engine.py:1184 | `_validate_transition()` | report 的四道验证关卡 |
+| engine.py:1242 | `cmd_report()` | 唯一转移写入口 |
+| engine.py:1281 | `cmd_jump()` | 改道（--fresh 归档重来） |
+| engine.py:1387 | `cmd_rebase()` | 按审计流水重放修复 |
+| engine.py:1501 | `cmd_park()` | 泊车注记（不碰进度、不写审计） |
+| engine.py:1547 | `_JsonArgumentParser` | 连命令行用法错误都输出 JSON |
+| engine.py:1604 | `main()` | 命令分发入口 |
 
 ## 附 B：延伸阅读
 

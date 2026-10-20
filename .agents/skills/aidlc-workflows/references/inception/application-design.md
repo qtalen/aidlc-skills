@@ -114,7 +114,7 @@ Before proceeding, you MUST carefully review all user answers for:
 ### 9. MANDATORY Follow-up Questions
 If the analysis in step 8 reveals ANY ambiguous answers, you MUST:
 - Add specific follow-up questions to the plan document using [Answer]: tags
-- DO NOT proceed to approval until all ambiguities are resolved
+- DO NOT proceed until all ambiguities are resolved
 - Examples of required follow-ups:
   - "You mentioned 'mix of A and B' - what specific criteria should determine when to use A vs B?"
   - "You said 'somewhere between A and B' - can you define the exact middle ground approach?"
@@ -122,7 +122,7 @@ If the analysis in step 8 reveals ANY ambiguous answers, you MUST:
   - "You mentioned 'depends on complexity' - how do you define complexity levels?"
 
 ### 10. Generate Application Design Artifacts
-- Execute the approved plan to generate design artifacts
+- Execute the plan to generate design artifacts
 - Create `aidlc-docs/inception/application-design/components.md` with:
   - Component name and purpose
   - Component responsibilities

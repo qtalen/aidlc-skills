@@ -72,13 +72,13 @@ AI-DLC is a structured yet flexible software development process that adapts to 
 - **Purpose**: Determines WHAT to build and WHY
 - **Activities**: Understanding requirements, analyzing existing code (if any), planning the approach
 - **Output**: Clear requirements, execution plan, decisions on the number of units of work for parallel development
-- **Your Role**: Answer questions, review plans, approve direction
+- **Your Role**: Answer questions, decide at the real gates (requirements, direction before coding), object anytime
 
 **CONSTRUCTION PHASE** - *Detailed Design, Implementation & Test*
 - **Purpose**: Determines HOW to build it
 - **Activities**: Detailed design (when needed), code generation, comprehensive testing
 - **Output**: Working code, tests, build instructions
-- **Your Role**: Review designs, approve implementation plans, validate results
+- **Your Role**: Review designs, validate results, object anytime — construction runs on briefs
 
 **OPERATIONS PHASE** - *Deployment & Monitoring (Future)*
 - **Purpose**: How to DEPLOY and RUN it
@@ -90,7 +90,7 @@ AI-DLC is a structured yet flexible software development process that adapts to 
 - ⚡ **Fully Adaptive**: Each stage independently evaluated based on your needs
 - 🎯 **Efficient**: Simple changes execute only essential stages
 - 📋 **Comprehensive**: Complex changes get full treatment with all safeguards
-- 🔍 **Transparent**: You see and approve the execution plan before work begins
+- 🔍 **Transparent**: You see the execution plan before work begins — approval is asked only when the plan structurally deviates
 - 📝 **Documented**: Complete audit trail of all decisions and changes
 - 🎛️ **User Control**: You can request stages be included or excluded
 
@@ -99,7 +99,7 @@ AI-DLC is a structured yet flexible software development process that adapts to 
 1. **I'll analyze your workspace** to understand if this is a new or existing project
 2. **I'll gather requirements** and ask clarifying questions if needed
 3. **I'll create an execution plan** showing which stages I propose to run and why
-4. **You'll review and approve** the plan (or request changes)
+4. **I'll brief you on the plan** — and ask if it structurally deviates from the scope baseline (you can object anytime)
 5. **We'll execute the plan** with checkpoints at each major stage
 6. **You'll get working code** with complete documentation and tests
 

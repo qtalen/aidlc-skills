@@ -19,7 +19,7 @@ When the workflow has reached `done` and the user brings new work, classify it f
      This resets the target stage and everything after it; stages before it keep their marks. The plan lines from the previous iteration remain — update them (e.g., via Type 1/2/9) if the new iteration's task shape differs. If you update the plan lines first and `status` already shows the workflow active again (removing Skip lines self-reactivates it — the pointer is recomputed from the plan lines on every call), do not jump: just run `next` (jumping to a stage that has become the current stage is rejected with `invalid-jump`).
   2. Revise artifacts **in place**: read the existing files first (the `resumed-artifacts` alert says the same), append rather than rewrite. Q&A and decision history text is DOC-04 protected — record corrections as appended revision notes, never rewrite history.
   3. **Deferred/Reserved numbering is never recycled** — postponed FRs keep their IDs; new requirements continue after the highest used number (Type 10 discipline).
-  4. Re-walk the stages through their gates as usual.
+  4. Re-walk the stages through their completion flows as usual (hard gate: re-approval; brief stage: re-brief).
 - **New product intent** — a different product or an explicit clean restart. Confirm with the user, then `engine.py jump --fresh` (archives `aidlc-docs/`) or start a new git version. Do NOT use Start Fresh for same-product iterations: it archives the tree and severs cross-iteration traceability (FR numbering, Deferred records, audit continuity).
 
 ---

@@ -137,7 +137,7 @@ After the intent analysis, if the request is judged **Vague or Incomplete at pro
 
 ### Step 3: Determine Requirements Depth
 
-**Start from the active scope's default depth (Step 2.5), then adjust for problem complexity. The user may override at any gate.**
+**Start from the active scope's default depth (Step 2.5), then adjust for problem complexity. The user may override at any hard gate, or by objection at any brief.**
 
 **Minimal Depth** - Use when:
 - Request is clear and simple
@@ -204,18 +204,17 @@ After receiving answers:
    - **ALWAYS** create `aidlc-docs/inception/requirements/requirement-verification-questions.md` unless requirements are exceptionally clear and complete
    - Ask questions about ANY missing, unclear, or ambiguous areas
    - Focus on functional requirements, non-functional requirements, user scenarios, and business context
-   - Request user to fill in all [Answer]: tags directly in the questions document
+   - Collect answers via the structured question tool per QT-01 (workflow-conventions Group 4): invoke it in the SAME interaction as file creation — do NOT stop and ask the user to hand-edit the file
    - If presenting multiple-choice options for answers:
      - Label the options as A, B, C, D etc.
      - Ensure options are mutually exclusive and don't overlap
      - ALWAYS include option for custom response: "X) Other (please describe after [Answer]: tag below)"
-   - Wait for user answers in the document
+   - Write the collected answers back per QT-02, then validate them
    - **MANDATORY**: Analyze ALL answers for ambiguities and create follow-up questions if needed
    - **MANDATORY**: Keep asking questions until ALL ambiguities are resolved OR user explicitly asks to proceed
 
-### ⛔ GATE: Await User Answers
-DO NOT proceed to Step 7 until all questions in requirement-verification-questions.md are answered and validated.
-Present the question file to the user and STOP.
+### ⚠️ GATE: Answers Collected
+Do not proceed to Step 7 until all questions in requirement-verification-questions.md are answered (QT-01 collection + QT-02 write-back) and validated — the structured question tool keeps this gate moving in the same interaction instead of a file-handoff stop.
 
 ### Step 7: Generate Requirements Document
    - **PREREQUISITE**: Step 6 gate must be passed — all answers received and analyzed

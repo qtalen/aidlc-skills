@@ -450,13 +450,7 @@ Rules:
   values bare and put commentary on a separate free-text line below the four
   structured lines.
 
-Then complete this stage's transition by running:
-
-```cmd
-python <skill>/scripts/engine.py report --stage workflow-planning --result completed
-```
-
-Do not run `report` before the completion brief is presented.
+The transition itself (`report --stage workflow-planning --result completed`) is recorded once, in Step 10, after the completion brief — do not run `report` before the brief is presented.
 
 ## Step 9: Present Plan to User
 

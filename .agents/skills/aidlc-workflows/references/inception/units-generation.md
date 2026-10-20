@@ -39,8 +39,8 @@ scopes:
 
 ## Overview
 This stage decomposes the system into manageable units of work through two integrated parts:
-- **Part 1 - Planning**: Create decomposition plan with questions, collect answers, analyze for ambiguities, get approval
-- **Part 2 - Generation**: Execute approved plan to generate unit artifacts
+- **Part 1 - Planning**: Create decomposition plan with questions (auto-answered per the Stage Question Posture), analyze for ambiguities
+- **Part 2 - Generation**: Execute the plan to generate unit artifacts
 
 **DEFINITION**: A unit of work is a logical grouping of stories for development purposes. For microservices, each unit becomes an independently deployable service. For monoliths, the single unit represents the entire application with logical modules.
 

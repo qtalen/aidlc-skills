@@ -311,7 +311,7 @@ Create `aidlc-docs/inception/reverse-engineering/reverse-engineering-timestamp.m
 
 ## Step 11: Update State Tracking
 
-Stage progress is engine-owned. Do not hand-write a `## Reverse Engineering Status` section or edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md`. After the completion brief is presented (Step 13), run `python <skill>/scripts/engine.py report --stage reverse-engineering --result completed` (fall back to `python3` if `python` is unavailable).
+Stage progress is engine-owned. Do not hand-write a `## Reverse Engineering Status` section or edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md`. The stage transition itself is recorded once, in Step 13, after the completion brief.
 
 ## Step 12: Present Completion Message to User
 

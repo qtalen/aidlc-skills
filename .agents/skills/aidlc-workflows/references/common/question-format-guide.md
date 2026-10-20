@@ -36,7 +36,7 @@ Who answers a question file depends on the stage's gate posture (B18):
 **Two exceptions restore the full ask-the-user flow at any stage**:
 
 1. **Undecidable question** — no defensible recommendation exists → escalate that single question via the structured question tool (question text, options, and the `(Recommended)` marking included); write the user's answer back with attribution.
-2. **Product-level fork** — a decision that shapes what gets built (plan structure, scope, direction — e.g. the Workflow Planning plan-deviation question) → ask; never auto-answered.
+2. **Product-level fork** — a decision that shapes what gets built (plan structure, scope, direction — e.g. the Workflow Planning plan-deviation question), plus extension-mandated user decision points (e.g. resiliency's User Decision Points) → ask; never auto-answered.
 
 When an escalated question has no question file of its own (e.g. the commit-authorization ask in Build and Test), do not create one just for the escalation — record the question and the user's verbatim answer in `aidlc-docs/audit.md`.
 
@@ -391,7 +391,7 @@ E) Other (please describe after [Answer]: tag below)
 - ✅ Stage question posture: brief stages auto-answer with the recommended option + rationale and proceed; hard-gate stages ask the user; undecidable and product-fork questions are always escalated (see Stage Question Posture)
 - ✅ Order questions upstream/blocking-first, one decision per question
 - ✅ Always use [Answer]: tags
-- ✅ Always wait for user completion
+- ✅ Wait for user completion only in the manual fallback flow (QT-04) — hard-gate stages collect via the question tool, brief stages auto-answer
 - ✅ Always validate responses for contradictions
 - ✅ Always create clarification files if needed
 - ✅ Always resolve contradictions before proceeding
