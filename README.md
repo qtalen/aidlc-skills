@@ -16,4 +16,4 @@ Before your next coding session, simply load this skill — no additional learni
 
 For an introduction to the aidlc skill, read my article [**From OpenSpec to AIDLC: How I Improved My Team's AI Code Quality**](https://www.dataleadsfuture.com/from-openspec-to-aidlc-how-i-improved-my-teams-ai-code-quality/)
 
-Does your AIDLC workflow always drift off track in long sessions? In v0.3.5, I added a script engine based on state machines and graphs that provides deterministic navigation for the workflow, ensuring it no longer drifts. For details, read my article [**Your AI Coding Workflow Keeps Drifting? I Gave It a Navigator**](https://www.dataleadsfuture.com/your-ai-coding-workflow-keeps-drifting-i-gave-it-a-navigator/)
+Does your AIDLC workflow always drift off track in long sessions? In v0.3.5, I added a script engine based on state machines and graphs that provides deterministic navigation for the workflow, ensuring it no longer drifts. For details, read my article [**How I Fixed the AI Coding Workflow Drift with a Simple Script**](https://www.dataleadsfuture.com/your-ai-coding-workflow-keeps-drifting-i-gave-it-a-navigator/)
