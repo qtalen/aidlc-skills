@@ -45,6 +45,7 @@
 | D21 | CTX 扩展删除 | **`references/extensions/context/checkpointing/`（两个文件）彻底删除**（2026-10-12 用户裁决，推翻 B06 P0-a"维持 opt-in、Phase 4 终裁"）：RA 不再呈现 CTX 提问、扩展永不加载。佐证 = B09 观察项②（检查点三周期产出未消费，唯一实际用途为 executor 交接底稿）+ B15 dogfood 未启用 + B04 分层读取已收编其旗舰收益（tier-2 重压缩为残余职能）。**引擎侧保留不动**：`_ctx_enabled` 探测与 `checkpoint-missing` 告警代码及测试原样保留（由状态表 CTX 行把门、fail-open，新项目无提问即永不触发），engine-contract 告警文档与 session-continuity 告警响应条随之保留；同步修剪 5 处以 CTX 为主体的模型侧引用（session-continuity park 双写条、workflow-changes DOC-01/CTX-01 句、engine-contract CTX 相位摘要从句、workflow-conventions DOC-01 步骤 3 CTX 条件句 + DOC-06 checkpoint 排除项）。**恢复路径**：`git checkout 061ea5d -- .agents/skills/aidlc-workflows/references/extensions/context`；若 Phase 4 多会话场景需要检查点机制，从历史恢复评估。不变量已固化为 `scripts/tests/test_extension_layout.py`（存根→规则文件约定完整 + 孤儿规则文件仅限 allowlist，防"孤儿误升强制"事故，253 例之一） |
 | D22 | AM 退役（B18 实施） | **Autonomous Mode 整体删除**（2026-10-09 用户决策"我觉得AM可以去除掉。但是三门模型里 Code Gen Hold 可以保留"，B18 于 10-19~20 落地）：目标姿态下默认即简报制+真门+事件召唤，"自主/监督"模式开关随被压制物一起消失——删除的不是自主能力，是二元开关本身。**取代 D16/D17/D18**（决策只取代不静默删除；B08/B10/B11 批次档案为历史不动）。遗产三分：① AM-11 → 常设方向门（D23）；② AM-04 → 简报阶段通用提问规则（自动选推荐项+回写 rationale；真正不可裁量的单个问题升级给人——值班模型 fork 升级通用形态；硬门阶段〔PB/RA〕问题问人），落点 question-format-guide「Stage Question Posture」；③ build-and-test"绝不自动 commit"→ 无条件纪律（commit 授权 = 显式问句，永不自动）。删除面：AM-01~10 规则（AM-11 升格为方向门，见 ①）+ 激活问题 + `## Autonomous Mode` 状态区 + 引擎 AM-10 翻转逻辑/`autonomous` 键/`autonomous_expired` ack——引擎回到**永不写模型区**的干净不变量（契约 §6 例外条款退役，架构红利）；Phase 4"AM 状态注记化"挂账项坍缩（claim 并发锁不受影响）。B17 P3"AM 中立"空位由此填充 |
 | D23 | 门姿态（B18 实施） | **四硬门 + 简报制**：PB（产品领地，D19）+ RA（契约门）+ 方向门（code-generation **规则级停点**：每轮首单元开工前 ≤10 行方向简报——单元数/顺序/设计阶段关键决策/风险/RA 漂移 + 换模型窗口；AM-11 同构、每轮至多一次、后退重做不重呈、无引擎强制〔⭐4 裁决：frontmatter `brief` + 规则文本锚定，dogfood 观察被跳过再升级引擎〕）+ 完成仪式（迭代边界人工门，D20 绝对）；**其余 11 阶段 `gate: brief`**——≤5 行完成简报（关键决策/风险/产物位置）、不等待不请求批准、报 `completed`（**审计从源头不说谎**：`approved` 只出现在真门——旧"approved vs auto-continued"开放项结构性消解）。机制：`brief` 编译映射为 `none`（GATE_VALUES 扩值 + generate.py 编译映射，引擎门判定零改动）；workflow-conventions 新增 **BRF-01~03**（简报即呈即走、含分诊/阻断/自检条款/每单元一次简报 + 异议通道非否决请求 + 回合边界是节奏非门〔P13 抢救〕）；WP 偏差升级 = fork 第一应用点（计划增删 scope 默认网格升问句，⭐3）；自检准则双向化（简报持续压不到 5 行 → 该升回硬门，frontmatter 一个字段的事）；单向安全：brief→hard 只升不降、scope 级姿态缓议。四项批内裁决（一步走/AM-11 槽位/认 WP 形态/规则级停点）与处置地图详见 B18 档案 |
+| D24 | reviewer 前置接线（B19 实施） | **三位置委派审查**（RA 门材料前 / 方向门简报前 / B&T 收尾简报前——`review_class` frontmatter 三值枚举〔requirements-consistency / design-soundness / code-quality〕，per-unit 阶段锚定轮级停点每轮至多一次；编译进 stage-graph 但无运行时消费者）+ **全新会话纪律**（任何两次真实审查永不复用/续用会话；唯一例外 = 降级链 ④ 同会话自审且必标 degraded）+ **三轮预算**（事件 = 阶段×位置×迭代〔×方向轮〕，同迭代再入不清零；第 3 轮未解决阻塞 → fork——**取代 brief §5b"预算为一"**）+ **降级链四档**（专职评审→通用+rubric→专家→自审 degraded，绝不静默当作已评审；无读取能力推模式标 pushed-rubric）+ **findings-only 契约**（门槛三元组内联：写不出实际后果的没有阻断权；不调引擎动词；术语避撞 workflow-conventions Blocking Finding）+ **reviews.md R-n/T-n 日志**（append-only：R 定格/T 追加引用、禁回填；rubric 记内容 sha256 前 12 位；非任何阶段 produces、不进加载表；DOC-04 双落点）+ **B&T 审代码**（bug/性能/架构/与制品文档匹配——锚点按位置显式给路径，代码不在 produces/consumes；执行依赖维度条件化：工具被禁则不审标 not-covered；审查修复先重跑测试更新摘要再简报，否则渲染 unreviewed-after-fix）+ **技能级零快照**（L0/L1/L2 常设；L3 全量挂账维持、两条触发条件内联技能文本两句；实践期轻量替代全域终止，触发条件②转被动发现——取代 2026-10-19 实践期轻量替代决策）。RV-01~08 全量条款见 references/common/review-delegation.md；密度护栏 = 只在声明位置审、禁每阶段挂审（openspec 教训）；零阻塞 = 成功记录；七项批内裁决 D-1~D-7（全部 2026-10-20 用户裁决，D-4~D-7 为规格 v1→v2 修订批；含密度复议：三位置集中 vs 每门一审，维持集中）详见 B19 档案 |
 
 ### 减法批子系列（D-清1~9，B12 批裁决）
 
@@ -92,7 +93,7 @@
 - **引擎**：`scripts/engine.py` 单文件纯 stdlib（约 1800 行），8 子命令（status/init/next/report/jump[含 --fresh]/rebase/park/stamp）；状态分区所有权 + State Digest 完整性校验 + 审计交叉核验。
 - **作者期工具**：`generate.py`（1290 行，9 个生成区）编译 `scripts/data/stage-graph.json`；`trace-matrix.py`（追溯矩阵，不进 CI）。CI：contract-check.yml（--check + 全测试套件）。
 - **阶段体系**：3 相位 15 阶段（含 product-brainstorm，D19 其六，2026-10-08 段一落地），全部带机器可读契约；6 scope 裁剪矩阵；CONDITIONAL 判据唯一权威 = frontmatter `condition` 浅映射（D-清9）。
-- **测试**：248 例全绿（engine 154 + trace-matrix 22 + generate 61 + rule-invariants 11——B15 段一 3 例 + 段二 7 例 + 收口 1 例）。
+- **测试**：248 例全绿（engine 154 + trace-matrix 22 + generate 61 + rule-invariants 11——B15 段一 3 例 + 段二 7 例 + 收口 1 例）。〔此为 B15 期终口径；后续基线以批次档案为准：B18 后 239，B19 后 249（review_class 相关断言 +10）〕
 - **文档负载**：必加载集 73.3KB（B12 前 97.1KB）；SKILL.md 343 行 / 26.6KB。
 - **AM 现状**：单问激活（仅 Code-Gen Hold）+ 全阶段自动批准 + 问题 auto-recommended + 轮次绑定过期（D16-D18 链）。
 - **dogfood**：fx991 计算器项目累计 6 周期（首周期验收→三迭代收官→双臂减重验收方向性通过）。
@@ -163,7 +164,7 @@
 
 ### Phase 5B：reviewer 及其他（逐项独立可交付，纯增量无返工）
 
-- **接线第一片由 B19 提前落地（2026-10-20 立项·待实施，见 batches/b19）**：三位置接线 + 全新会话纪律 + 三轮预算 + 降级链 + reviews.md R-T 日志——reviewer 合成形态的可实施切片；其余（evidence-credibility/security-threat 两类 rubric、常驻检查位置、修复验证全量体系）仍留本相位
+- **接线第一片由 B19 提前落地（✅ 2026-10-20 已实施，见 batches/b19）**：三位置接线 + 全新会话纪律 + 三轮预算 + 降级链 + reviews.md R-T 日志——reviewer 合成形态的可实施切片；其余（evidence-credibility/security-threat 两类 rubric、常驻检查位置、修复验证全量体系）仍留本相位
 - reviewer 状态机（启用契约 §5 预留字段 reviewer/review_artifact/reviewer_max_iterations）
 - **reviewer 只读遏制 L3 三明治契约（修正版设计定稿 2026-10-20）**——temp-index tree 快照主检 + 证据集分级 + 非 git sha256 回退；挂账待触发（①L2 不覆盖 harness 上的真实审查 ②无法解释的外部写入，任一 → 立即上线；取代 b18:120 所记旧触发条件——"一次 reviewer 越界"经审查证实本机结构性不可达）；正身见 docs/reviewer-containment-design.md（独立审查 5+4 全采纳 + PoC 实测）
 - 传感器自检清单 → report 时阻塞校验（required-sections / upstream-coverage / traceability / claim-sources；fire 点与 finding 接口已由 D14 预定）
@@ -191,8 +192,8 @@
 | B16 迭代交付批（Phase 3.4 首批） | ♻️ 已并入 B15（未实施，2026-10-08 全量合并——处置见 B15 其六） | batches/b16 |
 | B17 外线合流与傻瓜化批（Phase 4 前置：外线变更五步合流协议 + 想法进入流 + P1 机制隐身） | ⏳ 规格就绪·待排期（2026-10-09 用户暂缓，有更优先排期；零引擎改动可随时先行；含事前审核已整改收口 + dogfood #3 草案） | batches/b17 |
 | 全量去术语化：P1 机制隐身推广到既有 Type 1~10 用户话术与恢复菜单（B17 实施时既有文本不动） | 待 B17 实施后评估 | B17 计划审核 P1 处置 |
-| B18 门姿态与 AM 退役批（独立姿态批：`gate: brief` 第四门型 + 四硬门处置地图 + AM 退役遗产三分 + AM-04 升格；Phase 5B reviewer 的姿态地基） | ✅ 已实施（2026-10-19 立项裁决四项全按推荐，10-19~20 实施完成：D22/D23 登记、`--check` 零漂移、测试 253→239 精确对账〔AM 退场 -21 + brief/BRF 断言 +7 + 终审残留守卫 +1 + 门规则测试改锚 PB 硬门净 -1〕——含收口终审 5 项第一层发现 + 8 改进 + 4 建议全部处置；生效后 classic = 2 引擎阶段硬门〔PB/RA〕+ 规则级方向停点 + 仪式人工门 + 11 阶段简报） | batches/b18 |
-| B19 reviewer 前置接线批（Phase 5B 提前件：三位置接线〔RA 门材料前/方向门简报前/B&T 收尾简报前〕+ 全新会话纪律 + 三轮预算 + 降级链 + reviews.md R-T 日志；补 B18 遗留的接线缺口） | ⏳ 规格定稿·待实施（2026-10-20 立项，D-1~D-7 用户裁决 + 密度复议确认；两轮独立终审 12+9+4 与 6+6+5 全处置；dogfood 迭代二验证——快照源 = 本批收口提交） | batches/b19 |
+| B18 门姿态与 AM 退役批（独立姿态批：`gate: brief` 第四门型 + 四硬门处置地图 + AM 退役遗产三分 + AM-04 升格；Phase 5B reviewer 的姿态地基） | ✅ 已实施（2026-10-19 立项裁决四项全按推荐，10-19~20 实施完成：D22/D23 登记、`--check` 零漂移、测试 253→239 精确对账〔AM 退场 -21 + brief/BRF 断言 +7 + 终审残留守卫 +1 + 门规则测试改锚 PB 硬门净 -1〕——含收口终审 5 项第一层发现 + 8 改进 + 4 建议全部处置；生效后 classic = 2 引擎阶段硬门〔PB/RA〕+ 规则级方向停点 + 仪式人工门 + 11 阶段简报；**reviewer 接线缺口由 B19 补齐**——见 batches/b19） | batches/b18 |
+| B19 reviewer 前置接线批（Phase 5B 提前件：三位置接线〔RA 门材料前/方向门简报前/B&T 收尾简报前〕+ 全新会话纪律 + 三轮预算 + 降级链 + reviews.md R-T 日志；补 B18 遗留的接线缺口） | ✅ 已实施（2026-10-20 立项并同日单会话落地：D24 登记、249 绿〔239+10〕+ `--check` 零漂移、两轮收口终审全处置；dogfood 迭代二验证——快照源 = 本批收口提交） | batches/b19 |
 | Operations 实义化（部署/监控/告警/回滚——"线上持续运行"通路；B16 DoD 占位字段待升格） | Phase 3.4 第二批候选（B20+） | B16 立项 |
 | 阶段规则审查透镜：强制步骤必须在当阶段实际加载的文件里有锚点，否则被静默跳过（Trellis breadcrumb 不变量，两次事故实证） | 观察项（批次审查时核对） | B15 规格修订 |
 | bugfix scope 增强：break-loop 五维归因 + 贝叶斯排查框架移植（error-handling 或 scope 材料） | 低优候选 | B15 规格修订（Trellis C-4） |

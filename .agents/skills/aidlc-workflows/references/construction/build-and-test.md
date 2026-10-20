@@ -4,6 +4,7 @@ phase: construction
 execution: ALWAYS
 condition: Always executes after all units complete — generates comprehensive build and test instructions for all units
 gate: brief
+review_class: code-quality
 produces:
   - construction/build-and-test/build-instructions.md
   - construction/build-and-test/unit-test-instructions.md
@@ -333,6 +334,8 @@ Stage progress is engine-owned. In the SAME interaction as the completion brief 
 
 ## Step 9: Present Results to User
 
+**Pre-brief review (mandatory, `review_class: code-quality`)**: before presenting the completion message below — i.e., before the commit plan and the authorization question — delegate a code-quality review per `references/common/review-delegation.md` (RV-01 completion verification) over the code produced this round (paths per the RV-02 anchor table: this round's unit plans or the diff; the design/requirements artifacts are the comparison surface). Code changes resulting from review findings must re-run the affected tests and update `build-and-test-summary.md` (DOC-03) BEFORE the brief is presented — otherwise the review line renders `unreviewed-after-fix` (RV-06 fix re-feed).
+
 Present completion message in this structure:
      1. **Completion Announcement** (mandatory): Always start with this:
 
@@ -354,6 +357,7 @@ Present completion message in this structure:
 > Build and test complete — summary at: `aidlc-docs/construction/build-and-test/build-and-test-summary.md`
 > Key results: [tests X/Y green — 1-2 highlights] · Notable risks: [or "none"]
 > Brief-gate posture: proceeding without approval — the commit plan below asks its own authorization question.
+> Review (code-quality): [one line per RV-08 — status + content, e.g. `zero blocking (rubric code-quality)` or `reviewed (tier ②, L1) — 1 blocking fixed + diff-verified (see reviews.md R-007)`]
 
 ---
 ```
@@ -368,7 +372,7 @@ Timing is fixed: the completion brief presents the commit plan in its body → t
 Protocol:
 
 1. **Dirty-file triage**: classify every dirty workspace path by whether this session's tool calls actually wrote it. First class: artifacts produced by this workflow. Every other dirty file is second class — list it, NEVER stage it silently.
-2. **One-shot commit plan presentation**: list first-class files grouped by their owning stage and unit; list second-class files as a plain inventory (never staged automatically).
+2. **One-shot commit plan presentation**: list first-class files grouped by their owning stage and unit; list second-class files as a plain inventory (never staged automatically). `aidlc-docs/reviews.md` rides the commit batch as workflow bookkeeping owned by no stage (RV-07) — list it as its own line so it is never dropped as an orphan.
 3. **Products with an iteration roadmap (iteration-boundary batch)**: the commit batch includes `aidlc-docs/inception/product-design/product-design.md` with the current iteration marked `shipped` and its Shipped Log rollup line already written — the marking happens at this ship transition moment (see `workflow-changes.md`, Iteration Completion Ritual), which the completion brief's commit batch anchors. This applies to ANY product carrying an iteration roadmap, including a single-iteration one (N=1 marks its only row; its completion ritual takes Branch 2). Non-git workspaces: the git protocol is skipped per rule 5; the shipped marking (a workflow action) still happens.
 4. **No amend, no push** — unless the user explicitly asks.
 5. **Non-git workspace**: align with the AUD-02 precedent — no git → mark commit information `unknown`, do not block the flow, and skip this entire protocol.

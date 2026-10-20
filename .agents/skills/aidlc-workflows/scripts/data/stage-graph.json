@@ -115,7 +115,8 @@
         "infra": "EXECUTE",
         "refactor": "EXECUTE",
         "security-patch": "EXECUTE"
-      }
+      },
+      "review_class": "requirements-consistency"
     },
     {
       "slug": "user-stories",
@@ -521,7 +522,8 @@
         "infra": "EXECUTE",
         "refactor": "EXECUTE",
         "security-patch": "EXECUTE"
-      }
+      },
+      "review_class": "design-soundness"
     },
     {
       "slug": "build-and-test",
@@ -558,7 +560,8 @@
         "infra": "EXECUTE",
         "refactor": "EXECUTE",
         "security-patch": "EXECUTE"
-      }
+      },
+      "review_class": "code-quality"
     },
     {
       "slug": "operations",

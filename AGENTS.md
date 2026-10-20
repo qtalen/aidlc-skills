@@ -2,7 +2,7 @@
 
 本仓库是 **AI-DLC（AI-Driven Development Life Cycle）技能的分叉与整合工作区**：以 v1.0 纯 Markdown 技能为基座进行分叉演进，分阶段吸收 v2.0 的先进理念。
 
-**开始任何工作前，先读 `docs/integration-plan.md`**——它记录了全部已确认的决策（D1-D20 + D-清系列）、批次登记表（B01-B16）、分阶段路线图（Phase 0-5+）、开放项总账与维护规程，是本仓库的单一权威上下文。历史细节住在 `docs/batches/`（每批一个档案）与 `docs/archive/`（冻结档案）。
+**开始任何工作前，先读 `docs/integration-plan.md`**——它记录了全部已确认的决策（D1-D24 + D-清系列）、批次登记表（B01-B19）、分阶段路线图（Phase 0-5+）、开放项总账与维护规程，是本仓库的单一权威上下文。历史细节住在 `docs/batches/`（每批一个档案）与 `docs/archive/`（冻结档案）。
 
 ## 目录结构与职责
 
@@ -12,7 +12,7 @@
 | `opencode/` | **只读参考** | v2.0（opencode 插件形态，v2.7.1）。整合的理念来源，**不要修改**。权威导览见其 `AIDLC-PLUGIN.md` |
 | `opencode-cn/` | 只读参考 | v2.0 中文版对应物 |
 | `aidlc-workflows-cn/` | 只读参考 | v1.0 中文版对应物（暂不纳入整合范围） |
-| `docs/` | 可写 | 项目文档。`integration-plan.md` 是主文档（决策登记/批次登记表/路线图/开放项总账）；`docs/batches/` 为执行批次档案（B01-B16）；`docs/archive/` 为冻结档案 |
+| `docs/` | 可写 | 项目文档。`integration-plan.md` 是主文档（决策登记/批次登记表/路线图/开放项总账）；`docs/batches/` 为执行批次档案（B01-B19）；`docs/archive/` 为冻结档案 |
 | `README.md` / `README_cn.md` | — | 仓库自述 |
 
 ## 核心架构约定（v1.0 分叉）
@@ -46,7 +46,7 @@
 - 引擎 `scripts/engine.py` 是**必选运行时组件**：独占跨阶段路由（`next`）、状态机转移（`report` 是唯一写入口）、审计转移条目、状态完整性校验（State Digest sha256 + 审计交叉核验 + `rebase`）、改道（`jump`/`jump --fresh`；工作流完成态下 `jump --stage` 放行为**同产品再入**——目标及其后重置、语义同 backward redo，`--fresh` 留给新产品意图，D15）、会话泊车注记（`park --note`：写状态文件 Last Parked 行 + `aidlc-docs/handoff.md`，不改 marks/current、不写审计）、权威时间戳读取（`stamp`，零副作用）。`aidlc-docs/handoff.md` 为引擎独写，模型不得手改。
 - 引擎**只读**作者期编译产物 `scripts/data/stage-graph.json`（generate.py 生成，--check 覆盖其漂移），**永不解析 frontmatter，也永不解析 condition 散文**（CONDITIONAL 阶段照常发射 `conditional: true`，模型判断不适用则 `report --result skipped --reason`）。
 - 状态文件分区所有权（`references/common/engine-contract.md`）：`<!-- BEGIN/END ENGINE-STATE -->` 标记区内（Stage Progress/Current Status/Unit Progress/State Digest）引擎独占、digest 覆盖；区外（Project Information/Execution Plan Summary/Extension Configuration 等）模型按模板写。Execution Plan Summary 的结构化行（Scope/Depth/Stages to Execute/Skip）是模型写-引擎读的 load-bearing 通道（Extension Configuration 表的 checkpoint 探测同属模型写-引擎读，引擎只宽容读取、不改变所有权）。**引擎永不写任何模型区**（B18 随 AM 退役废止了唯一例外——AM-10 轮末过期翻转；所有权边界回到干净不变量），见契约 §6。
-- 引擎测试与生成器测试同套件（`scripts/tests/`，共 239 例〔B18 后：AM 测试退场 -21、新增 brief 门型映射与 BRF 姿态断言 +7、终审残留守卫 +1、门规则测试改锚 PB 硬门净 -1〕，2026-10-08 起含 test_rule_invariants.py 规则文本断言，2026-10-12 起含 test_extension_layout.py 扩展发现不变量）：改引擎后必跑 `python -m unittest discover -s .agents\skills\aidlc-workflows\scripts\tests`。
+- 引擎测试与生成器测试同套件（`scripts/tests/`，共 249 例〔B19 后：239 + review_class 枚举/映射/交叉/门模板行断言 +10；B18 后曾为 239——AM 测试退场 -21、brief/BRF 断言 +7、终审残留守卫 +1、门规则测试改锚净 -1〕，2026-10-08 起含 test_rule_invariants.py 规则文本断言，2026-10-12 起含 test_extension_layout.py 扩展发现不变量）：改引擎后必跑 `python -m unittest discover -s .agents\skills\aidlc-workflows\scripts\tests`。
 
 ### 4. 编辑纪律
 
@@ -65,7 +65,8 @@
 - **文档重组批 ✅（2026-10-07）**：integration-plan 拆分为主文档 + 批次档案 + 冻结档案，Phase/B/D 三层体系归一（B14）
 - **Phase 3.4 ✅（2026-10-07 立项，10-08 重定义并全量落地）**：产品演进闭环（首批=合并批 B15，D19 其六 + D20 全量并入）——头脑风暴阶段 + roadmap 活文档 + 迭代交付环 + 完成仪式；段一（战略层 11 项）落地（240 绿），dogfood #1 全程过（8/8+P7~P12；迭代 1 同日建到 done——39/39 测试、E2E file:// 实证、roadmap flipped shipped）；段二（交付环 D1~D8 + P7/P8/P10 修复）落地（247 绿+零漂移）；dogfood #2 全程过（六项全收：改形再入全链/AM 延迟+Hold+轮末过期全生命周期/中断放弃语义/N=1+express 纸面走查；P13 回合边界条款+P14 B&T 条件修复当场落地、P11 维持；迭代 2 本机双人 shipped——49/49、E2E 五景、56.45 kB）；收口提交后本相位闭环（**248 绿**）；后续 Operations 实义化（B20+ 候选，开放项挂账；B18 已被门姿态与 AM 退役批、B19 已被 reviewer 前置接线批占用）
 - **B18 门姿态与 AM 退役批 ✅（2026-10-19 立项·四项裁决全按推荐，10-19~20 实施）**：`gate: brief` 第四门型（编译映射 `none`，引擎门判定零改动）+ 四硬门处置地图（PB/RA 引擎硬门 + code-generation 规则级方向停点〔每轮首单元前 ≤10 行方向简报〕+ 完成仪式人工门；**11 阶段降简报**——workflow-conventions 新增 BRF-01~03）+ AM 全量退役（**D22 取代 D16-D18**、D23 门姿态登记；引擎回到永不写模型区、`autonomous` 键与 `autonomous_expired` ack 退场；AM-04 升格为 Stage Question Posture 通用提问规则、B&T commit 授权改显式问句永不自动）；238 绿 + `--check` 零漂移（253→238 精确对账）；收口终审（reviewer）5 项第一层发现 + 8 改进 + 4 建议全部处置后 **239 绿**（+1 简报残留守卫断言）
-- **待实施**：备份遗产清理批（B13，规格就绪·删除式 v2——2026-10-09 立场翻转：非 git 亦不留 `.backup`）；外线合流与傻瓜化批（B17，规格就绪·待排期——Phase 4 前置，2026-10-09 用户暂缓，见 b17 档案）；reviewer 前置接线批（B19，规格定稿·待实施——Phase 5B 提前件，三位置接线 + 两轮终审全处置，dogfood 迭代二验证，见 b19 档案）；代码批·旧格式兼容层退役等见主文档开放项总账（B15 已全量完成，dogfood 发现账 P9 挂 B20+、P13/P14 已落地）
+- **B19 reviewer 前置接线批 ✅（2026-10-20 立项·D-1~D-7 裁决 + 密度复议，同日单会话实施）**：三位置委派审查（RA 门材料前 / 方向门简报前 / B&T 收尾简报前——`review_class` frontmatter 三值枚举 + 编译）+ **D24 登记**（全新会话纪律〔唯一例外 ④ 自审 degraded〕+ 三轮预算〔事件定义、再入不清零，取代"预算为一"〕+ 降级链四档〔含推模式〕+ findings-only 三元组契约 + reviews.md R-n/T-n append-only 日志〔DOC-04 双落点〕+ B&T 审代码〔按位置锚点表 + 执行依赖维度条件化 not-covered + 修复先重跑测试〕+ 技能级零快照〔L3 挂账、触发条件内联〕）；新增 `references/common/review-delegation.md`（RV-01~08）+ rubric 库（index + 3 类；另 2 类留 5B）+ 四阶段锚点；**249 绿**〔239+10〕+ `--check` 零漂移；两轮规格终审（12+9+4 / 6+6+5）+ 两轮收口终审（6+4+5 / 2+5+5）全处置；dogfood 迭代二验证（协议新增 §四 R1~R8 + 迭代边界快照刷新规则）
+- **待实施**：备份遗产清理批（B13，规格就绪·删除式 v2——2026-10-09 立场翻转：非 git 亦不留 `.backup`）；外线合流与傻瓜化批（B17，规格就绪·待排期——Phase 4 前置，2026-10-09 用户暂缓，见 b17 档案）；代码批·旧格式兼容层退役等见主文档开放项总账（B15 已全量完成，dogfood 发现账 P9 挂 B20+、P13/P14 已落地）
 - **Phase 4**：Team Construction（unit-major 波次地基 → claim/release + worktree 多会话团队 → single 重跑 → swarm；设计输入见主文档路线图；B17 外线合流批为其串行语义地基，规格就绪可先行）
 - **Phase 5A/5B + 不排期**：5A 知识树与学习闭环 / 5B reviewer 及其他；④档三项带触发条件（详见主文档路线图与不排期节）
 

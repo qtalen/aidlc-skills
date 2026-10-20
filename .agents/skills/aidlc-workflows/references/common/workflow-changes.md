@@ -62,6 +62,8 @@ When the engine emits `done`, the closing summary is a **three-branch ritual** (
 
 **Order within the same interaction**: closing summary (with this branch's preview or final review) first — nothing else competes with it.
 
+**Evidence-verification status line**: the closing summary carries the build-and-test review disposition as recorded in `aidlc-docs/reviews.md` (see `references/common/review-delegation.md`, RV-08) — rendered by tier with its honesty label (`reviewed (tier ①, L2)` / `unchanged since R-00x` / `re-review budget exhausted` / `self-review (degraded)` / `review unavailable` / `unreviewed-after-fix`), never as an unconditional "independently verified" claim.
+
 **Shipped marking timing**: flip the current iteration's row to `shipped` and write its `Shipped Log` rollup line (one compressed line + git pointer) **at the iteration boundary — inside the Build-and-Test commit batch** (`product-design.md` ships marked; see the Commit Protocol in `references/construction/build-and-test.md`). Once written, the line is immutable. A non-git workspace records that fact in the Git column — the marking itself still happens.
 
 **Lightweight feedback loopback**: the ritual's closing exchange invites the user's production observations ("how did it feel to use"); they flow into the next Roadmap Changes revision (time-point 1). Telemetry-grade loopback depends on Operations becoming real and is out of scope here.

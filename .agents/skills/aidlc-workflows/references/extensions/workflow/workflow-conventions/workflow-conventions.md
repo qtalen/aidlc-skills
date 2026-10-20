@@ -31,6 +31,8 @@ After any approved change (new/modified requirement, UI tweak, signature/enum/va
 2. Search the entire `aidlc-docs/` tree for occurrences of those terms (including superseded values)
 3. Update every artifact containing stale references, marking the change origin where the artifact format supports it
 
+Historical append-only records — `audit.md` entries and `aidlc-docs/reviews.md` entries — are **exempt** from in-place updating (DOC-04): a stale term inside them stays; the correction is an appended entry, never a rewrite.
+
 Typical mapping: functionality → requirements/stories/business rules; enums/ranges → domain entities, logic models, component methods; signatures → component methods, interaction flows; new components → inventories, structure trees, summaries; test counts → summary coverage sections.
 
 **Verification**: grep of `aidlc-docs/` shows no stale pre-change values in maintained artifacts; new concepts appear in every artifact enumerating that category; cross-reference/coverage tables include changed items.
@@ -46,7 +48,7 @@ Every change request — including small fixes and visual tweaks — MUST be app
 Completion verification MUST include the DOC-01 sweep in addition to code-level verification (compile/lint/test/build). Code-green is not completion-green. Results stated in summaries must reflect the latest run (current test counts, not copied values).
 
 ### DOC-04: Historical Records Are Append-Only
-Question-and-answer files, clarification sections of plan files, and `audit.md` entries MUST NOT be retroactively rewritten. Corrections and new decisions are appended as new timestamped entries.
+Question-and-answer files, clarification sections of plan files, `audit.md` entries, and `aidlc-docs/reviews.md` MUST NOT be retroactively rewritten. Corrections and new decisions are appended as new timestamped entries. For `reviews.md` specifically: R-n review entries are frozen at write time, and later state goes into appended T-n disposition entries — backfilling an R entry is the reviews.md form of rewriting history (see `references/common/review-delegation.md`, RV-07).
 
 **Verification**: no historical Q&A answer or audit entry edited in place; superseded decisions followed by newer timestamped entries.
 
@@ -59,7 +61,7 @@ Shared workflow rule files MUST contain no project-specific identifiers (project
 When creating or substantially updating an `aidlc-docs/` **content artifact of 300+ total lines**, maintain a task→section navigation table at the top of the file — one row per H2 heading (section title + one-line purpose) — so readers can locate the relevant section without reading the whole file.
 
 - The navigation table MUST cover **all H2 headings** of the file (mechanically checkable by comparing table rows against the file's H2 list).
-- **Exclusions**: `audit.md` (append-only log, mutually exclusive with a maintained index), `aidlc-docs/aidlc-state.md` and `aidlc-docs/handoff.md` (engine-owned), and question files (QT / DOC-04 jurisdiction).
+- **Exclusions**: `audit.md` and `aidlc-docs/reviews.md` (append-only logs, mutually exclusive with a maintained index — see DOC-04), `aidlc-docs/aidlc-state.md` and `aidlc-docs/handoff.md` (engine-owned), and question files (QT / DOC-04 jurisdiction).
 - **Nature**: advisory — a missing or incomplete navigation index is NOT a blocking finding. When found missing, list it as a reminder in the completion message and continue; never block the flow over it.
 
 ---

@@ -60,6 +60,7 @@ The generator **rejects unknown keys** — see §5 for the reserved namespace.
 | `consumes[].conditional_on` | string | optional | `brownfield` \| `greenfield`. Omit for unconditional consumes |
 | `requires_stage` | string[] | yes | May be empty. Stage slugs. Two roles: (1) semantic data dependency; (2) presentation-order edge. Must form an acyclic graph within the whole workflow |
 | `for_each` | string | optional | `unit-of-work` is the only legal value today. Marks a per-unit stage (runs once per unit in the per-unit loop). Omit for once-per-workflow stages |
+| `review_class` | string | optional | `requirements-consistency` \| `design-soundness` \| `code-quality`. Declares a mandatory reviewer-delegation obligation anchored in this stage's rule file (see `references/common/review-delegation.md`). On per-unit stages (`for_each: unit-of-work`) the declaration anchors at the round-level direction stop — at most once per round, never repeated per unit. Compiled into `scripts/data/stage-graph.json`; currently compile-only, no runtime consumer yet |
 | `workspace_writes` | boolean | optional | Default `false`. `true` marks a stage that writes application code to the workspace root (not only docs under `aidlc-docs/`). Today only `code-generation` |
 | `depth` | string | optional | `adaptive` \| `minimal` \| `standard` \| `comprehensive`. Per `depth-levels.md`, all stages scale detail — this field only records a fixed override when one exists. **Omitted means undeclared** (no default is assumed); only an explicit `adaptive` renders the "Adaptive depth" annotation in generated lists. The active scope's default depth (§6) applies workflow-wide unless the user overrides |
 | `scopes` | object | yes | Per-scope membership map: `{<scope-name>: EXECUTE \| SKIP \| CONDITIONAL}` — see §6. Must contain **exactly** the scopes registered in `references/common/scopes/` (no missing, no extras). `ALWAYS` stages must be `EXECUTE` in every scope |
@@ -112,12 +113,15 @@ lands (see `docs/integration-plan.md`):
 | Key | Owning phase | Purpose |
 |-----|--------------|---------|
 | `lead_agent`, `support_agents`, `mode` | Phase 4+ (persona system) | Who performs the stage; communication topology |
-| `reviewer`, `review_artifact`, `reviewer_max_iterations`, `review_class` | Phase 4+ (reviewer contracts) | Dedicated review pass before the gate |
+| `reviewer`, `review_artifact`, `reviewer_max_iterations` | Phase 4+ (reviewer contracts) | Dedicated review pass before the gate |
 | `sensors` | Phase 4+ (sensor checklists) | Self-check rules bound to the stage |
 | `summary_confirmation` | Phase 4+ | Pre-generation consolidated-summary stop |
 
 Rationale for exclusion now: the persona/reviewer/memory systems were
-deliberately deferred (integration-plan decisions D3/D4). The contract only
+deliberately deferred (integration-plan decisions D3/D4). The reviewer
+wiring slice landed early with B19 as the optional `review_class` key
+(§2); the remaining `reviewer*` keys above stay reserved for Phase 4+/5B.
+The contract only
 carries what the current workflow actually uses, plus what the future engine
 needs for routing (`slug/phase/execution/requires_stage/for_each/scopes`).
 
@@ -202,16 +206,20 @@ Hard failures (non-zero exit):
 11. An `ALWAYS` stage with a non-`EXECUTE` value in any scope.
 12. Scope registry file: `name` ≠ filename stem, missing field, bad `depth`
     enum, or **zero or more than one** scope with `default: true`.
+13. `review_class` present with a value outside
+    `requirements-consistency` / `design-soundness` / `code-quality`
+    (optional key — when present it must take exactly one of the three
+    values; undeclared means absent, never `null`).
 
 Advisory warnings (exit zero, printed):
 
-13. `consumes[].artifact` matches no stage's `produces` (likely typo or
+14. `consumes[].artifact` matches no stage's `produces` (likely typo or
     missing producer).
-14. A `consumes[].required: true` artifact whose producer is not in
+15. A `consumes[].required: true` artifact whose producer is not in
     `requires_stage` (data dependency missing its DAG edge).
-15. `produces` entry colliding with another stage's `produces`
+16. `produces` entry colliding with another stage's `produces`
     (two writers for one artifact).
-16. Per-scope dependency gap: in some scope, a non-per-unit stage that is not
+17. Per-scope dependency gap: in some scope, a non-per-unit stage that is not
     SKIP has a `consumes[].required: true` entry (without `conditional_on`)
     whose producers are **all** SKIP in that scope. Per-unit (`for_each`)
     stages are exempt — they are covered by the implicit single unit

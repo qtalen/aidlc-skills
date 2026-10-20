@@ -476,6 +476,43 @@ class Rule3Tests(unittest.TestCase):
         self.assertIn("must match containing directory", str(ctx.exception))
 
 
+class ReviewClassTests(unittest.TestCase):
+    """B19 reviewer wiring: review_class is optional, enum-validated."""
+
+    def test_review_class_accepted(self):
+        text = _stage_fm(
+            "my-stage", "inception", "CONDITIONAL", {"classic": "EXECUTE"}
+        ).replace(
+            "gate: none\n", "gate: none\nreview_class: code-quality\n"
+        )
+        stage = generate.build_stage(
+            "my-stage.md", "my-stage", "inception", text, ["classic"]
+        )
+        self.assertEqual(stage.review_class, "code-quality")
+
+    def test_review_class_optional(self):
+        # Absent review_class is legal (most stages declare none).
+        text = _stage_fm(
+            "my-stage", "inception", "CONDITIONAL", {"classic": "EXECUTE"}
+        )
+        stage = generate.build_stage(
+            "my-stage.md", "my-stage", "inception", text, ["classic"]
+        )
+        self.assertIsNone(stage.review_class)
+
+    def test_review_class_enum_violation(self):
+        text = _stage_fm(
+            "my-stage", "inception", "CONDITIONAL", {"classic": "EXECUTE"}
+        ).replace(
+            "gate: none\n", "gate: none\nreview_class: no-such-class\n"
+        )
+        with self.assertRaises(generate.HardError) as ctx:
+            generate.build_stage(
+                "my-stage.md", "my-stage", "inception", text, ["classic"]
+            )
+        self.assertIn("review_class must be one of", str(ctx.exception))
+
+
 class Rule4Tests(unittest.TestCase):
     def test_missing_required_key_gate(self):
         # Rule 4: drop the gate line from an otherwise valid frontmatter.
@@ -873,6 +910,22 @@ class StageGraphTests(unittest.TestCase):
         self.assertEqual(compiled["requirements-analysis"], "approve-continue")
         self.assertEqual(compiled["workspace-detection"], "none")
         self.assertEqual(compiled["operations"], "none")
+
+    def test_review_class_compiles_only_when_declared(self):
+        # B19: exactly three wired stages carry review_class in the graph;
+        # every other node has no such key (never null).
+        expected = {
+            "requirements-analysis": "requirements-consistency",
+            "code-generation": "design-soundness",
+            "build-and-test": "code-quality",
+        }
+        for node in self.graph["stages"]:
+            if node["slug"] in expected:
+                self.assertEqual(
+                    node.get("review_class"), expected[node["slug"]]
+                )
+            else:
+                self.assertNotIn("review_class", node)
 
     def test_stage_fields_match_frontmatter(self):
         by_slug = {stage["slug"]: stage for stage in self.graph["stages"]}

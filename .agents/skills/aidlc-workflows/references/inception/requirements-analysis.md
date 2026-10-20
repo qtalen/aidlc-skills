@@ -4,6 +4,7 @@ phase: inception
 execution: ALWAYS
 condition: Always executes with adaptive depth — every request needs its intent and requirements assessed; depth (minimal/standard/comprehensive) scales with clarity, complexity, and risk
 gate: approve-continue
+review_class: requirements-consistency
 produces:
   - inception/requirements/requirements.md
   - inception/requirements/requirement-verification-questions.md
@@ -247,6 +248,9 @@ Do not proceed to Step 7 until all questions in requirement-verification-questio
 Stage progress is engine-owned. Do not hand-write a `## Stage Progress` section or edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md`; this stage's transition is recorded through the engine after approval (Step 9).
 
 ### Step 9: Log and Proceed
+
+**Pre-gate review (mandatory, `review_class: requirements-consistency`)**: before presenting the completion message below, delegate a requirements-consistency review per `references/common/review-delegation.md` (RV-01 gate advisor) — audited artifact `aidlc-docs/inception/requirements/requirements.md`, reality anchors `product-design.md` (whose Iteration Roadmap section scopes multi-iteration runs), per the RV-02 anchor table. The gate material then fills the review line in the completion template below (RV-08 vocabulary: status + content), so the user reads a pre-reviewed contract. Zero blocking findings is a success record; blocking findings go through RV-06 triage before the gate material is presented.
+
    - Log approval prompt with timestamp in `aidlc-docs/audit.md`
    - Present completion message in this structure:
      1. **Completion Announcement** (mandatory): Always start with this:
@@ -267,6 +271,7 @@ Stage progress is engine-owned. Do not hand-write a `## Stage Progress` section 
 ```markdown
 > **📋 <u>**REVIEW REQUIRED:**</u>**  
 > Please examine the requirements document at: `aidlc-docs/inception/requirements/requirements.md`
+> Review (requirements-consistency): [one line per RV-08 — status + content]
 
 
 

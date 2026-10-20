@@ -7,6 +7,7 @@ dialogue discipline, D19.38 routing, D19.39 tool exemption).
 """
 
 import os
+import re
 import unittest
 
 SKILL_ROOT = os.path.dirname(
@@ -193,6 +194,79 @@ class BriefGatePostureTests(unittest.TestCase):
             self.assertNotRegex(text, r"approved (plan|methodology)", path)
             self.assertNotRegex(text, r"(get|proceed to) approval", path)
             self.assertNotRegex(text, r"approved (plan|methodology)", path)
+
+
+class ReviewWiringTests(unittest.TestCase):
+    """B19 reviewer wiring: anchors exist, the class mapping is consistent
+    across frontmatter and review-delegation.md, index rubric paths exist,
+    and the append-only log is co-present where it must be."""
+
+    STAGE_CLASS = {
+        "references/inception/requirements-analysis.md": "requirements-consistency",
+        "references/construction/code-generation.md": "design-soundness",
+        "references/construction/build-and-test.md": "code-quality",
+    }
+
+    def test_stage_files_anchor_review_delegation(self):
+        for rel in self.STAGE_CLASS:
+            text = _read(rel)
+            self.assertIn("review_class: ", text, rel)
+            self.assertIn("review-delegation.md", text, rel)
+
+    def test_frontmatter_matches_rv01_mapping(self):
+        # Pin the mapping relationship, not just word presence: parse the
+        # RV-01 table rows (stage slug -> class) and cross-assert against
+        # each stage file's frontmatter.
+        rv = _read("references/common/review-delegation.md")
+        rv_rows = dict(
+            re.findall(r"\| (\w[-\w]*) \| [^|]+ \| `([a-z-]+)` \|", rv)
+        )
+        for rel, cls in self.STAGE_CLASS.items():
+            text = _read(rel)
+            self.assertIn("review_class: %s" % cls, text, rel)
+            slug = os.path.basename(rel)[: -len(".md")]
+            self.assertEqual(rv_rows.get(slug), cls, "RV-01 row for %s" % slug)
+
+    def test_index_rubric_paths_exist(self):
+        # Pin class -> rubrics/<class>.md (row relationship, not just
+        # presence) and assert each file exists.
+        index = _read("references/common/review/index.md")
+        rows = dict(
+            re.findall(r"\| `([a-z-]+)` \| `rubrics/([a-z-]+\.md)` \|", index)
+        )
+        self.assertEqual(set(rows), set(self.STAGE_CLASS.values()))
+        for cls, filename in rows.items():
+            self.assertEqual(filename, "%s.md" % cls)
+            path = os.path.join(
+                SKILL_ROOT,
+                "references",
+                "common",
+                "review",
+                "rubrics",
+                filename,
+            )
+            self.assertTrue(os.path.exists(path), filename)
+
+    def test_gate_templates_carry_review_lines(self):
+        # The two user-visible template slots are deliverables of §3③ —
+        # deleting them must fail loudly, not silently pass.
+        ra = _read("references/inception/requirements-analysis.md")
+        self.assertIn("> Review (requirements-consistency):", ra)
+        bt = _read("references/construction/build-and-test.md")
+        self.assertIn("> Review (code-quality):", bt)
+
+    def test_doc04_lists_reviews_log(self):
+        conventions = _read(
+            "references/extensions/workflow/workflow-conventions/"
+            "workflow-conventions.md"
+        )
+        self.assertIn("reviews.md", conventions)
+        self.assertIn("T-n disposition entries", conventions)
+
+    def test_ritual_carries_verification_status_line(self):
+        changes = _read("references/common/workflow-changes.md")
+        self.assertIn("reviews.md", changes)
+        self.assertIn("unreviewed-after-fix", changes)
 
 
 if __name__ == "__main__":

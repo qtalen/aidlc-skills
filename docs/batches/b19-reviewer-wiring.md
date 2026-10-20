@@ -2,12 +2,12 @@
 
 | 项 | 值 |
 |---|---|
-| 状态 | ⏳ 规格定稿·待实施（2026-10-20 立项；实施简报两轮独立终审全处置——第一轮 12+9+4、第二轮 6+6+5，见 §6；dogfood 迭代二验证） |
+| 状态 | ✅ 已实施并收口（2026-10-20 立项·同日单会话落地；两轮收口终审〔第一轮 6+4+5、第二轮 2+5+5〕全部处置后 **249 绿** + `--check` 零漂移；实施记录 §8、终审处置 §9；dogfood 迭代二验证——快照源 = 本批收口提交） |
 | 归属 | Phase 5B 提前件（独立批，同 B18 先例；reviewer 状态机/传感器/persona/记忆仍留 5B） |
-| 触发 | 2026-10-20 用户裁决四项（D-4~D-7）+ 密度方案复议确认（三位置集中 vs 每门一审，维持前者）；根源 = B18 切分失误承认——"reviewer 要不要随 B18 落地"从未被摆上用户决策桌，被立项文档划为非目标（b18:119） |
+| 触发 | 2026-10-20 用户裁决七项（D-1~D-7——初版 D-1~D-3 + 规格 v1→v2 修订 D-4~D-7）+ 密度方案复议确认（三位置集中 vs 每门一审，维持前者）；根源 = B18 切分失误承认——"reviewer 要不要随 B18 落地"从未被摆上用户决策桌，被立项文档划为非目标（b18:119） |
 | 关联决策 | D22/D23（门姿态与简报制——审查行嵌入门材料的形态基础）、D13（findings 永无权调引擎动词/改变流程结构）、brief §5-11 三位置接线（设计来源）；**本批产出 D24（实施时登记）**；D-6 三轮预算**取代** brief §5b"预算为一、分歧即升级" |
 | 量级 | 本体 = 一个实施会话 + 收口终审（reviewer 全新会话，两轮姿态）+ 一次提交（触面 ≈ 4 阶段/公共文件锚点 + review-delegation.md + rubric 库 4 文件 + stage-contract 三处 + generate.py + 测试增补 + docs 五处 + dogfood-protocol） |
-| 测试基线 | 立项时 239 全绿 + `--check` 零漂移（B18 后基线，实施首步实跑确认）；实施后 239+N |
+| 测试基线 | 立项时 239 全绿 + `--check` 零漂移（B18 后基线，实施首步实跑确认）；实施后 **249**（239+10：ReviewClassTests 3 + StageGraph 映射 1 + ReviewWiringTests 6〔含终审后补的门模板审查行断言〕） |
 
 ## 1. 立项背景与定位
 
@@ -147,3 +147,55 @@
 - brief §5-11 三位置接线/§5-7 降级链（含推模式）/§5b 修复验证：`C:\Users\qianpeng\.opencode\plan\2026-10-08-aidlc-gates-am-reviewer-design-brief.md:155-201`
 - docs/reviewer-containment-design.md §6（仅作者期参考）；docs/batches/b18-gate-posture.md §3.B；build-and-test.md:330-372（简报/授权/report 时序 + DOC-03）；workflow-conventions.md（DOC-03/DOC-04/AUD-01/BRF-01/Blocking Finding 定义）；question-format-guide.md 先例；generate.py:375 一带 ALLOWED_KEYS（行号以实施时为准）
 - 实施简报副本（临时）：`C:\Users\qianpeng\.opencode\plan\2026-10-20-b19-reviewer-wiring-plan.md`（与本文 §2/§3 等价，以本文档为正身）
+
+## 8. 实施记录（2026-10-20，单会话落地）
+
+**分工**：契约层与锚点/测试两段机械实施委派 executor（两段并行）；review-delegation.md 与 rubric 库（判断密集文本）由主智能体撰写；docs 登记由主智能体完成。
+
+**落地清单**（交付物 → 实际位置）：
+
+| 交付物 | 落点 |
+|---|---|
+| ① review-delegation.md | references/common/review-delegation.md（RV-01~08 全量，含按位置锚点表/事件定义/六形态词汇表） |
+| ② rubric 库 | references/common/review/index.md + rubrics/{requirements-consistency, design-soundness, code-quality}.md（固定骨架，code-quality 含能力条件化 Out-of-scope 段） |
+| ③ 阶段锚点 | requirements-analysis.md:252（Pre-gate review）/ code-generation.md:53（Pre-brief review，Direction Stop 后）/ build-and-test.md:337 + :360（Pre-brief review + 模板 Review 行）/ workflow-changes.md:65（Evidence-verification status line） |
+| ④ 契约与生成器 | generate.py：ALLOWED_KEYS :63、REVIEW_CLASS_VALUES :88、枚举校验 :474-479、Stage 构造 :528、build_stage_graph 条件发射 :741-743（未声明无键）；stage-contract.md：§2 行 :63、§5 移出预留 :115、§7 硬失败 #13 :203-206；三 frontmatter 各 :7 |
+| ⑤ 审查日志 | reviews.md 为运行期项目文件（不在仓库）；其契约 = RV-07 + DOC-04 双落点（workflow-conventions.md:49-51） |
+| ⑥ 测试 | test_generate.py:479 ReviewClassTests（3）+ :914 映射断言；test_rule_invariants.py:199 ReviewWiringTests（5，含 RV↔frontmatter 交叉与 index 路径存在性） |
+| ⑦ 文档 | 本档案 §8 + D24（integration-plan 决策表）+ 总账/Phase 5B/B18 后继指针/:95 计数注记 + AGENTS.md 五处（导语 D1-D24/B01-B19、目录表、测试计数 248、路线图速览 B19 行、待实施行摘除）+ dogfood-protocol（§零刷新规则 :14-15、新 §四 R1~R8、原 §四~§七顺延为 §五~§八、数据源/模板行 9/纪律红线）+ reviewer-containment-design.md §6 修正注记 |
+
+**实施期裁决（三条，均最小必要）**：
+
+1. **删除名卫生撞词**：review-delegation.md 与 requirements-consistency.md 中 "terminology"（B12 删除名，DeletedNameHygieneTests 禁token）三处改写为 "naming"/"term drift"（:62 Naming note、:182 [N1] term drift、rubric 维度 6 Naming stability）——语义不变。
+2. **stage-contract §7 编号顺延**：新校验条目插为硬失败 #13，原 advisory 13-16 顺延为 14-17（保持编号连续）。
+3. **锚点段落缩进风格**：三处新段落按各文件正文既有风格取顶格（简报允许"3 空格或顶格"二选一）。
+
+**验证**：`generate.py` 重生成 + `--check` 退出码 0（零漂移）；`unittest` Ran 248 / OK（239+9）；两段 executor 各自回报全绿后主智能体复跑确认。
+
+## 9. 收口终审处置表（2026-10-20，两轮，均为独立全新会话）
+
+**第一轮**（6 第一层 + 4 改进 + 5 建议，全采纳）：
+
+| # | 发现 | 处置 |
+|---|---|---|
+| 1 | 三轮预算与 RA 门 Request-Changes 返工环算术冲突 | RV-06 增复用规则（materially changed 才花调用；未变重呈现引 R 条目）〔第二轮再收敛，见下〕 |
+| 2 | RA 审查行无模板槽位（exact format + APG-05 压制） | RA 模板 REVIEW REQUIRED 块加 `> Review (requirements-consistency):` 行；锚点措辞改"fills the review line in the completion template below" |
+| 3 | 每条语义修复各开一次 scoped 复审，预算算不过来 | RV-06：一次 scoped 复审可覆盖同事件多条语义修复（清单+diff），每次调用计 1 |
+| 4 | B&T 锚点来源"direction brief's file list"不存在 | RV-02 B&T 行改 unit plans 为路径权威 + git 交叉核对；非 git 以计划目标路径清单为工作文件清单 |
+| 5 | DOC-06 导航索引要求与 reviews.md append-only 冲突 | DOC-06 排除项补 reviews.md |
+| 6 | 交叉断言只做词面存在性，映射改了不叫 | ReviewWiringTests 升级：解析 RV-01 表行（stage→class）与 index 表行（class→rubrics/<class>.md）映射断言 |
+| 改进 4 条 | RV-02 RA 行 false premise / brief §5-11 悬空引用 / unavailable 无落点 / index 相对路径 | 全部采纳 |
+| 建议 5 条 | 路径口径 / CG 行数账 / dogfood 枚举 / D24 裁决数 / §5 理由句 | 全部采纳 |
+
+**第二轮**（2 第一层 + 5 改进 + 5 建议，全采纳）：
+
+| # | 发现 | 处置 |
+|---|---|---|
+| 1 | material-change 协议三处未收敛：判据缺失、判定者是被审方、后续调用被括注限定为 scoped（无 findings 的实质变更无审查权限） | RV-06 重写预算段：materiality 客观锚（契约段/验收判据/非目标/边界/代码语义 = material；格式/错字/搬迁 = not）+ 复用行必写 `unchanged since R-00x` + 后续调用可为全量重审或 scoped（按变更性质择一）+ "存疑即 material，生产者便利永不决定" |
+| 2 | 预算耗尽后同迭代再 material change 无定义行为（两条文本直接冲突） | RV-06 事件生命周期：耗尽后再变更 = 直接 fork 非新调用；审查行新词 `re-review budget exhausted`（RV-08 与 workflow-changes 词汇表同步） |
+| 改进 5 条 | B&T:337 与 code-quality 残留旧来源 / RA:252 与 rubric 残留"roadmap 独立文件" / 裁决出处三处矛盾（统一为"七项全部用户裁决，D-4~D-7 为修订批"）/ dogfood :3 :15 旧编号 / RV-08 行数账 4+1→3+1 | 全部采纳 |
+| 建议 5 条 | 门模板审查行回归断言（+1 测试）/ unavailable 不耗预算 round: n/a / reviews.md 进提交计划单列 / DOC-01 排除 append-only 记录 / CG 行给具体路径基址 | 全部采纳 |
+
+**处置后验证**：`--check` 零漂移 + **249 绿**（248+1 模板行断言）。
+
+**终审会话纪律记录**：两轮均为全新会话（不复用、不复用规格终审两轮会话）；tier ①（本机 reviewer agent）+ L2 机制性只读。

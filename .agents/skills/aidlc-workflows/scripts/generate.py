@@ -60,6 +60,7 @@ ALLOWED_KEYS = frozenset(
         "execution",
         "condition",
         "gate",
+        "review_class",
         "produces",
         "consumes",
         "requires_stage",
@@ -84,6 +85,7 @@ CONSUME_KEYS = frozenset(("artifact", "required", "conditional_on"))
 EXECUTION_VALUES = ("ALWAYS", "CONDITIONAL")
 GATE_VALUES = ("none", "approve-continue", "two-option", "brief")
 DEPTH_VALUES = ("adaptive", "minimal", "standard", "comprehensive")
+REVIEW_CLASS_VALUES = ("requirements-consistency", "design-soundness", "code-quality")
 CONDITIONAL_ON_VALUES = ("brownfield", "greenfield")
 SCOPE_VALUE_VALUES = ("EXECUTE", "SKIP", "CONDITIONAL")
 SCOPE_DEPTH_VALUES = ("minimal", "standard", "comprehensive")
@@ -469,6 +471,13 @@ def build_stage(path, stem, dir_phase, text, scope_names):
             % (display_path, " | ".join(DEPTH_VALUES))
         )
 
+    review_class = mapping.get("review_class")
+    if review_class is not None and review_class not in REVIEW_CLASS_VALUES:
+        raise HardError(
+            "%s: review_class must be one of %s"
+            % (display_path, " | ".join(REVIEW_CLASS_VALUES))
+        )
+
     scopes = mapping["scopes"]
     if not isinstance(scopes, dict):
         raise HardError(
@@ -516,6 +525,7 @@ def build_stage(path, stem, dir_phase, text, scope_names):
         for_each=for_each,
         workspace_writes=workspace_writes,
         depth=depth,
+        review_class=review_class,
         scopes=scopes,
         name=_derive_name(body, display_path),
     )
@@ -704,32 +714,33 @@ def build_stage_graph(ordered, scope_order):
     scope_names = [scope.name for scope in scope_order]
     stages = []
     for stage in ordered:
-        stages.append(
-            {
-                "slug": stage.slug,
-                "name": stage.name,
-                "phase": stage.phase,
-                "execution": stage.execution,
-                # B18 gate posture: "brief" compiles to "none" — the engine's
-                # literal gate != "none" check (engine.py) stays untouched; the
-                # briefing obligation is model-side rule text, engine sees a
-                # gate-less stage that reports --result completed.
-                "gate": "none" if stage.gate == "brief" else stage.gate,
-                "for_each": stage.for_each == "unit-of-work",
-                "workspace_writes": bool(stage.workspace_writes),
-                "produces": list(stage.produces),
-                "consumes": [
-                    {
-                        "artifact": consume["artifact"],
-                        "required": consume["required"],
-                        "conditional_on": consume["conditional_on"],
-                    }
-                    for consume in stage.consumes
-                ],
-                "requires_stage": list(stage.requires_stage),
-                "scopes": {name: stage.scopes.get(name) for name in scope_names},
-            }
-        )
+        node = {
+            "slug": stage.slug,
+            "name": stage.name,
+            "phase": stage.phase,
+            "execution": stage.execution,
+            # B18 gate posture: "brief" compiles to "none" — the engine's
+            # literal gate != "none" check (engine.py) stays untouched; the
+            # briefing obligation is model-side rule text, engine sees a
+            # gate-less stage that reports --result completed.
+            "gate": "none" if stage.gate == "brief" else stage.gate,
+            "for_each": stage.for_each == "unit-of-work",
+            "workspace_writes": bool(stage.workspace_writes),
+            "produces": list(stage.produces),
+            "consumes": [
+                {
+                    "artifact": consume["artifact"],
+                    "required": consume["required"],
+                    "conditional_on": consume["conditional_on"],
+                }
+                for consume in stage.consumes
+            ],
+            "requires_stage": list(stage.requires_stage),
+            "scopes": {name: stage.scopes.get(name) for name in scope_names},
+        }
+        if stage.review_class is not None:
+            node["review_class"] = stage.review_class
+        stages.append(node)
     scopes = [
         {
             "name": scope.name,
