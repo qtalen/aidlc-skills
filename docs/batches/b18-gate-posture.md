@@ -117,7 +117,7 @@ brief 阶段从头不产生批准记录——`completed` 就是它的诚实语�
 ## 5. 明确非目标
 
 - **reviewer 机制本体**（合成形态：通用执行器 + rubric 库 + 事实型 brief + 降级链 + 三位置接线 + 修复验证体系）→ Phase 5B 立项（全量素材见 §9 设计底稿）；处置地图中"RA 自洽审查先跑 / B&T 证据审查先跑"为 Phase 5B 接线预留语义，本批不落地。
-- **reviewer 只读遏制 L3 三明治契约**（内容层 hash 主检 + 结构层 `(rev-parse HEAD, status --porcelain)` 辅助）→ 挂账待实践证据（触发条件：出现一次 reviewer 越界或审查窗口内无法解释的变更 → 立即上线）；L0/L1/L2 三层常设。
+- **reviewer 只读遏制 L3 三明治契约**（内容层 hash 主检 + 结构层 `(rev-parse HEAD, status --porcelain)` 辅助）→ 挂账待实践证据（触发条件：出现一次 reviewer 越界或审查窗口内无法解释的变更 → 立即上线）；L0/L1/L2 三层常设。〔2026-10-20 注：结构层规格与触发条件已修正——temp-index tree 快照 + 两条任一触发，正身见 docs/reviewer-containment-design.md；本行描述为 B18 时点原状〕
 - **最小传感器集提前**（traceability + claim-sources）→ 独立开放项（值班姿态可放心离场要等传感器齐——提前论据仍成立，另行立项）。
 - **风险条件升级机制**（不可逆动作硬门的声明形态：scope 级/阶段属性/动作级判定）→ 开放（单向安全方向已定）。
 - **scope 级姿态维度** → 缓议，跑出证据再加。

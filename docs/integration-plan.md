@@ -96,7 +96,7 @@
 - **文档负载**：必加载集 73.3KB（B12 前 97.1KB）；SKILL.md 343 行 / 26.6KB。
 - **AM 现状**：单问激活（仅 Code-Gen Hold）+ 全阶段自动批准 + 问题 auto-recommended + 轮次绑定过期（D16-D18 链）。
 - **dogfood**：fx991 计算器项目累计 6 周期（首周期验收→三迭代收官→双臂减重验收方向性通过）。
-- **文件地图**：`.agents/skills/aidlc-workflows/`（SKILL.md + references/{common,inception,construction,operations,extensions}/ + scripts/）；`opencode/`（v2.0 只读参考，权威导览 `AIDLC-PLUGIN.md`）；`docs/`（本主文档 + batches/ + archive/ + dogfood-protocol.md + result-oriented-delegation-design.md + aidlc-v2-features-vs-v1.md + dogfood-records/[本地保留] + migration-guide.md）；`aidlc-workflows-cn/`、`opencode-cn/`（中文对应物，只读）。
+- **文件地图**：`.agents/skills/aidlc-workflows/`（SKILL.md + references/{common,inception,construction,operations,extensions}/ + scripts/）；`opencode/`（v2.0 只读参考，权威导览 `AIDLC-PLUGIN.md`）；`docs/`（本主文档 + batches/ + archive/ + dogfood-protocol.md + result-oriented-delegation-design.md + reviewer-containment-design.md + aidlc-v2-features-vs-v1.md + dogfood-records/[本地保留] + migration-guide.md）；`aidlc-workflows-cn/`、`opencode-cn/`（中文对应物，只读）。
 
 ---
 
@@ -164,6 +164,7 @@
 ### Phase 5B：reviewer 及其他（逐项独立可交付，纯增量无返工）
 
 - reviewer 状态机（启用契约 §5 预留字段 reviewer/review_artifact/reviewer_max_iterations）
+- **reviewer 只读遏制 L3 三明治契约（修正版设计定稿 2026-10-20）**——temp-index tree 快照主检 + 证据集分级 + 非 git sha256 回退；挂账待触发（①L2 不覆盖 harness 上的真实审查 ②无法解释的外部写入，任一 → 立即上线；取代 b18:120 所记旧触发条件——"一次 reviewer 越界"经审查证实本机结构性不可达）；正身见 docs/reviewer-containment-design.md（独立审查 5+4 全采纳 + PoC 实测）
 - 传感器自检清单 → report 时阻塞校验（required-sections / upstream-coverage / traceability / claim-sources；fire 点与 finding 接口已由 D14 预定）
 - persona 体系（轻量版 inline 扮演先行；完整版另议）
 - 五层记忆 + §13 学习仪式（与 5A 关系——5A 先交付项目级单层闭环，五层届时复用其条目模板与写入仪式）
