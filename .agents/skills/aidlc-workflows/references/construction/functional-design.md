@@ -5,7 +5,7 @@ execution: CONDITIONAL
 condition:
   execute_if: new data models or schemas, complex business logic, business rules needing detailed design
   skip_if: simple logic changes, no new business logic
-gate: two-option
+gate: brief
 produces:
   - construction/plans/{unit-name}-functional-design-plan.md
   - construction/{unit-name}/functional-design/business-logic-model.md
@@ -93,7 +93,7 @@ Design detailed business logic for the unit, technology-agnostic and focused pur
 - Include all [Answer]: tags for user input
 
 ### Step 5: Collect and Analyze Answers
-- Wait for user to complete all [Answer]: tags
+- Collect answers per the Stage Question Posture (brief stage — auto-answer): select the `(Recommended)` option, write back with attribution and rationale per `question-format-guide.md`; escalated questions are asked via the structured question tool
 - **MANDATORY**: Carefully review ALL responses for vague or ambiguous answers
 - **CRITICAL**: Add follow-up questions for ANY unclear responses - do not proceed with ambiguity
 - Look for responses like "depends", "maybe", "not sure", "mix of", "somewhere between"
@@ -129,28 +129,20 @@ Design detailed business logic for the unit, technology-agnostic and focused pur
      3. **Formatted Workflow Message** (mandatory): Always end with this exact format:
 
 ```markdown
-> **📋 <u>**REVIEW REQUIRED:**</u>**  
-> Please examine the functional design artifacts at: `aidlc-docs/construction/[unit-name]/functional-design/`
-
-
-
-> **🚀 <u>**WHAT'S NEXT?**</u>**
->
-> **You may:**
->
-> 🔧 **Request Changes** - Ask for modifications to the functional design based on your review  
-> ✅ **Continue to Next Stage** - Approve functional design and proceed to **[next-stage-name]**
+> **📢 <u>**COMPLETION BRIEF:**</u>**  
+> [unit-name] functional design complete — artifacts at: `aidlc-docs/construction/[unit-name]/functional-design/`
+> Key decisions: [1-2 key decisions] · Notable risks: [or "none"]
+> Brief-gate posture: proceeding without approval — object anytime in natural language.
 
 ---
 ```
 
-### Step 8: Wait for Explicit Approval
-- Do not proceed until the user explicitly approves the functional design
-- Approval must be clear and unambiguous
-- If user requests changes, update the design and repeat the approval process
+### Step 8: Proceed (briefing gate)
+- This stage is `gate: brief` (B18): the completion brief requests no approval — present it and proceed in the SAME interaction
+- Append the audit entry: the brief summary is the audit record; no approval response exists to record
+- Run `python <skill>/scripts/engine.py report --stage functional-design --result completed` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
+- **Per-unit note**: this stage is emitted once by the engine for the whole unit loop. Do the design work per unit (informative progress messages are fine), but present the completion brief ONCE and call `report` exactly once — after the LAST unit completes; fold per-unit highlights in (notable deviations only, not a recital)
+- **Objection channel**: the user may object to the brief in natural language at any time — handle per the change flow (`references/common/workflow-changes.md`)
 
-### Step 9: Record Approval and Update Progress
-- Log approval in audit.md with timestamp
-- Record the user's approval response with timestamp
-- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage functional-design --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
-- **Per-unit note**: this stage is emitted once by the engine for the whole unit loop. Run the gate per unit as defined above, but call `report` exactly once — after the LAST unit's gate outcome. If a later unit is rejected, do not call `report` again; the stage stays current until all units pass.
+### Step 9: Log Interaction
+- Log the brief presentation in `aidlc-docs/audit.md` with an ISO 8601 timestamp and the brief content summary

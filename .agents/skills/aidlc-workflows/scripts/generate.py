@@ -82,7 +82,7 @@ REQUIRED_KEYS = (
 )
 CONSUME_KEYS = frozenset(("artifact", "required", "conditional_on"))
 EXECUTION_VALUES = ("ALWAYS", "CONDITIONAL")
-GATE_VALUES = ("none", "approve-continue", "two-option")
+GATE_VALUES = ("none", "approve-continue", "two-option", "brief")
 DEPTH_VALUES = ("adaptive", "minimal", "standard", "comprehensive")
 CONDITIONAL_ON_VALUES = ("brownfield", "greenfield")
 SCOPE_VALUE_VALUES = ("EXECUTE", "SKIP", "CONDITIONAL")
@@ -710,7 +710,11 @@ def build_stage_graph(ordered, scope_order):
                 "name": stage.name,
                 "phase": stage.phase,
                 "execution": stage.execution,
-                "gate": stage.gate,
+                # B18 gate posture: "brief" compiles to "none" — the engine's
+                # literal gate != "none" check (engine.py) stays untouched; the
+                # briefing obligation is model-side rule text, engine sees a
+                # gate-less stage that reports --result completed.
+                "gate": "none" if stage.gate == "brief" else stage.gate,
                 "for_each": stage.for_each == "unit-of-work",
                 "workspace_writes": bool(stage.workspace_writes),
                 "produces": list(stage.produces),

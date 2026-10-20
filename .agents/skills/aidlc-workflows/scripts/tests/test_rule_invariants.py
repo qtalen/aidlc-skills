@@ -132,17 +132,63 @@ class IterationDeliveryCoPresenceTests(unittest.TestCase):
         )
 
 
-class AutonomousModeTurnBoundaryTests(unittest.TestCase):
-    """P13 ruling (dogfood #2, option b): AM-03 must state that turn
-    boundaries are pacing, never gates — a resumption poke carries no
-    approval semantics."""
+class BriefGatePostureTests(unittest.TestCase):
+    """B18 gate posture: brief-gate rules must stay anchored in files the
+    model actually loads (the anchor lens: a mandatory step lives in the
+    stage's own rule file). P13's turn-boundary ruling survives in BRF-03."""
 
-    def test_turn_boundary_clause_present(self):
-        am = _read(
-            "references/extensions/workflow/autonomous-mode/autonomous-mode.md"
+    def test_brf_group_present_in_conventions(self):
+        wc = _read(
+            "references/extensions/workflow/workflow-conventions/"
+            "workflow-conventions.md"
         )
-        self.assertIn("Turn boundaries are not stop points", am)
-        self.assertIn("resumption trigger only", am)
+        self.assertIn("Group 5: Brief Gate Semantics (BRF)", wc)
+        self.assertIn("pacing, not a stop point", wc)
+        self.assertIn("resumption trigger only", wc)
+
+    def test_direction_stop_anchored_in_code_generation(self):
+        cg = _read("references/construction/code-generation.md")
+        self.assertIn("Direction Stop (once per round", cg)
+        self.assertIn("at most once per round", cg)
+
+    def test_stage_question_posture_present(self):
+        qf = _read("references/common/question-format-guide.md")
+        self.assertIn("Stage Question Posture", qf)
+        self.assertIn("(auto - recommended)", qf)
+
+    def test_never_commit_automatically_unconditional(self):
+        bt = _read("references/construction/build-and-test.md")
+        self.assertIn("**Never commit automatically**", bt)
+
+    def test_wp_plan_deviation_fork_anchored(self):
+        wp = _read("references/inception/workflow-planning.md")
+        self.assertIn("Plan-deviation question (fork escalation)", wp)
+
+    BRIEF_STAGE_FILES = (
+        "references/inception/workflow-planning.md",
+        "references/inception/user-stories.md",
+        "references/inception/application-design.md",
+        "references/inception/reverse-engineering.md",
+        "references/inception/units-generation.md",
+        "references/construction/functional-design.md",
+        "references/construction/nfr-requirements.md",
+        "references/construction/nfr-design.md",
+        "references/construction/infrastructure-design.md",
+        "references/construction/code-generation.md",
+        "references/construction/build-and-test.md",
+    )
+
+    def test_brief_stage_files_carry_no_approval_residue(self):
+        # B18 reviewer final-audit suggestion: pin the sweep statically —
+        # a brief-stage rule file must never instruct an approval wait,
+        # an approved report, or an approval request.
+        for path in self.BRIEF_STAGE_FILES:
+            text = _read(path)
+            self.assertNotIn("--result approved", text, path)
+            self.assertNotIn("Wait for Explicit Approval", text, path)
+            self.assertNotIn("Request Approval", text, path)
+            self.assertNotIn("explicitly approved by user", text, path)
+            self.assertNotIn("user approval obtained", text, path)
 
 
 if __name__ == "__main__":

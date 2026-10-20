@@ -96,7 +96,7 @@ The fact list becomes the skeleton for your conversation threads. (Deliberately 
   - "The user answers quickly, skip the write-back" — fast answers make the checkpoint *more* valuable, not less.
   - "This feature is obvious, cut it silently" — category defaults become questions, never silent cuts.
   - "Let's just fill in the standard question list" — that is the retired anti-pattern; threads come from the dialogue.
-  - "The user seems impatient, propose Autonomous Mode" — AM is deferred (see below); the fast path exists instead.
+  - "The user seems impatient, skip the dialogue" — the fast path exists instead (see below); speed comes from defaults, never from delegated decisions.
 - **ASCII visualization**: when structure is easier seen than read (a screen layout, a stage flow, a module map), sketch it inline in ASCII. Per-diagram criterion: does the picture make the point clearer than the words would? If not, drop it. (No browser dependence — this skill is harness-neutral.)
 
 ## Tools Within the Dialogue
@@ -193,12 +193,11 @@ Structure (adaptive depth — a small wish may compress sections to a line, but 
 
 Iteration numbering starts at 1 for the current product; FR/US identifiers follow Requirements Analysis and User Stories numbering once those exist (on re-entry, subsets reference them).
 
-## Autonomous Mode and Park
+## Park (and the Human-Territory Invariant)
 
-The brainstorm dialogue is **exclusively human territory** — no mechanism may make product decisions for the user. (When Product Brainstorm becomes the current stage while Autonomous Mode is on, AM-05's brainstorm trigger deactivates the mode first — see `references/extensions/workflow/autonomous-mode/autonomous-mode.md`; this section then applies in standard mode.)
+The brainstorm dialogue is **exclusively human territory** — no mechanism may make product decisions for the user.
 
-- **Activate intent during the dialogue**: deferred, never executed here. Announce in one line ("Autonomous Mode will activate at Requirements Analysis"), log it in audit — do **not** write `Enabled: Yes`. A full, fresh activation flow (AM-02, including the code-gen hold question) runs at the Requirements Analysis boundary. During the deferral window, an exit/cancel intent cancels the pending activation (no AM state change; one audit line). The pending activation never persists across sessions. (AM deferral semantics: `references/extensions/workflow/autonomous-mode/autonomous-mode.md`, AM-02.)
-- **The impatient user takes the fast path, not AM**: draft a full-default `product-design.md` from everything heard so far and present it — but the gate still requires explicit human approval. Speed comes from defaults, never from delegated decisions.
+- **The impatient user takes the fast path**: draft a full-default `product-design.md` from everything heard so far and present it — but the gate still requires explicit human approval. Speed comes from defaults, never from delegated decisions.
 - **Park is not offered for the dialogue**: the discussion does not persist across sessions. An interruption or context compaction abandons the current dialogue — on resume, restart the conversation (the understanding write-back makes this cheap) or take the fast path. This is a deliberate, recorded trade-off. (Contrast with normal stages: `references/common/session-continuity.md`, Park Ritual.)
 
 ## Gate and Reporting

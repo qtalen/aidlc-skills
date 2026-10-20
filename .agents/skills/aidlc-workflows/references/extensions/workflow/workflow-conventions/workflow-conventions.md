@@ -2,10 +2,11 @@
 
 ## Overview
 
-MANDATORY cross-cutting rules for every AI-DLC workflow execution. This file has no `.opt-in.md` — it is ALWAYS enforced and loaded at workflow start. It consolidates four rule groups:
+MANDATORY cross-cutting rules for every AI-DLC workflow execution. This file has no `.opt-in.md` — it is ALWAYS enforced and loaded at workflow start. It consolidates five rule groups:
 
 - **DOC-01~06** Documentation Consistency — keep aidlc-docs artifacts synchronized with code after every change
-- **APG-01~05** Approval Gate Semantics — how user responses at stage approval gates are classified and handled
+- **APG-01~05** Approval Gate Semantics — how user responses at stage approval gates are classified and handled (the hard engine gates: product-brainstorm, requirements-analysis; plus rule-level approve-and-continue stops such as Code Generation's first-unit direction stop)
+- **BRF-01~03** Brief Gate Semantics (B18) — completion briefs at `gate: brief` stages: present and proceed, no waiting
 - **AUD-01~05** Audit Discipline — authorship fields and append discipline on audit.md entries
 - **QT-01~04** Question Tool Flow — after generating a question file, collect answers via the harness's structured question tool, write them back to the file, then proceed
 
@@ -15,7 +16,7 @@ MANDATORY cross-cutting rules for every AI-DLC workflow execution. This file has
 
 A **blocking finding** means:
 1. List the finding in the stage completion message with rule ID and description
-2. Do NOT present "Continue to Next Stage" until resolved (present only "Request Changes" with explanation; for APG/AUD violations, correct the handling/entry first)
+2. Do NOT present the completion presentation until resolved — at a hard gate present only "Request Changes" (for APG/AUD violations, correct the handling/entry first); at a brief stage resolve the finding BEFORE the brief or escalate to the user instead of briefing past it (BRF-01)
 3. Log the finding in `aidlc-docs/audit.md` with rule ID, description, and stage context
 
 All rules are **blocking** by default, with one exception: rules explicitly marked **Advisory** in their own entry (currently DOC-06) are listed as reminders in the completion message but never block the flow. Rules not applicable to the current stage/change are marked N/A (not a finding).
@@ -65,9 +66,7 @@ When creating or substantially updating an `aidlc-docs/` **content artifact of 3
 
 ## Group 2: Approval Gate Semantics (APG)
 
-Stage completion messages keep their standardized two-option templates unchanged — this group is an interpretation layer for the user's free-form response.
-
-**Autonomous Mode override**: When Autonomous Mode is active (see `../autonomous-mode/autonomous-mode.md`), AM-03 suspends APG-01~04 waiting behavior for **every stage**. APG-05 always applies. Two mechanisms keep a human in the loop: the Code-Gen Hold (AM-11) may stop right before Code Generation, and a Pause (AM-05) ends the mode and continues in standard mode to the next approval gate.
+This group applies at the **hard gates** — stages whose frontmatter gate is `approve-continue` (product-brainstorm, requirements-analysis) — and at rule-level stops that use the same approve-and-continue interaction (Code Generation's first-unit direction stop). Completion messages at those points keep their standardized option templates unchanged; this group is an interpretation layer for the user's free-form response. All other stages are `gate: brief` — see Group 5 (BRF).
 
 ### APG-01: Approval Intent Classification
 At every approval gate, classify the user's reply into exactly one intent BEFORE acting:
@@ -144,7 +143,7 @@ Every NEW `audit.md` entry is appended at the END of the file (after the last ex
 
 Applies to every `{phase-name}-questions.md` file (including `-clarification-questions.md` variants) created under `aidlc-docs/`. Does NOT apply to stage completion approval gates — those remain in-chat, template-bound, per APG-05.
 
-**Autonomous Mode override**: When Autonomous Mode is active (see `../autonomous-mode/autonomous-mode.md` AM-04), QT-01's tool-based collection is suspended — the AI selects recommended answers and writes them back with attribution (fixed behavior; sole exception: a single undecidable question escalated per AM-04 point 6).
+**Brief-stage question posture (B18, general rule — former AM-04 semantics)**: at stages whose gate is `brief`, question files are NOT collected from the user by default. The AI auto-answers each question with the `(Recommended)` option (best option when no recommendation exists), writes the answers back with attribution and rationale, logs one audit entry, and proceeds — QT-01's tool invocation is skipped for those files. Two exceptions restore the full QT-01 flow: (1) a genuinely undecidable single question (no defensible recommendation) is escalated to the user via the structured question tool; (2) a product-level fork question — e.g. the Workflow Planning plan-deviation question — is asked, never auto-answered. At the hard-gate stages (product-brainstorm, requirements-analysis) questions go to the user through the normal QT flow. Full rule: `references/common/question-format-guide.md`, "Stage Question Posture".
 
 ### QT-01: Immediate Question Tool Invocation
 **Structured question tool**: any tool that, within the SAME interaction, presents a set of option-bearing questions to the user and returns the answers qualifies for this rule, whatever its name — identify it by capability signature, not by name. Reference implementations include OpenCode's `question` and Claude Code's `AskUserQuestion` (each is one example, not the only one); concrete parameter names at call time follow the harness's tool schema — the mapping requirements below are semantic.
@@ -169,10 +168,30 @@ Write the tool's answers back into the question file immediately: fill the match
 Do the write-back with your harness's file-edit tool (the same capability class QT-01 assumes for tools), anchoring each edit on a unique context string that contains the question title or the adjacent option text in the same block, so that each `[Answer]:` line is matched unambiguously. Do NOT generate a temporary script file to perform the write-back.
 
 ### QT-03: Proceed Without Manual Confirmation
-After write-back, run the standard validation from `question-format-guide.md` (completeness check + contradiction/ambiguity detection) and proceed to the next step directly — do NOT wait for the user to say "done". If validation produces clarification questions, the clarification file also follows QT-01.
+After write-back, run the standard validation from `question-format-guide.md` (completeness check + contradiction/ambiguity detection) and proceed to the next step directly — do NOT wait for the user to say "done". If validation produces clarification questions, the clarification file also follows QT-01 — at a hard-gate stage; at a brief stage it follows the Stage Question Posture (auto-answer, same as its parent file).
 
 ### QT-04: Tool Fallback
 If no structured question tool is available (none recognized for this harness), or it errors out, or it returns without answers, fall back to the base manual flow (inform the user, wait for completion confirmation per `question-format-guide.md`) and note the fallback in `aidlc-docs/audit.md`.
+
+---
+
+## Group 5: Brief Gate Semantics (BRF)
+
+Applies to every stage whose frontmatter gate is `brief` (the standard posture since B18 — 11 stages). A brief gate is **not** a softer approval gate: nothing is requested and nothing is approved. The stage completes by informing.
+
+### BRF-01: Present the Brief, Then Proceed
+At stage completion, present a **≤5-line brief** — the key decisions made, notable risks, and artifact locations — then, in the SAME interaction: record the transition with the engine (`report --stage <slug> --result completed`), append the audit entry (the brief summary is the audit record), and proceed to the next stage. Do NOT wait, do NOT ask, do NOT offer options.
+
+- **Per-unit stages** (`for_each`): ONE brief after the LAST unit completes (per-unit highlights folded in — notable deviations only, not a recital), reported once, consistent with the per-unit reporting rule in SKILL.md.
+- **Escalation exception**: if completing the stage requires a decision only the human can make (a human-only fork — what gets built, plan structure, scope, direction, or history writes (e.g. commits)), ASK it via the structured question tool instead of choosing silently; silence-continues never substitutes for a real decision. Stage rule files name their known forks (e.g. workflow-planning's plan-deviation question).
+- **Blocking findings**: resolve compliance findings BEFORE presenting the brief, as at any stage; an unresolvable finding is itself an escalation — stop and involve the user rather than briefing past it.
+- **Self-calibration**: if a stage's brief persistently cannot fit in 5 lines, the stage has real decision content — flag it for posture review (it may belong back at a hard gate). Thresholds: ≤5 lines = brief completion message; ≤10 lines = direction-stop brief; 20 lines = the minimum a user would pay to read.
+
+### BRF-02: The Brief Is an Objection Channel, Not a Veto Request
+The brief invites objections without requiring approval. After any brief the user may object in natural language; handle per the change flow (workflow-changes Type mechanism, backward jump as needed). Formal approval exists only at the hard gates. **Objection is always possible; approval only at gates** — attention economics.
+
+### BRF-03: Turn Boundaries Are Pacing, Never Gates
+A response turn that has to end mid-flow (length/context budget) is pacing, not a stop point: end it with a progress note explicitly stating no user decision is pending. The next user message, however trivial, is a resumption trigger only — it carries no approval semantics and no gate value; continue immediately without re-presenting any brief. (P13 ruling, carried over from the retired Autonomous Mode rules.)
 
 ---
 
@@ -184,8 +203,8 @@ If no structured question tool is available (none recognized for this harness), 
 | Historical record handling | DOC-04 |
 | Shared rule file edits | DOC-05 |
 | Creating or substantially updating a long (300+ line) aidlc-docs content artifact | DOC-06 (advisory — narrow context; list reminder if missing, never block) |
-| Every approval gate (all stages, inception + construction) | APG-01 ~ APG-05 |
+| Every hard gate (product-brainstorm, requirements-analysis) and rule-level approve-and-continue stop (Code Generation first-unit direction stop) | APG-01 ~ APG-05 |
+| Every `gate: brief` stage completion (11 stages) | BRF-01 ~ BRF-03 |
 | Every audit.md write | AUD-01, AUD-02, AUD-03, AUD-05 |
 | Every question file creation (requirements, stories, design, clarification) | QT-01 ~ QT-04 |
-| Autonomous Mode trigger / gates / questions / pause / resume / round expiry / code-gen hold | AM-01 ~ AM-11 (see `../autonomous-mode/autonomous-mode.md`; AM-06 number retired) |
 | This file's own maintenance | DOC-05, AUD-04 |

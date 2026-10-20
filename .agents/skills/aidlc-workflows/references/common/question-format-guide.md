@@ -19,6 +19,29 @@
 ### Rule: Never Ask Questions in Chat
 **CRITICAL**: You must NEVER ask questions directly in the chat. ALL questions must be placed in dedicated question files. (Exceptions: the minimal-candidate scope-selection question in Requirements Analysis Step 2.5 — see `references/inception/requirements-analysis.md`; the Product Brainstorm stage dialogue, which is exempt for its whole duration — see `references/inception/product-brainstorm.md`; and the extension opt-in choice card presented in chat when no questions file is created — see Requirements Analysis Step 5.1.)
 
+### Stage Question Posture (brief stages vs hard-gate stages)
+
+Who answers a question file depends on the stage's gate posture (B18):
+
+- **Hard-gate stages (product-brainstorm, requirements-analysis)**: questions go to the user — the full standard flow (create file → QT-01 tool collection → write-back → validation). These stages' outputs are the human control points.
+- **Brief stages (`gate: brief`)**: the AI auto-answers. For each question, select the `(Recommended)` option (best option when no recommendation exists) and write it back with attribution, immediately followed by a one-line rationale:
+
+  ```markdown
+  [Answer]: B (auto - recommended)
+  **Rationale** (auto): [one-sentence justification grounded in requirements/context]
+  ```
+
+  Then log one audit entry listing the auto-selected answers (question number, letter, brief rationale), run the standard validation (completeness + contradiction/ambiguity detection), and proceed. Clarification files produced by validation follow this same posture. Do NOT invoke the structured question tool for these files and do NOT wait for the user.
+
+**Two exceptions restore the full ask-the-user flow at any stage**:
+
+1. **Undecidable question** — no defensible recommendation exists → escalate that single question via the structured question tool (question text, options, and the `(Recommended)` marking included); write the user's answer back with attribution.
+2. **Product-level fork** — a decision that shapes what gets built (plan structure, scope, direction — e.g. the Workflow Planning plan-deviation question) → ask; never auto-answered.
+
+When an escalated question has no question file of its own (e.g. the commit-authorization ask in Build and Test), do not create one just for the escalation — record the question and the user's verbatim answer in `aidlc-docs/audit.md`.
+
+An explicit in-round user instruction about who answers questions (a single question or all of them) is always honored per its intent.
+
 ### Question File Format
 
 #### File Naming Convention
@@ -127,7 +150,7 @@ After user confirms completion:
 - When you hold a well-founded recommendation (from exploration evidence, project context, or ecosystem defaults), mark **exactly one** meaningful option with `(Recommended)` and append a one-sentence reason to that option
 - Below the options (above `[Answer]:`), add one line: `If you choose otherwise: <what the user gives up, one sentence>`
 - If no well-founded recommendation exists, omit both — a weak recommendation is worse than none
-- This marking is pure option metadata: the QT-01 question-tool flow (see `references/extensions/workflow/workflow-conventions/workflow-conventions.md`) is unchanged, and Autonomous Mode `auto-recommended` (AM-04) selects exactly the option marked `(Recommended)`
+- This marking is pure option metadata: the QT-01 question-tool flow (see `references/extensions/workflow/workflow-conventions/workflow-conventions.md`) is unchanged, and the brief-stage auto-answer rule (see Stage Question Posture above) selects exactly the option marked `(Recommended)`
 
 #### Good Example:
 ```markdown
@@ -365,6 +388,7 @@ E) Other (please describe after [Answer]: tag below)
 - ✅ Only include meaningful options - don't make up options to fill slots
 - ✅ Explore before asking — resolve codebase/artifact-answerable questions by exploration and record the source
 - ✅ When a well-founded recommendation exists, mark exactly one option `(Recommended)` with a reason and add the "If you choose otherwise" trade-off line
+- ✅ Stage question posture: brief stages auto-answer with the recommended option + rationale and proceed; hard-gate stages ask the user; undecidable and product-fork questions are always escalated (see Stage Question Posture)
 - ✅ Order questions upstream/blocking-first, one decision per question
 - ✅ Always use [Answer]: tags
 - ✅ Always wait for user completion

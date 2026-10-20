@@ -18,7 +18,7 @@ The AI model intelligently assesses what stages are needed based on:
 3. Complexity and scope of change
 4. Risk and impact assessment
 
-**Workflow scopes**: During Requirements Analysis, a named scope (classic/bugfix/refactor/security-patch/infra/express) is selected and recorded in `aidlc-docs/aidlc-state.md`. Scope selection is **de-emphasized for end users**: when the match is unambiguous the scope is auto-selected without a gate; only genuine ambiguity triggers a chat question with minimal candidates (see `references/inception/requirements-analysis.md` Step 2.5). The scope pre-prunes conditional stages (see `references/common/stage-contract.md` §6). If the active scope marks a stage as SKIP, do NOT execute it or re-litigate its inclusion — the per-stage criteria live in each stage's frontmatter `condition` (rendered into the CONDITIONAL Stage Criteria list under the scope matrix in `references/inception/workflow-planning.md`) and apply only to stages in the plan; the user may still add stages back explicitly at the Workflow Planning gate. If no scope is recorded (e.g. a session started before scopes existed), treat the plan as `classic`.
+**Workflow scopes**: During Requirements Analysis, a named scope (classic/bugfix/refactor/security-patch/infra/express) is selected and recorded in `aidlc-docs/aidlc-state.md`. Scope selection is **de-emphasized for end users**: when the match is unambiguous the scope is auto-selected without a gate; only genuine ambiguity triggers a chat question with minimal candidates (see `references/inception/requirements-analysis.md` Step 2.5). The scope pre-prunes conditional stages (see `references/common/stage-contract.md` §6). If the active scope marks a stage as SKIP, do NOT execute it or re-litigate its inclusion — the per-stage criteria live in each stage's frontmatter `condition` (rendered into the CONDITIONAL Stage Criteria list under the scope matrix in `references/inception/workflow-planning.md`) and apply only to stages in the plan; the user may still add stages back explicitly at the Workflow Planning brief (objection channel; structural plan deviations are asked there). If no scope is recorded (e.g. a session started before scopes existed), treat the plan as `classic`.
 
 ## MANDATORY: Rule Details Loading
 
@@ -98,8 +98,8 @@ Only after the probe succeeds may the workflow proceed.
 | `state` / `integrity` | Action |
 |---|---|
 | `none` | New workflow: display the welcome message (next section) → run Workspace Detection → `engine.py init` creates `aidlc-state.md` deterministically |
-| `active` | Resume the session per `references/common/session-continuity.md`; read `resume_note`, `artifact_alerts`, and `autonomous` from the status JSON first — they are the resumption briefing (last parked context; any missing-artifact alerts; whether Autonomous Mode is enabled). The status JSON is the sole source of truth for recovery |
-| `completed` | The workflow is complete. For a multi-iteration product, present the next-iteration preview from the roadmap first (Iteration Completion Ritual — `references/common/workflow-changes.md`). Ask what the new work is. **Same product** (new feature, fix, requirement change) → re-enter with `jump --stage <most upstream affected slug>` (typically `requirements-analysis`) and revise artifacts in place per `references/common/workflow-changes.md` (Re-Entering a Completed Workflow) — do NOT Start Fresh for this: archiving severs cross-iteration traceability (FR numbering, Deferred records). **New product intent** → confirm with the user, then `jump --fresh` or a new git version. In either path Autonomous Mode is off in the new round until re-activated (AM-10 round expiry; re-activation re-asks the AM-02 configuration) |
+| `active` | Resume the session per `references/common/session-continuity.md`; read `resume_note` and `artifact_alerts` from the status JSON first — they are the resumption briefing (last parked context; any missing-artifact alerts). The status JSON is the sole source of truth for recovery |
+| `completed` | The workflow is complete. For a multi-iteration product, present the next-iteration preview from the roadmap first (Iteration Completion Ritual — `references/common/workflow-changes.md`). Ask what the new work is. **Same product** (new feature, fix, requirement change) → re-enter with `jump --stage <most upstream affected slug>` (typically `requirements-analysis`) and revise artifacts in place per `references/common/workflow-changes.md` (Re-Entering a Completed Workflow) — do NOT Start Fresh for this: archiving severs cross-iteration traceability (FR numbering, Deferred records). **New product intent** → confirm with the user, then `jump --fresh` or a new git version. |
 | `legacy` | A pre-engine state file exists (no `ENGINE-STATE` region): do NOT silently adopt or overwrite it — follow the legacy handling in `references/common/engine-contract.md` |
 | `corrupt` | The `ENGINE-STATE` marker region is present but incomplete or malformed (truncated/hand-edited): do NOT overwrite silently — restore the missing marker line from a backup if available, else get explicit confirmation and Start Fresh (`jump --fresh`) |
 | any state, `integrity: violated` | The engine-owned region drifted: follow the integrity flow in `engine-contract.md` (present the drift, get explicit confirmation, `rebase`) |
@@ -126,7 +126,7 @@ The full runtime contract — invocation, directives, transition semantics, stat
    - **`done`**: the workflow is complete — present the closing summary (three-branch Iteration Completion Ritual: next-iteration preview + human gate / product-level final review / standard close when no roadmap — see `references/common/workflow-changes.md`) and stop.
    - **`error`**: present `message` and `hint` to the user verbatim, then stop.
 3. Write the stage outcome through the engine's only transition entry point:
-   - No gate, stage finished → `report --stage <slug> --result completed`
+   - No gate or `brief` gate, stage finished → `report --stage <slug> --result completed` (brief stages present the ≤5-line completion brief first — workflow-conventions Group 5)
    - Gated stage, user approved → `report --stage <slug> --result approved`
    - Gated stage, user requested changes → `report --stage <slug> --result rejected`
    - Stage revised and re-submitted → `report --stage <slug> --result revised`
@@ -172,7 +172,7 @@ Load `references/inception/workspace-detection.md` and execute (engine status pr
 
 ## Reverse Engineering (CONDITIONAL - Brownfield Only)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list under the scope matrix in `references/inception/workflow-planning.md`). Load `references/inception/reverse-engineering.md` and execute its steps. Approval gate before proceeding — report `approved` / `rejected` / `revised`, or `skipped --reason` if the stage does not apply (Orchestration Loop).
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list under the scope matrix in `references/inception/workflow-planning.md`). Load `references/inception/reverse-engineering.md` and execute its steps. Briefing gate — present the completion brief, then report `completed` (Orchestration Loop), or `skipped --reason` if the stage does not apply.
 
 ## Product Brainstorm (CONDITIONAL)
 
@@ -187,22 +187,22 @@ Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria
 **Assessment criteria**: the authoritative Execute-IF/Skip-IF criteria are in this stage's frontmatter `condition` — see the CONDITIONAL Stage Criteria list under the scope matrix in `references/inception/workflow-planning.md`. Perform the intelligent assessment per Step 1 in `references/inception/user-stories.md`; if Requirements Analysis executed, stories can reference and build upon those requirements.
 
 **User Stories has two parts within one stage**:
-1. **Part 1 - Planning**: Create story plan with questions, collect answers, analyze for ambiguities, get approval
-2. **Part 2 - Generation**: Execute approved plan to generate stories and personas
+1. **Part 1 - Planning**: Create story plan with questions (auto-answered per the Stage Question Posture — question-format-guide.md), analyze for ambiguities
+2. **Part 2 - Generation**: Execute the plan to generate stories and personas
 
-**Execution**: Load `references/inception/user-stories.md`; Part 1 (planning: story plan + questions + ambiguity analysis + plan approval), then Part 2 (generation of stories and personas). If the assessment above concludes stories are not needed, report `skipped --reason`. Approval gate before proceeding — report `approved` / `rejected` / `revised` via the engine (Orchestration Loop).
+**Execution**: Load `references/inception/user-stories.md`; Part 1 (planning: story plan + questions + ambiguity analysis), then Part 2 (generation of stories and personas). If the assessment above concludes stories are not needed, report `skipped --reason`. Briefing gate — present the completion brief, then report `completed` via the engine (Orchestration Loop).
 
 ## Workflow Planning (ALWAYS EXECUTE)
 
-Load `references/inception/workflow-planning.md` and execute its steps: scope-matrix baseline plus CONDITIONAL Stage Criteria judgments, per-stage depth, the execution plan document (validate Mermaid and content per `references/common/content-validation.md`). Approval gate — report `approved` / `rejected` / `revised` via the engine (Orchestration Loop).
+Load `references/inception/workflow-planning.md` and execute its steps: scope-matrix baseline plus CONDITIONAL Stage Criteria judgments, per-stage depth, the execution plan document (validate Mermaid and content per `references/common/content-validation.md`). Briefing gate — present the completion brief (plan-deviation forks are ASKED, never folded in silently), then report `completed` via the engine (Orchestration Loop).
 
 ## Application Design (CONDITIONAL)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/inception/application-design.md` and execute at appropriate depth. Approval gate — report `approved` / `rejected` / `revised`, or `skipped --reason` if not applicable (Orchestration Loop).
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/inception/application-design.md` and execute at appropriate depth. Briefing gate — present the completion brief, then report `completed` (Orchestration Loop), or `skipped --reason` if not applicable.
 
 ## Units Generation (CONDITIONAL)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/inception/units-generation.md` and execute at appropriate depth. Approval gate — report `approved` / `rejected` / `revised`, or `skipped --reason` if not applicable (Orchestration Loop).
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/inception/units-generation.md` and execute at appropriate depth. Briefing gate — present the completion brief, then report `completed` (Orchestration Loop), or `skipped --reason` if not applicable.
 
 ---
 
@@ -231,32 +231,32 @@ Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria
 
 **For each unit of work, execute the following stages in sequence:**
 
-> **Per-unit reporting rule**: the engine emits each per-unit stage ONCE for the whole unit loop (one state slot per stage). Run the stage's gate per unit, but call `report` exactly once — after the LAST unit's gate outcome. Reporting `approved` after an early unit would mark the stage done and strand the remaining units.
+> **Per-unit reporting rule**: the engine emits each per-unit stage ONCE for the whole unit loop (one state slot per stage). These are briefing stages: do the work per unit (informative progress messages are fine), but present the completion brief once and call `report` exactly once — after the LAST unit completes. Reporting after an early unit would mark the stage done and strand the remaining units.
 ### Functional Design (CONDITIONAL, per-unit)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/functional-design.md` and execute for this unit. Standardized 2-option gate — report `approved` / `rejected` / `revised`, or `skipped --reason` if not applicable (Orchestration Loop).
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/functional-design.md` and execute for this unit. Briefing gate — brief once after the last unit, then report `completed`, or `skipped --reason` if not applicable (Orchestration Loop).
 
 ### NFR Requirements (CONDITIONAL, per-unit)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/nfr-requirements.md` and execute for this unit. Standardized 2-option gate — report `approved` / `rejected` / `revised`, or `skipped --reason` if not applicable (Orchestration Loop).
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/nfr-requirements.md` and execute for this unit. Briefing gate — brief once after the last unit, then report `completed`, or `skipped --reason` if not applicable (Orchestration Loop).
 
 ### NFR Design (CONDITIONAL, per-unit)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/nfr-design.md` and execute for this unit. Standardized 2-option gate — report `approved` / `rejected` / `revised`, or `skipped --reason` if not applicable (Orchestration Loop).
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/nfr-design.md` and execute for this unit. Briefing gate — brief once after the last unit, then report `completed`, or `skipped --reason` if not applicable (Orchestration Loop).
 
 ### Infrastructure Design (CONDITIONAL, per-unit)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/infrastructure-design.md` and execute for this unit. Standardized 2-option gate — report `approved` / `rejected` / `revised`, or `skipped --reason` if not applicable (Orchestration Loop).
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/infrastructure-design.md` and execute for this unit. Briefing gate — brief once after the last unit, then report `completed`, or `skipped --reason` if not applicable (Orchestration Loop).
 
 ### Code Generation (ALWAYS EXECUTE, per-unit)
 
-**Two parts within one stage**: Part 1 (planning — detailed code generation plan with checkboxes, user-approved), Part 2 (generation — execute the approved plan; application code goes to the workspace root, never `aidlc-docs/`). Load `references/construction/code-generation.md` and execute. Standardized 2-option gate — report `approved` / `rejected` / `revised` via the engine (Orchestration Loop).
+**Two parts within one stage**: Part 1 (planning — detailed code generation plan with checkboxes), Part 2 (generation — execute the plan; application code goes to the workspace root, never `aidlc-docs/`). The round's **Direction Stop** (once per round, before the first unit — see the stage rule file) is the one standing stop in this stage. Load `references/construction/code-generation.md` and execute. Briefing gate — brief once after the last unit, then report `completed` via the engine (Orchestration Loop).
 
 ---
 
 ## Build and Test (ALWAYS EXECUTE)
 
-Load `references/construction/build-and-test.md` and generate comprehensive build/test instruction files for all units (full artifact list there). Approval gate — report `approved` / `rejected` / `revised` via the engine (Orchestration Loop).
+Load `references/construction/build-and-test.md` and generate comprehensive build/test instruction files for all units (full artifact list there). Briefing gate — present the completion brief with the commit plan in its body (the commit-authorization question is asked via the structured question tool; commits are never automatic), then report `completed` via the engine (Orchestration Loop).
 
 ---
 
@@ -294,11 +294,11 @@ The Operations stage will eventually include:
 - **Transparent Planning**: Always show execution plan before starting
 - **User Control**: User can request stage inclusion/exclusion
 - **Progress Tracking (two-level checkboxes)**: Stage progress is engine-owned — the engine exclusively maintains the ENGINE-STATE region of `aidlc-state.md` (stage checkboxes, Current Status, State Digest) through `report`/`jump` (transitions) and `park` (annotations); the model MUST NOT hand-edit it. Plan-level checkboxes in `aidlc-docs/` plan files are model-owned — mark a step `[x]` in the SAME interaction where the work is completed; never leave completed work untracked.
-- **State Ownership**: The model maintains only the model-owned regions of `aidlc-state.md` (Project Information, Workspace State, Code Location Rules, Extension Configuration, Autonomous Mode, Execution Plan Summary — incl. the Scope/Depth/Stages lines the engine reads for routing) per template. The full ownership matrix is in `references/common/engine-contract.md`. (Sole exception: the engine's AM-10 round-boundary expiry flip of the Autonomous Mode `Enabled` line — engine-contract.md §6.)
+- **State Ownership**: The model maintains only the model-owned regions of `aidlc-state.md` (Project Information, Workspace State, Code Location Rules, Extension Configuration, Execution Plan Summary — incl. the Scope/Depth/Stages lines the engine reads for routing) per template. The full ownership matrix is in `references/common/engine-contract.md`. (Since B18 retired Autonomous Mode, the engine never writes into any model-owned region — the ownership boundary is clean.)
 - **Complete Audit Trail**: Log ALL user inputs and AI responses in audit.md with timestamps — COMPLETE RAW INPUT, never summarized, every interaction (not just approvals). The full audit discipline (append-only, end-of-file anchoring, git-sourced fields, timestamp acquisition) is enforced by workflow-conventions Group 3 (AUD-01–05).
 - **Quality Focus**: Complex changes get full treatment, simple changes stay efficient
 - **Content Validation**: Always validate content before file creation per content-validation.md rules
-- **NO EMERGENT BEHAVIOR**: Construction phases MUST use standardized 2-option completion messages as defined in their respective rule files. DO NOT create 3-option menus or other emergent navigation patterns.
+- **NO EMERGENT BEHAVIOR**: Completion presentations are standardized — hard-gate stages use the option templates defined in their rule files; `brief` stages use the ≤5-line completion brief (workflow-conventions Group 5). DO NOT create 3-option menus or other emergent navigation patterns.
 
 ## Audit Log Entry Format
 

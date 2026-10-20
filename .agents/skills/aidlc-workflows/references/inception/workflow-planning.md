@@ -3,7 +3,7 @@ slug: workflow-planning
 phase: inception
 execution: ALWAYS
 condition: Always executes — determines which stages to execute, their depth, and the execution sequence; user can override recommendations
-gate: approve-continue
+gate: brief
 produces:
   - inception/plans/execution-plan.md
 consumes:
@@ -172,7 +172,7 @@ Apply the scope's column as the baseline:
 - **SKIP** → stage is out of the plan (rationale: the scope excludes it)
 - **CONDITIONAL** → decide now using the **CONDITIONAL Stage Criteria (authoritative)** list directly below the matrix — it is generated from each stage's frontmatter `condition` mapping (the single source of truth)
 
-Then fine-tune: the user may add individual SKIP stages or remove EXECUTE/CONDITIONAL stages at the approval gate (Step 9/10). If the baseline feels wrong for the task as a whole, recommend switching scope instead of hand-editing many rows.
+Then fine-tune: the user may add individual SKIP stages or remove EXECUTE/CONDITIONAL stages by objecting to the plan brief (Step 9) — the objection channel of the brief-gate posture. If the baseline feels wrong for the task as a whole, recommend switching scope instead of hand-editing many rows.
 
 **No scope recorded?** If `aidlc-state.md` has no Scope entry (e.g. a session started before scopes existed), treat the plan as `classic` and continue.
 
@@ -183,7 +183,7 @@ Then fine-tune: the user may add individual SKIP stages or remove EXECUTE/CONDIT
 When a product-design roadmap is present and defines more than one iteration:
 
 - **Verify the current iteration's split** against the hard criteria: **H1** downward closure (the current iteration must not depend on capabilities planned for a later iteration — check by FR dependency against the roadmap's Scope subsets) and **H2** observable outcome (the iteration ends with something externally checkable — no dark iterations). The brainstorm shaped the split against these; this is the re-entry checkpoint, and Units Generation re-checks H1 at unit granularity (see `units-generation.md`, Iteration Scope).
-- **Report violations with their cost** at the approval gate (Step 9). The user's explicit split always wins on insistence — record the risk note on the roadmap and proceed.
+- **Report violations with their cost** in the completion brief (Step 9). The user's explicit split always wins on insistence — record the risk note on the roadmap and proceed.
 - **N=1 is legal**: a single-iteration roadmap needs no verification here; non-classic scopes do not split by default.
 
 ## Step 4: Note Adaptive Detail
@@ -421,7 +421,7 @@ python <skill>/scripts/engine.py init
 Do **not** create it here, and never hand-edit its Stage Progress, Current
 Status, or State Digest sections — those are the engine's exclusive territory.
 
-After the plan is approved (Steps 9/10), record the plan decisions in the
+After the completion brief is presented (Step 9), record the plan decisions in the
 `## Execution Plan Summary` section of `aidlc-docs/aidlc-state.md`. That section
 is the model's territory, but the engine reads it — so the format is strict:
 
@@ -453,10 +453,10 @@ Rules:
 Then complete this stage's transition by running:
 
 ```cmd
-python <skill>/scripts/engine.py report --stage workflow-planning --result approved
+python <skill>/scripts/engine.py report --stage workflow-planning --result completed
 ```
 
-Do not run `report` before the plan is approved.
+Do not run `report` before the completion brief is presented.
 
 ## Step 9: Present Plan to User
 
@@ -509,35 +509,30 @@ I recommend skipping [Y] stages:
 
 **Estimated Timeline**: [Duration]
 
-> **📋 <u>**REVIEW REQUIRED:**</u>**  
-> Please examine the execution plan at: `aidlc-docs/inception/plans/execution-plan.md`
-
-> **🚀 <u>**WHAT'S NEXT?**</u>**
->
-> **You may:**
->
-> 🔧 **Request Changes** - Ask for modifications to the execution plan if required
-> [IF any stages are skipped:]
-> 📝 **Add Skipped Stages** - Choose to include stages currently marked as SKIP
-> ✅ **Approve & Continue** - Approve plan and proceed to **[Next Stage Name]**
+> **📢 <u>**COMPLETION BRIEF:**</u>**  
+> Execution plan ready — artifacts at: `aidlc-docs/inception/plans/execution-plan.md`
+> Plan shape: [X stages execute / Y skip — key deviations from the scope baseline, if any] · Key decisions: [1-2] · Notable risks: [or "none"]
+> Brief-gate posture: proceeding without approval — object anytime in natural language (e.g. to add a skipped stage or drop a planned one).
 ```
 
-## Step 10: Handle User Response
+**Plan-deviation question (fork escalation)**: if the plan deviates from the active scope's default grid — adding or removing stages relative to the scope's EXECUTE/SKIP/CONDITIONAL baseline — that deviation is a product-level fork: ASK it via the structured question tool (present the deviation and its cost, mark the recommended option) instead of folding it silently into the brief. Wait for the answer, apply it to the plan, then proceed. This is the first application of the brief-gate escalation rule (workflow-conventions Group 5, BRF-01).
 
-- **If approved**: record the transition via `report --stage workflow-planning --result approved` (Step 8); the engine's `next` directive routes what follows — never route manually
-- **If changes requested**: Update execution plan and re-confirm
-- **If user wants to force include/exclude stages**: Update plan accordingly
+## Step 10: Proceed (briefing gate)
+
+- **Default — no response is pending**: record the transition via `report --stage workflow-planning --result completed` (Step 8) in the SAME interaction as the brief; the engine's `next` directive routes what follows — never route manually
+- **If a plan-deviation question was asked (Step 9)**: wait for its answer, apply it to the plan (and the Execution Plan Summary lines), then proceed as above
+- **If the user objects** (change request, or wants to include/exclude stages): update the plan accordingly and re-brief — the objection channel replaces the former gate's add/remove options
 
 ## Step 11: Log Interaction
 
 Log in `aidlc-docs/audit.md`:
 
 ```markdown
-## Workflow Planning - Approval
+## Workflow Planning - Completion Brief
 **Timestamp**: [ISO timestamp]
-**AI Prompt**: "Ready to proceed with this plan?"
-**User Response**: "[User's COMPLETE RAW response]"
-**Status**: [Approved/Changes Requested]
+**AI Prompt**: "[Brief content summary]"
+**User Response**: "[User's COMPLETE RAW response, or '[No user input]' when none]"
+**Status**: [Briefed - proceeded / Objection handled / Fork asked]
 **Context**: Workflow plan created with [X] stages to execute
 
 ---

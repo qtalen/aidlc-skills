@@ -5,7 +5,7 @@ execution: CONDITIONAL
 condition:
   execute_if: new components or services needed, component methods and business rules need definition, service layer design required, component dependencies need clarification
   skip_if: changes within existing component boundaries, no new components or methods, pure implementation changes
-gate: approve-continue
+gate: brief
 produces:
   - inception/plans/application-design-plan.md
   - inception/application-design/components.md
@@ -100,9 +100,8 @@ Application Design focuses on:
 - Provide clear instructions on completing the [Answer]: tags
 
 ### 7. Collect Answers
-- Wait for user to provide answers to all questions using [Answer]: tags in the document
-- Do not proceed until ALL [Answer]: tags are completed
-- Review the document to ensure no [Answer]: tags are left blank
+- Collect answers per the Stage Question Posture (brief stage — auto-answer): select the `(Recommended)` option, write back with attribution and rationale per `question-format-guide.md`; escalated questions are asked via the structured question tool
+- Do not proceed until ALL [Answer]: tags are filled (auto-answers count) and validated
 
 ### 8. ANALYZE ANSWERS (MANDATORY)
 Before proceeding, you MUST carefully review all user answers for:
@@ -143,9 +142,9 @@ If the analysis in step 8 reveals ANY ambiguous answers, you MUST:
   - Data flow diagrams
 - Create `aidlc-docs/inception/application-design/application-design.md` that consolidates the multiple design docs created above in a single doc.
 
-### 11. Log Approval
-- Log approval prompt with timestamp in `aidlc-docs/audit.md`
-- Include complete approval prompt text
+### 11. Log Brief Presentation
+- Log the brief presentation with timestamp in `aidlc-docs/audit.md`
+- Include the brief content summary
 - Use ISO 8601 timestamp format
 
 ### 12. Present Completion Message
@@ -155,29 +154,19 @@ If the analysis in step 8 reveals ANY ambiguous answers, you MUST:
 
 [AI-generated summary of application design artifacts created in bullet points]
 
-> **📋 <u>**REVIEW REQUIRED:**</u>**  
-> Please examine the application design artifacts at: `aidlc-docs/inception/application-design/`
-
-> **🚀 <u>**WHAT'S NEXT?**</u>**
->
-> **You may:**
->
-> 🔧 **Request Changes** - Ask for modifications to the application design if required
-> [IF Units Generation is skipped:]
-> 📝 **Add Units Generation** - Choose to include **Units Generation** stage (currently skipped)
-> ✅ **Approve & Continue** - Approve design and proceed to **[Units Generation/CONSTRUCTION PHASE]**
+> **📡 <u>**COMPLETION BRIEF:**</u>**  
+> Application design complete — artifacts at: `aidlc-docs/inception/application-design/`
+> Key decisions: [1-2] · Notable risks: [or "none"] · Units Generation: [included / skipped per plan]
+> Brief-gate posture: proceeding without approval — object anytime in natural language (e.g. to add the skipped Units Generation stage).
 ```
 
-### 13. Wait for Explicit Approval
-- Do not proceed until the user explicitly approves the application design
-- Approval must be clear and unambiguous
-- If user requests changes, update the design and repeat the approval process
+### 13. Proceed (briefing gate)
+- This stage is `gate: brief` (B18): the completion brief requests no approval — present it and proceed in the SAME interaction
+- Append the audit entry: the brief summary is the audit record; no approval response exists to record
 
-### 14. Record Approval Response
-- Log the user's approval response with timestamp in `aidlc-docs/audit.md`
-- Include the exact user response text
-- Mark the approval status clearly
+### 14. Objection Channel
+- The user may object to the brief in natural language at any time — handle per the change flow (`references/common/workflow-changes.md`)
 
 ### 15. Update Progress
-- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage application-design --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned.
+- In the SAME interaction as the brief, run `python <skill>/scripts/engine.py report --stage application-design --result completed` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned.
 - Prepare for transition to next stage

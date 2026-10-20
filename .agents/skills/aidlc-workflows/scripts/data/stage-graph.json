@@ -29,7 +29,7 @@
       "name": "Reverse Engineering",
       "phase": "inception",
       "execution": "CONDITIONAL",
-      "gate": "approve-continue",
+      "gate": "none",
       "for_each": false,
       "workspace_writes": false,
       "produces": [
@@ -122,7 +122,7 @@
       "name": "User Stories",
       "phase": "inception",
       "execution": "CONDITIONAL",
-      "gate": "approve-continue",
+      "gate": "none",
       "for_each": false,
       "workspace_writes": false,
       "produces": [
@@ -161,7 +161,7 @@
       "name": "Workflow Planning",
       "phase": "inception",
       "execution": "ALWAYS",
-      "gate": "approve-continue",
+      "gate": "none",
       "for_each": false,
       "workspace_writes": false,
       "produces": [
@@ -212,7 +212,7 @@
       "name": "Application Design",
       "phase": "inception",
       "execution": "CONDITIONAL",
-      "gate": "approve-continue",
+      "gate": "none",
       "for_each": false,
       "workspace_writes": false,
       "produces": [
@@ -258,7 +258,7 @@
       "name": "Units Generation",
       "phase": "inception",
       "execution": "CONDITIONAL",
-      "gate": "approve-continue",
+      "gate": "none",
       "for_each": false,
       "workspace_writes": false,
       "produces": [
@@ -313,7 +313,7 @@
       "name": "Functional Design",
       "phase": "construction",
       "execution": "CONDITIONAL",
-      "gate": "two-option",
+      "gate": "none",
       "for_each": true,
       "workspace_writes": false,
       "produces": [
@@ -358,7 +358,7 @@
       "name": "NFR Requirements",
       "phase": "construction",
       "execution": "CONDITIONAL",
-      "gate": "two-option",
+      "gate": "none",
       "for_each": true,
       "workspace_writes": false,
       "produces": [
@@ -402,7 +402,7 @@
       "name": "NFR Design",
       "phase": "construction",
       "execution": "CONDITIONAL",
-      "gate": "two-option",
+      "gate": "none",
       "for_each": true,
       "workspace_writes": false,
       "produces": [
@@ -434,7 +434,7 @@
       "name": "Infrastructure Design",
       "phase": "construction",
       "execution": "CONDITIONAL",
-      "gate": "two-option",
+      "gate": "none",
       "for_each": true,
       "workspace_writes": false,
       "produces": [
@@ -479,7 +479,7 @@
       "name": "Code Generation",
       "phase": "construction",
       "execution": "ALWAYS",
-      "gate": "two-option",
+      "gate": "none",
       "for_each": true,
       "workspace_writes": true,
       "produces": [
@@ -528,7 +528,7 @@
       "name": "Build and Test",
       "phase": "construction",
       "execution": "ALWAYS",
-      "gate": "approve-continue",
+      "gate": "none",
       "for_each": false,
       "workspace_writes": false,
       "produces": [

@@ -5,7 +5,7 @@ execution: CONDITIONAL
 condition:
   execute_if: user-facing features or workflow changes, multiple user types or personas, complex business requirements needing acceptance criteria, cross-team collaboration or customer-facing API changes; borderline cases default to inclusion
   skip_if: pure internal refactoring with zero user impact, simple bug fixes with clear isolated scope, infrastructure changes with no user-facing effects, technical debt cleanup with no functional changes, documentation-only or developer-tooling updates
-gate: approve-continue
+gate: brief
 produces:
   - inception/plans/user-stories-assessment.md
   - inception/plans/story-generation-plan.md
@@ -204,16 +204,13 @@ For medium priority cases, execute user stories if ANY of these apply:
 - Include all [Answer]: tags for user input
 - Ensure plan is comprehensive and covers all story development aspects
 
-## Step 7: Request User Input
-- Ask user to fill in all [Answer]: tags directly in the story plan document
-- Emphasize importance of audit trail and decision documentation
-- Provide clear instructions on how to fill in the [Answer]: tags
-- Explain that all questions must be answered before proceeding
+## Step 7: Question Posture (brief stage — auto-answer)
+- Story-planning questions are auto-answered per the Stage Question Posture (`question-format-guide.md`): select the `(Recommended)` option (best option when no recommendation exists), write back with attribution and rationale, one audit entry
+- Escalation exceptions: a genuinely undecidable question or a product-level fork is asked via the structured question tool — never auto-answered
 
-## Step 8: Collect Answers
-- Wait for user to provide answers to all questions using [Answer]: tags in the document
-- Do not proceed until ALL [Answer]: tags are completed
-- Review the document to ensure no [Answer]: tags are left blank
+## Step 8: Validate Answers
+- Run the standard validation: completeness check + contradiction/ambiguity detection
+- Clarification files produced by validation follow the same posture
 
 ## Step 9: ANALYZE ANSWERS (MANDATORY)
 Before proceeding, you MUST carefully review all user answers for:
@@ -245,20 +242,20 @@ If the analysis in step 9 reveals ANY ambiguous answers, you MUST:
 - Avoid creating development timelines or sprint planning
 - Keep focus on story structure and format decisions
 
-## Step 12: Log Approval Prompt
-- Before asking for approval, log the prompt with timestamp in `aidlc-docs/audit.md`
-- Include the complete approval prompt text
+## Step 12: Log Plan Presentation
+- Log the story-plan presentation with timestamp in `aidlc-docs/audit.md`
+- Include the plan summary presented
 - Use ISO 8601 timestamp format
 
-## Step 13: Wait for Explicit Approval of Plan
-- Do not proceed until the user explicitly approves the story approach
-- Approval must be clear and unambiguous
-- If user requests changes, update the plan and repeat the approval process
+## Step 13: Proceed (no plan approval — brief-gate posture, B18)
+- This stage is `gate: brief`: the story plan is presented for information — proceed directly to PART 2
+- Story-planning questions are auto-answered per the Stage Question Posture (question-format-guide.md): recommended option + written rationale, one audit entry; undecidable or product-fork questions are escalated to the user
+- If the user objects to the plan in natural language, update the plan and proceed (the objection channel replaces the former approval wait)
 
-## Step 14: Record Approval Response
-- Log the user's approval response with timestamp in `aidlc-docs/audit.md`
-- Include the exact user response text
-- Mark the approval status clearly
+## Step 14: Record Interaction
+- Log the interaction outcome with timestamp in `aidlc-docs/audit.md`
+- Include the exact user response text when one exists
+- Mark the outcome clearly (briefed / objection handled)
 
 ---
 
@@ -285,9 +282,9 @@ If the analysis in step 9 reveals ANY ambiguous answers, you MUST:
 - [ ] If all steps complete, verify stories are ready for next stage
 - [ ] Ensure all mandatory artifacts are generated
 
-## Step 19: Log Approval Prompt
-- Before asking for approval, log the prompt with timestamp in `aidlc-docs/audit.md`
-- Include the complete approval prompt text
+## Step 19: Log Brief Presentation
+- Before presenting the completion brief, log the presentation with timestamp in `aidlc-docs/audit.md`
+- Include the brief content summary
 - Use ISO 8601 timestamp format
 
 ## Step 20: Present Completion Message
@@ -308,33 +305,23 @@ If the analysis in step 9 reveals ANY ambiguous answers, you MUST:
      3. **Formatted Workflow Message** (mandatory): Always end with this exact format:
 
 ```markdown
-> **📋 <u>**REVIEW REQUIRED:**</u>**  
-> Please examine the user stories and personas at: `aidlc-docs/inception/user-stories/stories.md` and `aidlc-docs/inception/user-stories/personas.md`
-
-
-
-> **🚀 <u>**WHAT'S NEXT?**</u>**
->
-> **You may:**
->
-> 🔧 **Request Changes** -  Ask for modifications to the stories or personas based on your review  
-> ✅ **Approve & Continue** - Approve user stories and proceed to **Workflow Planning**
+> **📡 <u>**COMPLETION BRIEF:**</u>**  
+> User stories complete — artifacts at: `aidlc-docs/inception/user-stories/stories.md` and `aidlc-docs/inception/user-stories/personas.md`
+> Key decisions: [1-2] · Notable risks: [or "none"]
+> Brief-gate posture: proceeding without approval — object anytime in natural language.
 
 ---
 ```
 
-## Step 21: Wait for Explicit Approval of Generated Stories
-- Do not proceed until the user explicitly approves the generated stories
-- Approval must be clear and unambiguous
-- If user requests changes, update stories and repeat the approval process
+## Step 21: Record and Proceed (briefing gate)
+- This stage is `gate: brief` (B18): the completion brief requests no approval — present it and proceed in the SAME interaction
+- **Objection channel**: the user may object in natural language at any time — handle per the change flow (`references/common/workflow-changes.md`)
 
-## Step 22: Record Approval Response
-- Log the user's approval response with timestamp in `aidlc-docs/audit.md`
-- Include the exact user response text
-- Mark the approval status clearly
+## Step 22: Log Interaction
+- Log the brief in `aidlc-docs/audit.md` (the brief summary is the audit record; if the user responds, include the exact user response text)
 
 ## Step 23: Update Progress
-- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage user-stories --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
+- In the SAME interaction as the brief, run `python <skill>/scripts/engine.py report --stage user-stories --result completed` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
 - Prepare for transition to next stage
 
 ---
@@ -345,19 +332,19 @@ If the analysis in step 9 reveals ANY ambiguous answers, you MUST:
 - **CONTEXT-APPROPRIATE QUESTIONS**: Only ask questions relevant to this specific context
 - **MANDATORY ANSWER ANALYSIS**: Always analyze answers for ambiguities before proceeding
 - **NO PROCEEDING WITH AMBIGUITY**: Must resolve all vague answers before generation
-- **EXPLICIT APPROVAL REQUIRED**: User must approve plan before generation starts
+- **PLAN PRESENTED, NOT APPROVED**: the story plan is summarized and proceeds (brief-gate posture); objections handled per the change flow
 
 ## Generation Phase Rules
 - **NO HARDCODED LOGIC**: Only execute what's written in the story generation plan
 - **FOLLOW PLAN EXACTLY**: Do not deviate from the step sequence
 - **UPDATE CHECKBOXES**: Mark [x] immediately after completing each step
-- **USE APPROVED METHODOLOGY**: Follow the story approach from Planning
+- **USE PLANNED METHODOLOGY**: Follow the story approach from Planning
 - **VERIFY COMPLETION**: Ensure all story artifacts are complete before proceeding
 
 ## Completion Criteria
 - All planning questions answered and ambiguities resolved
-- Story plan explicitly approved by user
+- Story plan presented and consistent (objections, if any, resolved)
 - All steps in story generation plan marked [x]
 - All story artifacts generated according to plan (stories.md, personas.md)
-- Generated stories explicitly approved by user
+- Generated stories presented in the completion brief (objections, if any, resolved)
 - Stories verified and ready for next stage

@@ -16,7 +16,7 @@ AI-DLC is a structured yet flexible software development process that adapts to 
 - **Plans the optimal approach** based on complexity and risk
 - **Skips unnecessary steps** for simple changes while providing comprehensive coverage for complex projects
 - **Documents everything** so you have a complete record of decisions and rationale
-- **Guides you through each phase** with clear checkpoints and approval gates
+- **Guides you through each phase** with a few real decision gates — everything else is reported as briefs
 
 ## The Three-Phase Lifecycle
 

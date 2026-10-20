@@ -5,7 +5,7 @@ execution: CONDITIONAL
 condition:
   execute_if: an existing codebase is detected and no prior reverse-engineering artifacts exist
   skip_if: greenfield project, or prior reverse-engineering artifacts already exist
-gate: approve-continue
+gate: brief
 produces:
   - inception/reverse-engineering/*
 consumes: []
@@ -311,7 +311,7 @@ Create `aidlc-docs/inception/reverse-engineering/reverse-engineering-timestamp.m
 
 ## Step 11: Update State Tracking
 
-Stage progress is engine-owned. Do not hand-write a `## Reverse Engineering Status` section or edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md`. After the user approves at the gate (Step 13), run `python <skill>/scripts/engine.py report --stage reverse-engineering --result approved` (fall back to `python3` if `python` is unavailable).
+Stage progress is engine-owned. Do not hand-write a `## Reverse Engineering Status` section or edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md`. After the completion brief is presented (Step 13), run `python <skill>/scripts/engine.py report --stage reverse-engineering --result completed` (fall back to `python3` if `python` is unavailable).
 
 ## Step 12: Present Completion Message to User
 
@@ -320,18 +320,14 @@ Stage progress is engine-owned. Do not hand-write a `## Reverse Engineering Stat
 
 [AI-generated summary of key findings from analysis in the form of bullet points; if produced, include `working-conventions.md` (optional artifact) in the artifact list]
 
-> **📋 <u>**REVIEW REQUIRED:**</u>**  
-> Please examine the reverse engineering artifacts at: `aidlc-docs/inception/reverse-engineering/`
-
-> **🚀 <u>**WHAT'S NEXT?**</u>**
->
-> **You may:**
->
-> 🔧 **Request Changes** - Ask for modifications to the reverse engineering analysis if required
-> ✅ **Approve & Continue** - Approve analysis and proceed to **Requirements Analysis**
+> **📡 <u>**COMPLETION BRIEF:**</u>**  
+> Reverse engineering complete — artifacts at: `aidlc-docs/inception/reverse-engineering/`
+> Key findings: [1-2] · Notable risks: [or "none"]
+> Brief-gate posture: proceeding without approval — object anytime in natural language.
 ```
 
-## Step 13: Wait for User Approval
+## Step 13: Record and Proceed (briefing gate)
 
-- **MANDATORY**: Do not proceed until user explicitly approves
-- **MANDATORY**: Log user's response in audit.md with complete raw input
+- **MANDATORY**: In the SAME interaction as the brief, run `python <skill>/scripts/engine.py report --stage reverse-engineering --result completed` (fall back to `python3` if `python` is unavailable) — never hand-edit the engine-owned state sections
+- **MANDATORY**: Log the brief in audit.md (the brief summary is the audit record; if the user responds, log the complete raw input)
+- **Objection channel**: the user may object in natural language at any time — handle per the change flow (`references/common/workflow-changes.md`)

@@ -2,8 +2,8 @@
 slug: code-generation
 phase: construction
 execution: ALWAYS
-condition: Always executes for each unit — generates code, tests, and artifacts through an approved two-part plan
-gate: two-option
+condition: Always executes for each unit — generates code, tests, and artifacts through a two-part plan
+gate: brief
 produces:
   - construction/plans/{unit-name}-code-generation-plan.md
   - construction/{unit-name}/code/*
@@ -37,7 +37,7 @@ scopes:
 ## Overview
 This stage generates code for each unit of work through two integrated parts:
 - **Part 1 - Planning**: Create detailed code generation plan with explicit steps
-- **Part 2 - Generation**: Execute approved plan to generate code, tests, and artifacts
+- **Part 2 - Generation**: Execute the plan to generate code, tests, and artifacts
 
 **Note**: For brownfield projects, "generate" means modify existing files when appropriate, not create duplicates.
 
@@ -47,7 +47,7 @@ This stage generates code for each unit of work through two integrated parts:
 - All unit design artifacts must be available
 - Unit is ready for code generation
 
-**Autonomous Mode (AM-11)**: when the state section shows `Code-Gen Hold: Pending`, present the hold announcement and wait for the user's go-ahead BEFORE starting this stage's work — the stop lands before the FIRST unit and occurs at most once per activation (see `../extensions/workflow/autonomous-mode/autonomous-mode.md`).
+**Direction Stop (once per round — the standing direction gate, B18)**: before starting the FIRST unit's work this round (judge from this session's context and the plan file whether the stop was already presented this round; when uncertain, re-present — the safe direction), present the direction brief and WAIT for the user's go-ahead — an approve-and-continue style interaction — APG-01's intent classification applies to the user's reply, but APG-02~04's engine-transition recording does NOT (the stage is not completing here: no `report` runs at the stop; hold/continue only gates whether stage work begins). The brief is ≤10 lines: unit count and order (from Units Generation), the design-stage key decisions so far (the current unit's designs and any workflow-level choices), notable risks, and any drift relative to Requirements Analysis. This is also the natural model-switch window (e.g. to a faster model for the implementation stages). Saying "continue" (or equivalent semantics, any language) releases the stop and the stage proceeds under brief-gate rules; a change request goes through the normal change flow, after which the stop KEEPS WAITING until continue-semantics. The stop occurs at most once per round: subsequent units and a backward redo into this stage do NOT re-present it (the user can always request an ad-hoc stop conversationally). A session resuming with no unit of this stage completed this round re-presents the stop before continuing.
 
 ---
 
@@ -107,20 +107,17 @@ This stage generates code for each unit of work through two integrated parts:
 - [ ] Explain step sequence and story coverage
 - [ ] Note total number of steps and estimated scope
 
-## Step 6: Log Approval Prompt
-- [ ] Before asking for approval, log the prompt with timestamp in `aidlc-docs/audit.md`
-- [ ] Include reference to the complete unit code generation plan
+## Step 6: Log Plan Presentation
+- [ ] Log the unit-plan presentation (Step 5 summary) with timestamp in `aidlc-docs/audit.md`
 - [ ] Use ISO 8601 timestamp format
 
-## Step 7: Wait for Explicit Approval
-- [ ] Do not proceed until the user explicitly approves the unit code generation plan
-- [ ] Approval must cover the entire plan and generation sequence
-- [ ] If user requests changes, update the plan and repeat approval process
+## Step 7: Proceed (no per-unit plan approval — brief-gate posture, B18)
+- [ ] The unit plan summary is informational — do NOT wait for approval; the round-level Direction Stop (top of this file) is the only standing stop in this stage
+- [ ] If the user objects to a unit plan in natural language, update the plan and proceed (the objection channel replaces the former approval wait)
 
-## Step 8: Record Approval Response
-- [ ] Log the user's approval response with timestamp in `aidlc-docs/audit.md`
-- [ ] Include the exact user response text
-- [ ] Mark the approval status clearly
+## Step 8: Record Interaction
+- [ ] Log the interaction outcome with timestamp in `aidlc-docs/audit.md`
+- [ ] Include the exact user response text when one exists; mark the outcome clearly (briefed / objection handled)
 
 ## Step 9: Update Progress
 - [ ] Track Part 1 (Planning) progress in the plan file — the Stage Progress / Current Status sections of `aidlc-state.md` are engine-owned; never hand-edit them
@@ -175,33 +172,21 @@ This stage generates code for each unit of work through two integrated parts:
      3. **Formatted Workflow Message** (mandatory): Always end with this exact format:
 
 ```markdown
-> **📋 <u>**REVIEW REQUIRED:**</u>**  
-> Please examine the generated code at:
-> - **Application Code**: `[actual-workspace-path]`
-> - **Documentation**: `aidlc-docs/construction/[unit-name]/code/`
-
-
-
-> **🚀 <u>**WHAT'S NEXT?**</u>**
->
-> **You may:**
->
-> 🔧 **Request Changes** - Ask for modifications to the generated code based on your review  
-> ✅ **Continue to Next Stage** - Approve code generation and proceed to **[next-unit/Build & Test]**
+> **📡 <u>**COMPLETION BRIEF:**</u>**  
+> Code generation complete for all units — code at: `[actual-workspace-path]` · docs at: `aidlc-docs/construction/[unit-name]/code/`
+> Key decisions: [1-2] · Notable risks: [or "none"]
+> Brief-gate posture: proceeding without approval — object anytime in natural language.
 
 ---
 ```
 
-## Step 15: Wait for Explicit Approval
-- Do not proceed until the user explicitly approves the generated code
-- Approval must be clear and unambiguous
-- If user requests changes, update the code and repeat the approval process
+## Step 15: Record and Proceed (briefing gate)
+- This stage is `gate: brief` (B18): the completion brief requests no approval — present it and proceed in the SAME interaction
+- **Objection channel**: the user may object in natural language at any time — handle per the change flow (`references/common/workflow-changes.md`)
 
-## Step 16: Record Approval and Update Progress
-- Log approval in audit.md with timestamp
-- Record the user's approval response with timestamp
-- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage code-generation --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
-- **Per-unit note**: this stage is emitted once by the engine for the whole unit loop. Run the gate per unit as defined above, but call `report` exactly once — after the LAST unit's gate outcome. If a later unit is rejected, do not call `report` again; the stage stays current until all units pass.
+## Step 16: Update Progress
+- In the SAME interaction as the brief, run `python <skill>/scripts/engine.py report --stage code-generation --result completed` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-state.md` — they are engine-owned.
+- **Per-unit note**: this stage is emitted once by the engine for the whole unit loop. Do the generation work per unit (informative progress messages are fine), but present the completion brief ONCE and call `report` exactly once — after the LAST unit completes; fold per-unit highlights in (notable deviations only, not a recital).
 
 ---
 
@@ -228,7 +213,7 @@ This stage generates code for each unit of work through two integrated parts:
 - Create explicit, numbered steps for all generation activities
 - Include story traceability in the plan
 - Document unit context and dependencies
-- Get explicit user approval before generation
+- Present the unit plan summary and proceed — the round-level Direction Stop (top of this file) is the one standing stop
 
 ### Generation Phase Rules
 - **NO HARDCODED LOGIC**: Only execute what's written in the unit plan
@@ -245,7 +230,7 @@ When generating UI code (web, mobile, desktop), ensure elements are automation-f
 - Keep `data-testid` values stable across code changes (only change when element purpose changes)
 
 ## Completion Criteria
-- Complete unit code generation plan created and approved
+- Complete unit code generation plan created
 - All steps in unit code generation plan marked [x]
 - All unit stories implemented according to plan
 - All code and tests generated (tests will be executed in Build & Test phase)

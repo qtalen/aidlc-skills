@@ -113,7 +113,7 @@ would never use. The scope catalog below is generated from the scope registry
 4. **De-emphasize scope for end users — auto-select whenever the match is clear:**
    - **Unambiguous → auto-select, NO gate.** When determination is confident (explicit user naming, or a unique keyword match with no priority-rule conflict), adopt the scope directly, record it per item 5, and mention it in one line in a subsequent message (e.g. "已按 bugfix 流程处理"). Do NOT present an approval gate, do NOT explain the scope concept, and do NOT offer heavier scopes (e.g. `classic`) "just in case" — if the recommended scope clearly fits, it is the only one that applies.
    - **Genuinely ambiguous → minimal candidates only.** Ask in chat with as few candidates as possible — only the genuinely plausible scopes (typically 1–2). Never present the full catalog as a menu, and never include a scope you already know is a poor fit. Frame it as a plain either/or question, not a concept lecture. (This chat choice is exempt from the "all questions go to question files" rule, because the answer determines which questions Step 6 will need.)
-   - **Safety net**: the Workflow Planning gate always presents the resulting stage plan and allows adding stages back — an auto-selected scope can be corrected there without ceremony.
+   - **Safety net**: the Workflow Planning brief always presents the resulting stage plan and accepts objections (plus the plan-deviation question for structural changes) — an auto-selected scope can be corrected there.
 5. Record the decision in `aidlc-docs/aidlc-state.md` — fill the `- **Scope**:` and `- **Depth**:` placeholder lines under `## Execution Plan Summary` (the engine reads these lines for routing):
 
 ```markdown
@@ -123,9 +123,9 @@ would never use. The scope catalog below is generated from the scope registry
 
    The Depth value is the scope's default unless the user overrides it. Keep both values **bare single tokens** — inline parenthesised annotations (e.g. `(scope default)`) on these lines are forbidden: the engine never parses them — Depth strips the note (tolerated), while Scope rejects a glued annotation (`plan-invalid`) and silently drops a whitespace-separated one. Put commentary on a separate free-text line below the structured lines (rules in Workflow Planning Step 8).
 
-   Also log the scope selection (chosen scope, depth, and whether it was auto-selected or user-chosen) in `aidlc-docs/audit.md`. Do NOT hand-edit the `<!-- BEGIN/END ENGINE-STATE -->` region. Workflow Planning will additionally write the `- **Stages to Execute**:` / `- **Stages to Skip**:` lines in the same section after its gate is approved.
+   Also log the scope selection (chosen scope, depth, and whether it was auto-selected or user-chosen) in `aidlc-docs/audit.md`. Do NOT hand-edit the `<!-- BEGIN/END ENGINE-STATE -->` region. Workflow Planning will additionally write the `- **Stages to Execute**:` / `- **Stages to Skip**:` lines in the same section after its completion brief is presented.
 
-**Effect**: stages marked `SKIP` by the selected scope are excluded from the plan from this point on (e.g. a `bugfix` scope never offers User Stories); `CONDITIONAL` stages still self-select from context. Workflow Planning presents the resulting plan for approval and still allows per-stage fine-tuning.
+**Effect**: stages marked `SKIP` by the selected scope are excluded from the plan from this point on (e.g. a `bugfix` scope never offers User Stories); `CONDITIONAL` stages still self-select from context. Workflow Planning presents the resulting plan in its brief and still allows per-stage fine-tuning (objection channel).
 
 ### Step 2.6: Product Brainstorm Backstop (routing)
 

@@ -110,7 +110,6 @@ aidlc-state.md
 |      - Scope: classic      - Depth: standard                 |
 |      - Stages to Execute / Stages to Skip                    |
 |   ## Extension Configuration   (| CTX | No |)                |
-|   ## Autonomous Mode           (Enabled: No ...)             |
 |==============================================================|
 | <!-- BEGIN ENGINE-STATE -->   ENGINE-EXCLUSIVE ZONE          |
 |   ## Stage Progress    - [ ]/[x]/[S]/[R]/[?] <slug>          |
@@ -123,22 +122,22 @@ aidlc-state.md
 model-writes -> engine-reads channels (tolerant, junk degrades to null):
   _parse_plan()       engine.py:308   scope/depth/skip drive effective_stages()
   _ctx_enabled()      engine.py:835   gates the checkpoint-missing sensor
-  _parse_autonomous() engine.py:749   feeds the status "autonomous" key
 ```
 
 ### 这张图在画什么
 
 一个 `aidlc-state.md` 文件被一道 HTML 注释标记（`<!-- BEGIN/END ENGINE-STATE -->`）切成两个"租区"：
 
-**上半区：模型专属。** 项目信息、工作区扫描结论、执行计划摘要、扩展配置、自主模式开关——都是 AI 按模板自由填写的业务内容，引擎**从不改写**。
+**上半区：模型专属。** 项目信息、工作区扫描结论、执行计划摘要、扩展配置——都是 AI 按模板自由填写的业务内容，引擎**从不改写**。
 
 **下半区：引擎专属。** 阶段进度勾选表、当前阶段、单元进度、完整性指纹——只有引擎能写，模型手改这里会被完整性校验当场抓住（见第 5 节）。
 
-**三条特殊的"模型写、引擎读"通道**（图下方的注释）：模型在上半区写的三个结构化信息，引擎会读：
+**两条特殊的"模型写、引擎读"通道**（图下方的注释）：模型在上半区写的结构化信息，引擎会读：
 
 1. `_parse_plan()`（engine.py:308）：读"选了哪个 scope、哪些阶段跳过"——这是引擎算出"接下来该做哪个阶段"的依据。
 2. `_ctx_enabled()`（engine.py:835）：读扩展配置表里 CTX（上下文检查点扩展）开没开——决定要不要做 checkpoint 检查。
-3. `_parse_autonomous()`（engine.py:749）：读自主模式区——喂给 `status` 输出的 `autonomous` 键。
+
+（第三条通道 `_parse_autonomous()` 已随 B18 的 AM 退役删除——引擎回到"永不写、也无需读"模型区业务配置的形态。）
 
 注意"tolerant, junk degrades to null"（宽容解析，坏数据降级为空）：这三条通道读取时**不挑刺**——格式不对、缺字段、写了乱码，引擎不报错，当作"没配置"处理。因为这些区归模型所有，引擎若因区外内容报错，就等于侵犯了自己不该管的辖区。
 
@@ -343,7 +342,7 @@ current = requirements-analysis
 park --note "..." -> Last Parked + handoff.md     marks/current UNTOUCHED
    |
    v
-status -> resume_note + note_age_seconds:6 + autonomous{...}
+status -> resume_note + note_age_seconds:6
           + resumed-artifacts alert (RA half-done artifacts sensed)
 ```
 
@@ -357,7 +356,7 @@ status -> resume_note + note_age_seconds:6 + autonomous{...}
 6. **`report RE skipped --reason ...`**：模型判断是全新项目，RE 不适用。这道 skipped 能通过第 4 节的关卡 [3]，因为 RE 本来就是 CONDITIONAL 阶段。理由落进审计。
 7. **RA（需求分析）进行中**：模型写问题文件、调结构化提问工具收集用户答案、回写文件——**这一大段完全没有引擎参与**，因为写文档是模型的活，引擎只管流程账。
 8. **`park`**：会话要中断，留停车便签。进度表和当前阶段**原封不动**——中断不是转移。
-9. **`status` 恢复简报**：新会话一开场就能看到：停车时留的注记（resume_note）、便签贴了多久（note_age_seconds: 6）、自主模式配置（autonomous{...}），还有传感器警报——发现 RA 的半成品文件已存在，提醒"上次可能干了一半"。
+9. **`status` 恢复简报**：新会话一开场就能看到：停车时留的注记（resume_note）、便签贴了多久（note_age_seconds: 6），还有传感器警报——发现 RA 的半成品文件已存在，提醒"上次可能干了一半"。
 
 ### 这张图在画什么
 
@@ -380,8 +379,6 @@ status -> resume_note + note_age_seconds:6 + autonomous{...}
 | engine.py:611 | `check_integrity()` | 指纹 + 审计双链核验 |
 | engine.py:686 | `effective_stages()` | 按 scope/计划裁剪后的有效阶段序列 |
 | engine.py:704/:713 | `pending_stages()` / `current_stage()` | 第一个 `[ ]` 阶段 = 当前阶段 |
-| engine.py:749 | `_parse_autonomous()` | 读自主模式区（宽容解析） |
-| engine.py:786 | `_expire_autonomous()` | AM-10 轮次边界把自主模式 Enabled 翻转为 No（宽容 no-op） |
 | engine.py:835 | `_ctx_enabled()` | 读扩展配置表判断 CTX 开关 |
 | engine.py:974 | `_artifact_alerts()` | 传感器：半成品/缺产出/缺 checkpoint 警报 |
 | engine.py:1086 | `cmd_status()` | 恢复简报（resume_note / recent_events / …） |

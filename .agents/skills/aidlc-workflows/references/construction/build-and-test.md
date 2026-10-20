@@ -3,7 +3,7 @@ slug: build-and-test
 phase: construction
 execution: ALWAYS
 condition: Always executes after all units complete — generates comprehensive build and test instructions for all units
-gate: approve-continue
+gate: brief
 produces:
   - construction/build-and-test/build-instructions.md
   - construction/build-and-test/unit-test-instructions.md
@@ -327,7 +327,7 @@ Create `aidlc-docs/construction/build-and-test/build-and-test-summary.md`:
 
 ## Step 8: Update State Tracking
 
-Stage progress is engine-owned. After the user approves at the gate (Step 9), run `python <skill>/scripts/engine.py report --stage build-and-test --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned.
+Stage progress is engine-owned. In the SAME interaction as the completion brief (Step 9) and the commit-authorization answer, run `python <skill>/scripts/engine.py report --stage build-and-test --result completed` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned.
 
 ---
 
@@ -350,39 +350,30 @@ Present completion message in this structure:
      3. **Formatted Workflow Message** (mandatory): Always end with this exact format:
 
 ```markdown
-> **📋 <u>**REVIEW REQUIRED:**</u>**  
-> Please examine the build and test summary at: `aidlc-docs/construction/build-and-test/build-and-test-summary.md`
-
-
-
-> **🚀 <u>**WHAT'S NEXT?**</u>**
->
-> **You may:**
->
-> 🔧 **Request Changes** - Ask for modifications to the build and test instructions based on your review
-> ✅ **Approve & Continue** - Approve build and test results and continue (the engine routes what follows)
+> **📡 <u>**COMPLETION BRIEF:**</u>**  
+> Build and test complete — summary at: `aidlc-docs/construction/build-and-test/build-and-test-summary.md`
+> Key results: [tests X/Y green — 1-2 highlights] · Notable risks: [or "none"]
+> Brief-gate posture: proceeding without approval — the commit plan below asks its own authorization question.
 
 ---
 ```
 
 ### Commit Protocol
 
-Timing is fixed: the completion message at this gate presents the commit plan in its body → the user's "Approve & Continue" counts as both stage approval and authorization to execute the commit plan → only then run `python <skill>/scripts/engine.py report --stage build-and-test --result approved` (per Step 8) → execute the commit plan. The plan is never presented after the approval click, and no git write happens before `report approved`.
+Timing is fixed: the completion brief presents the commit plan in its body → the commit-authorization question is asked via the structured question tool in the SAME interaction (execute the commit plan / the user handles commits manually / no git writes now) → only then run `python <skill>/scripts/engine.py report --stage build-and-test --result completed` (per Step 8) → execute the commit plan per the answer. The plan is never presented after the question is answered, and no git write happens before `report completed`.
 
-- Presenting the commit plan in the message body is compatible with APG-05 ("No Template Modification"): the two-option template stays untouched — the plan is plain prose in the message body, not a third visible option.
-- **Request Changes path, or the user preferring to handle commits manually** → execute NO git write operations.
+- The commit authorization is a genuine human-only fork (history writes) — an escalated question under the brief-gate posture (workflow-conventions Group 5, BRF-01), never an automatic action. **Never commit automatically** (unconditional discipline, owned by the Completion Ritual): the message always lists the pending-to-commit inventory and the user decides.
+- **"User handles commits manually" or "no git writes now" answers** → execute NO git write operations.
 
 Protocol:
 
 1. **Dirty-file triage**: classify every dirty workspace path by whether this session's tool calls actually wrote it. First class: artifacts produced by this workflow. Every other dirty file is second class — list it, NEVER stage it silently.
 2. **One-shot commit plan presentation**: list first-class files grouped by their owning stage and unit; list second-class files as a plain inventory (never staged automatically).
-3. **Products with an iteration roadmap (iteration-boundary batch)**: the commit batch includes `aidlc-docs/inception/product-design/product-design.md` with the current iteration marked `shipped` and its Shipped Log rollup line already written — the marking happens at this ship transition moment (see `workflow-changes.md`, Iteration Completion Ritual), which this gate's commit batch anchors. This applies to ANY product carrying an iteration roadmap, including a single-iteration one (N=1 marks its only row; its completion ritual takes Branch 2). Non-git workspaces: the git protocol is skipped per rule 5; the shipped marking (a workflow action) still happens.
+3. **Products with an iteration roadmap (iteration-boundary batch)**: the commit batch includes `aidlc-docs/inception/product-design/product-design.md` with the current iteration marked `shipped` and its Shipped Log rollup line already written — the marking happens at this ship transition moment (see `workflow-changes.md`, Iteration Completion Ritual), which the completion brief's commit batch anchors. This applies to ANY product carrying an iteration roadmap, including a single-iteration one (N=1 marks its only row; its completion ritual takes Branch 2). Non-git workspaces: the git protocol is skipped per rule 5; the shipped marking (a workflow action) still happens.
 4. **No amend, no push** — unless the user explicitly asks.
 5. **Non-git workspace**: align with the AUD-02 precedent — no git → mark commit information `unknown`, do not block the flow, and skip this entire protocol.
 6. **Audit**: write the commit plan and its confirmation outcome to `audit.md`; record the resulting commit hashes in `build-and-test-summary.md`.
 7. **Commit order**: commit work results first; IF any archival/handoff pending items exist at that point, commit them afterward (conditional — at build-and-test time these typically do not exist).
-
-**Autonomous Mode (AM-03)**: never commit automatically under Autonomous Mode — the completion message lists the pending-to-commit inventory and the user decides (see `../extensions/workflow/autonomous-mode/autonomous-mode.md`).
 
 ---
 

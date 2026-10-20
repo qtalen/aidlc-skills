@@ -489,6 +489,24 @@ class Rule4Tests(unittest.TestCase):
         self.assertIn("missing required key", str(ctx.exception))
         self.assertIn("'gate'", str(ctx.exception))
 
+    def test_gate_brief_accepted(self):
+        # B18 gate posture: "brief" is a legal authored gate value; it
+        # compiles to "none" in stage-graph.json (see StageGraphTests).
+        stage = generate.build_stage(
+            "my-stage.md",
+            "my-stage",
+            "inception",
+            _stage_fm(
+                "my-stage",
+                "inception",
+                "CONDITIONAL",
+                {"classic": "EXECUTE"},
+                gate="brief",
+            ),
+            ["classic"],
+        )
+        self.assertEqual(stage.gate, "brief")
+
     def test_produces_must_be_list(self):
         text = _stage_fm(
             "my-stage",
@@ -828,6 +846,33 @@ class StageGraphTests(unittest.TestCase):
         names = [scope["name"] for scope in self.graph["scopes"]]
         self.assertEqual(names[0], "classic")
         self.assertEqual(names, sorted(names, key=lambda n: (n != "classic", n)))
+
+    def test_gate_brief_compiles_to_none(self):
+        # B18 gate posture: authored "brief" never reaches the engine — the
+        # compiled graph carries "none" (the engine's literal gate != "none"
+        # check stays untouched). The 11 demoted stages plus the two native
+        # gate-less stages compile to "none"; the two hard engine gates keep
+        # approve-continue.
+        compiled = {s["slug"]: s["gate"] for s in self.graph["stages"]}
+        self.assertNotIn("brief", set(compiled.values()))
+        for slug in (
+            "workflow-planning",
+            "user-stories",
+            "application-design",
+            "reverse-engineering",
+            "units-generation",
+            "functional-design",
+            "nfr-requirements",
+            "nfr-design",
+            "infrastructure-design",
+            "code-generation",
+            "build-and-test",
+        ):
+            self.assertEqual(compiled[slug], "none", slug)
+        self.assertEqual(compiled["product-brainstorm"], "approve-continue")
+        self.assertEqual(compiled["requirements-analysis"], "approve-continue")
+        self.assertEqual(compiled["workspace-detection"], "none")
+        self.assertEqual(compiled["operations"], "none")
 
     def test_stage_fields_match_frontmatter(self):
         by_slug = {stage["slug"]: stage for stage in self.graph["stages"]}

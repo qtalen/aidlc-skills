@@ -5,7 +5,7 @@ execution: CONDITIONAL
 condition:
   execute_if: the system needs decomposition into multiple units of work, multiple services/modules/packages require changes, a complex system needs structured breakdown or a multi-package change sequence
   skip_if: single simple unit, no decomposition needed, straightforward single-component implementation, UI-only or configuration-only changes
-gate: approve-continue
+gate: brief
 produces:
   - inception/plans/unit-of-work-plan.md
   - inception/application-design/unit-of-work.md
@@ -104,15 +104,13 @@ This stage decomposes the system into manageable units of work through two integ
 - Include all [Answer]: tags for user input
 - Ensure plan covers all aspects of system decomposition
 
-## Step 5: Request User Input
-- Ask user to fill [Answer]: tags directly in the plan document
-- Emphasize importance of decomposition decisions
-- Provide clear instructions on completing the [Answer]: tags
+## Step 5: Question Posture (brief stage — auto-answer)
+- Decomposition questions are auto-answered per the Stage Question Posture (`question-format-guide.md`): select the `(Recommended)` option (best option when no recommendation exists), write back with attribution and rationale, one audit entry
+- Escalation exceptions: a genuinely undecidable question or a product-level fork is asked via the structured question tool — never auto-answered
 
-## Step 6: Collect Answers
-- Wait for user to provide answers to all questions using [Answer]: tags in the document
-- Do not proceed until ALL [Answer]: tags are completed
-- Review the document to ensure no [Answer]: tags are left blank
+## Step 6: Validate Answers
+- Run the standard validation: completeness check + contradiction/ambiguity detection
+- Clarification files produced by validation follow the same posture
 
 ## Step 7: ANALYZE ANSWERS (MANDATORY)
 Before proceeding, you MUST carefully review all user answers for:
@@ -125,21 +123,20 @@ Before proceeding, you MUST carefully review all user answers for:
 ## Step 8: MANDATORY Follow-up Questions
 If the analysis in step 7 reveals ANY ambiguous answers, you MUST:
 - Add specific follow-up questions to the plan document using [Answer]: tags
-- DO NOT proceed to approval until all ambiguities are resolved
+- Resolve all ambiguities before proceeding (follow-ups per the Stage Question Posture)
 - Examples of required follow-ups:
   - "You mentioned 'mix of A and B' - what specific criteria should determine when to use A vs B?"
   - "You said 'somewhere between A and B' - can you define the exact middle ground approach?"
   - "You indicated 'not sure' - what additional information would help you decide?"
   - "You mentioned 'depends on complexity' - how do you define complexity levels?"
 
-## Step 9: Request Approval
-- Ask: "**Unit of work plan complete. Review the plan in aidlc-docs/inception/plans/unit-of-work-plan.md. Ready to proceed to generation?**"
-- DO NOT PROCEED until user confirms
+## Step 9: Proceed (no plan approval — brief-gate posture, B18)
+- The unit-of-work plan is informational: summarize it in one line (units count, decomposition approach) and proceed directly to generation — the completion brief at the end of this stage is the reporting point
+- If the user objects in natural language, update the plan and proceed
 
-## Step 10: Log Approval
-- Log prompt and response in audit.md with timestamp
+## Step 10: Log Interaction
+- Log the plan presentation in audit.md with timestamp
 - Use ISO 8601 timestamp format
-- Include complete approval prompt text
 
 ## Step 11: Update Progress
 - Track Part 1 (Planning) progress in the plan file — the Stage Progress / Current Status sections of `aidlc-state.md` are engine-owned; never hand-edit them
@@ -168,7 +165,7 @@ If the analysis in step 7 reveals ANY ambiguous answers, you MUST:
 ## Step 15: Continue or Complete
 - [ ] If more steps remain, return to Step 12
 - [ ] If all steps complete, verify units are ready for design stages
-- [ ] Do not hand-edit the state file — the stage completion is recorded through the engine after approval (Step 19)
+- [ ] Do not hand-edit the state file — the stage completion is recorded through the engine after the completion brief (Step 19)
 
 ## Step 16: Present Completion Message
 
@@ -177,29 +174,21 @@ If the analysis in step 7 reveals ANY ambiguous answers, you MUST:
 
 [AI-generated summary of units and decomposition created in bullet points]
 
-> **📋 <u>**REVIEW REQUIRED:**</u>**  
-> Please examine the units generation artifacts at: `aidlc-docs/inception/application-design/`
-
-> **🚀 <u>**WHAT'S NEXT?**</u>**
->
-> **You may:**
->
-> 🔧 **Request Changes** - Ask for modifications to the units generation if required
-> ✅ **Approve & Continue** - Approve units and proceed to **CONSTRUCTION PHASE**
+> **📡 <u>**COMPLETION BRIEF:**</u>**  
+> Units generated — artifacts at: `aidlc-docs/inception/application-design/`
+> Units: [N units — names/sizes one line] · Key decisions: [1-2] · Notable risks: [or "none"]
+> Brief-gate posture: proceeding without approval — object anytime in natural language.
 ```
 
-## Step 17: Wait for Explicit Approval
-- Do not proceed until the user explicitly approves the units generation
-- Approval must be clear and unambiguous
-- If user requests changes, update the units and repeat the approval process
+## Step 17: Proceed (briefing gate)
+- This stage is `gate: brief` (B18): the completion brief requests no approval — present it and proceed in the SAME interaction
+- Append the audit entry: the brief summary is the audit record; no approval response exists to record
 
-## Step 18: Record Approval Response
-- Log the user's approval response with timestamp in `aidlc-docs/audit.md`
-- Include the exact user response text
-- Mark the approval status clearly
+## Step 18: Objection Channel
+- The user may object to the brief in natural language at any time — handle per the change flow (`references/common/workflow-changes.md`)
 
 ## Step 19: Update Progress
-- After the user approves at the gate, run `python <skill>/scripts/engine.py report --stage units-generation --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned.
+- In the SAME interaction as the brief, run `python <skill>/scripts/engine.py report --stage units-generation --result completed` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned.
 - **Record the unit list in state** (model-owned region): append a `## Units` section to `aidlc-docs/aidlc-state.md` (anywhere OUTSIDE the `<!-- BEGIN/END ENGINE-STATE -->` markers) with one structured line per unit:
 
   ```markdown
@@ -219,18 +208,18 @@ If the analysis in step 7 reveals ANY ambiguous answers, you MUST:
 - Use [Answer]: tag format for all questions
 - Analyze all answers for ambiguities before proceeding
 - Resolve ALL ambiguities with follow-up questions
-- Get explicit user approval before generation
+- Present the plan summary and proceed (brief-gate posture; objections handled per the change flow)
 
 ### Generation Phase Rules
 - **NO HARDCODED LOGIC**: Only execute what's written in the unit of work plan
 - **FOLLOW PLAN EXACTLY**: Do not deviate from the step sequence
 - **UPDATE CHECKBOXES**: Mark [x] immediately after completing each step
-- **USE APPROVED APPROACH**: Follow the decomposition methodology from Planning
+- **USE PLANNED APPROACH**: Follow the decomposition methodology from Planning
 - **VERIFY COMPLETION**: Ensure all unit artifacts are complete before proceeding
 
 ## Completion Criteria
 - All planning questions answered and ambiguities resolved
-- User approval obtained for the plan
+- Plan presented and consistent (objections, if any, resolved)
 - All steps in unit of work plan marked [x]
 - All unit artifacts generated according to plan:
   - `unit-of-work.md` with unit definitions

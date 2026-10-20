@@ -12,8 +12,8 @@ Property-based testing defines invariants that must hold for all valid inputs, t
 
 A **blocking PBT finding** means:
 1. The finding MUST be listed in the stage completion message under a "PBT Findings" section with the PBT rule ID and description
-2. The stage MUST NOT present the "Continue to Next Stage" option until all blocking findings are resolved
-3. The model MUST present only the "Request Changes" option with a clear explanation of what needs to change
+2. The stage MUST NOT present its completion presentation (gate passage or completion brief) until all blocking findings are resolved
+3. At a hard gate, present only the "Request Changes" option with a clear explanation of what needs to change; at a brief stage, resolve the finding before the completion brief or escalate to the user (workflow-conventions Group 5, BRF-01)
 4. The finding MUST be logged in `aidlc-docs/audit.md` with the PBT rule ID, description, and stage context
 
 If a PBT rule is not applicable to the current project or unit (e.g., PBT-06 when no stateful components exist), mark it as **N/A** in the compliance summary — this is not a blocking finding.

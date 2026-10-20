@@ -52,7 +52,7 @@ The generator **rejects unknown keys** — see §5 for the reserved namespace.
 | `phase` | string | yes | `inception` \| `construction` \| `operations`; **must match the containing directory** |
 | `execution` | string | yes | `ALWAYS` \| `CONDITIONAL` |
 | `condition` | string \| object | yes | **Dual shape by execution type.** `ALWAYS`: free-form string, 1–3 sentences (why it always runs). `CONDITIONAL`: shallow mapping `{execute_if, skip_if}` — the **authoritative Execute-IF/Skip-IF criteria**; values are single-line non-empty strings (the mini parser does not recurse into nested lists), rendered into the generated "CONDITIONAL Stage Criteria" list under the scope matrix in workflow-planning.md. When criteria change, edit this mapping first; stage-body prose follows |
-| `gate` | string | yes | `none` \| `approve-continue` \| `two-option` — see §3 |
+| `gate` | string | yes | `none` \| `approve-continue` \| `two-option` \| `brief` — see §3 |
 | `produces` | string[] | yes | May be empty. Artifact paths **relative to `aidlc-docs/`** (e.g. `inception/requirements/requirements.md`). Glob `*` allowed for per-unit trees (e.g. `construction/{unit-name}/code/`) — see §4 |
 | `consumes` | object[] | yes | May be empty. Each entry: `{artifact, required, conditional_on?}` — see below |
 | `consumes[].artifact` | string | yes per entry | `aidlc-docs/`-relative path or glob, same shape as `produces` entries |
@@ -70,9 +70,12 @@ The generator **rejects unknown keys** — see §5 for the reserved namespace.
 
 | `gate` value | Meaning | Current stages |
 |---|---|---|
-| `none` | No approval gate; presents completion message and proceeds automatically | workspace-detection |
-| `approve-continue` | Inception style: `✅ Approve & Continue` / `🔧 Request Changes`, optionally a conditional third option (e.g. "Add User Stories") defined in the stage body | all gated inception stages, build-and-test |
-| `two-option` | Construction style: exactly `🔧 Request Changes` / `✅ Continue to Next Stage` (NO EMERGENT BEHAVIOR per SKILL.md) | per-unit construction stages |
+| `none` | No approval gate; presents completion message and proceeds automatically | workspace-detection, operations — plus the 11 `brief` stages as compiled (see below) |
+| `approve-continue` | Inception style: `✅ Approve & Continue` / `🔧 Request Changes`, optionally a conditional third option (e.g. "Add User Stories") defined in the stage body | product-brainstorm, requirements-analysis |
+| `two-option` | Construction style: exactly `🔧 Request Changes` / `✅ Continue to Next Stage` (NO EMERGENT BEHAVIOR per SKILL.md). Currently unused — kept as a legal presentation type | (none) |
+| `brief` | Briefing gate (B18): presents a ≤5-line completion brief (key decisions / risks / artifact locations) and proceeds — no waiting, no approval request; report `completed`. Presentation semantics live in workflow-conventions Group 5 (BRF); stage-level escalation exceptions (human-only forks, e.g. the Workflow Planning plan-deviation question, or Code Generation's first-unit direction stop) are clauses in the stage rule files | workflow-planning, user-stories, application-design, reverse-engineering, units-generation, functional-design, nfr-requirements, nfr-design, infrastructure-design, code-generation, build-and-test |
+
+**Compile mapping**: the compiler maps `brief` → `"none"` in `scripts/data/stage-graph.json`. The engine's literal gate check (`gate != "none"`) is untouched; brief stages report `--result completed` exactly like gate-less stages. The briefing obligation and any rule-level stops are model-side rule text, invisible to the engine — the honest-audit invariant (an `approved` audit record exists only where a human actually approved at a gate) holds by construction.
 
 The `operations` placeholder stage uses `gate: none` (it produces nothing and
 ends the workflow after Build and Test).
@@ -159,7 +162,8 @@ Rules:
 - `classic` is the reference scope: it reproduces v1.0 adaptive behavior, so its
   CONDITIONAL stages stay `CONDITIONAL` (self-select from project context).
 - Scope decides the *starting plan*; the user can still add/remove individual
-  stages at the Workflow Planning gate (existing workflow-changes mechanism).
+  stages at the Workflow Planning brief (objection channel / plan-deviation
+  question — existing workflow-changes mechanism).
 - **Implicit single unit**: when a plan skips `units-generation`, per-unit
   stages in that plan run exactly once for the whole task as one implicit unit
   (see `references/inception/workflow-planning.md` Step 3.0). Their required
@@ -172,7 +176,7 @@ Rules:
   after the fact) → on genuine ambiguity, a minimal-candidate (1–2 options)
   chat question. An explicit scope name from the user always wins.
 - The selected scope's `depth` becomes the workflow default depth; the user may
-  override at the Workflow Planning gate or any later gate.
+  override at the Workflow Planning brief or at any later point (objection channel).
 - The active scope is recorded in `aidlc-docs/aidlc-state.md`.
 
 ---
