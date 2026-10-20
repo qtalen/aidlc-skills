@@ -96,7 +96,7 @@
 - **文档负载**：必加载集 73.3KB（B12 前 97.1KB）；SKILL.md 343 行 / 26.6KB。
 - **AM 现状**：单问激活（仅 Code-Gen Hold）+ 全阶段自动批准 + 问题 auto-recommended + 轮次绑定过期（D16-D18 链）。
 - **dogfood**：fx991 计算器项目累计 6 周期（首周期验收→三迭代收官→双臂减重验收方向性通过）。
-- **文件地图**：`.agents/skills/aidlc-workflows/`（SKILL.md + references/{common,inception,construction,operations,extensions}/ + scripts/）；`opencode/`（v2.0 只读参考，权威导览 `AIDLC-PLUGIN.md`）；`docs/`（本主文档 + batches/ + archive/ + engine-illustrated.md + dogfood-protocol.md + result-oriented-delegation-design.md + aidlc-v2-features-vs-v1.md + dogfood-records/[本地保留] + migration-guide.md + blog 草稿）；`aidlc-workflows-cn/`、`opencode-cn/`（中文对应物，只读）。
+- **文件地图**：`.agents/skills/aidlc-workflows/`（SKILL.md + references/{common,inception,construction,operations,extensions}/ + scripts/）；`opencode/`（v2.0 只读参考，权威导览 `AIDLC-PLUGIN.md`）；`docs/`（本主文档 + batches/ + archive/ + dogfood-protocol.md + result-oriented-delegation-design.md + aidlc-v2-features-vs-v1.md + dogfood-records/[本地保留] + migration-guide.md）；`aidlc-workflows-cn/`、`opencode-cn/`（中文对应物，只读）。
 
 ---
 
