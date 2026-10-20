@@ -200,7 +200,7 @@
 | 引擎 Windows 自由文本参数通道（`--note-file`/`--reason-file` 或编码约定） | 改进排队（三会话复发） | B12 验收发现① |
 | 引擎 emit 按 frontmatter scope 预剪枝 | 改进排队 | B12 验收发现② |
 | consumes `required:true` × scope 剪枝组合语义 | 待 stage-contract 澄清 | B12 验收发现③ |
-| dogfood-protocol §零 STAMP 惯例 + 副本记录卫生 | 改进排队 | B12 验收发现④ |
+| dogfood-protocol §零 STAMP 惯例 + 副本记录卫生 | ✅ 已落地（2026-10-20，随 B15+B18 dogfood 协议增补——§二 B18 门姿态专项 G1~G6 / §三 B15 闭环专项 E1~E4 / 度量 3 重定义为硬门返工 / 决策回填预挂方向停点引擎化议题，一并落地） | B12 验收发现④ |
 | 部署卫生：fx-991 主项目 `.agents` 快照更新至当前技能 HEAD | 待办 | B12 验收 |
 | 观察项（多周期阴性方可关闭）：指针化阶段块加载遗漏；produces_missing 持续零触发；判据锐度（UG/FD 边界靠模型裁量） | 观察中 | B12 验收 |
 | Phase 5A 活文档 rollup 观察项 | 触发：核心活文档过 500 行或可感知上下文压力 | B07 附注 + B09 |
