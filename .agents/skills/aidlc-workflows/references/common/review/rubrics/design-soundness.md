@@ -1,10 +1,5 @@
 # Rubric — design-soundness
 
-> Model tier: run this review on the **strongest available model** —
-> design decisions are the most expensive to get wrong downstream (one
-> bad call propagates through the whole round's implementation), making
-> this the highest-leverage review in the workflow.
-
 ## Scope
 
 The design-stage artifacts this round consumes — application design,
