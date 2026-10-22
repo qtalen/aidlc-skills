@@ -22,7 +22,7 @@ The AI model intelligently assesses what stages are needed based on:
 
 ## MANDATORY: Rule Details Loading
 
-**CRITICAL**: When performing any phase, you MUST read and use relevant content from the rule detail files located in the `references/` directory next to this SKILL.md.
+**CRITICAL**: When performing any phase, you MUST read and use relevant content from the rule detail files located in the `references/` directory next to this SKILL.md — a stage's rule file is loaded only when that stage will actually execute (CONDITIONAL stages are judged first; see the Orchestration Loop).
 
 All rule detail file references below (e.g., `references/inception/workspace-detection.md`) are relative to this skill's directory.
 
@@ -122,7 +122,7 @@ The full runtime contract — invocation, directives, transition semantics, stat
 
 1. Run `engine.py next` (prefer `python`, fall back to `python3`).
 2. Act on the single directive returned, by its `kind`:
-   - **`run-stage`**: load `stage_file` (relative to this skill's directory) and execute that stage's rules.
+   - **`run-stage`**: for a CONDITIONAL stage, judge applicability first from the criteria in this file's stage block — a resolved skip is announced in one line and reported `skipped --reason` (step 3) **without loading the stage file**; when uncertain, treat it as applicable and load. Otherwise load `stage_file` (relative to this skill's directory) and execute that stage's rules.
    - **`done`**: the workflow is complete — present the closing summary (three-branch Iteration Completion Ritual: next-iteration preview + human gate / product-level final review / standard close when no roadmap — see `references/common/workflow-changes.md`) and stop.
    - **`error`**: present `message` and `hint` to the user verbatim, then stop.
 3. Write the stage outcome through the engine's only transition entry point:
@@ -172,11 +172,11 @@ Load `references/inception/workspace-detection.md` and execute (engine status pr
 
 ## Reverse Engineering (CONDITIONAL - Brownfield Only)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list under the scope matrix in `references/inception/workflow-planning.md`). Load `references/inception/reverse-engineering.md` and execute its steps. Briefing gate — present the completion brief, then report `completed` (Orchestration Loop), or `skipped --reason` if the stage does not apply.
+Applicability: brownfield workspace (per Workspace Detection) → execute; greenfield → skip. When it clearly does not apply, tell the user in one line and report `skipped --reason` without loading the stage file; when uncertain, treat as applicable. If it applies, load `references/inception/reverse-engineering.md` and execute its steps. Briefing gate — present the completion brief, then report `completed` (Orchestration Loop).
 
 ## Product Brainstorm (CONDITIONAL)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list under the scope matrix in `references/inception/workflow-planning.md`) — a product-shaped wish with no usable product design (new product, new capability direction, major evolution). This stage is a **co-design dialogue, not a questionnaire**: the design emerges from the conversation (stance, material-first with research on demand, one focused question at a time, decisions live in the dialogue), discrete fixed-option decisions may still use the structured question tool, and everything crystallizes into `aidlc-docs/inception/product-design/product-design.md` in one write at the end (adaptive depth — a small wish may be one page; may carry the iteration roadmap). Load `references/inception/product-brainstorm.md` and execute. Approval gate before proceeding — report `approved` / `rejected` / `revised`, or `skipped --reason` if the stage does not apply (Orchestration Loop).
+Applicability: a product-shaped wish with no usable product design (new product, new capability direction, major evolution) → execute. Skip when: the existing product-design.md roadmap already covers the request with no shape change (iteration re-entry), the user already provided a complete design, or the request changes no product feature or design — then tell the user in one line (inviting them to ask for this stage) and report `skipped --reason` without loading the stage file; when uncertain, treat as applicable. This stage is a **co-design dialogue, not a questionnaire**: the design emerges from the conversation (stance, material-first with research on demand, one focused question at a time, decisions live in the dialogue), discrete fixed-option decisions may still use the structured question tool, and everything crystallizes into `aidlc-docs/inception/product-design/product-design.md` in one write at the end (adaptive depth — a small wish may be one page; may carry the iteration roadmap). If it applies, load `references/inception/product-brainstorm.md` and execute. Approval gate before proceeding — report `approved` / `rejected` / `revised` (Orchestration Loop).
 
 ## Requirements Analysis (ALWAYS EXECUTE - Adaptive Depth)
 
@@ -184,7 +184,7 @@ Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria
 
 ## User Stories (CONDITIONAL)
 
-**Assessment criteria**: the authoritative Execute-IF/Skip-IF criteria are in this stage's frontmatter `condition` — see the CONDITIONAL Stage Criteria list under the scope matrix in `references/inception/workflow-planning.md`. Perform the intelligent assessment per Step 1 in `references/inception/user-stories.md`; if Requirements Analysis executed, stories can reference and build upon those requirements.
+**Assessment criteria**: user-facing features or workflow changes, multiple user types, complex requirements needing acceptance criteria, cross-team or customer-facing API changes → execute; pure internal refactoring, simple isolated bug fixes, infra with no user-facing effect, debt/docs-only updates → skip; borderline defaults to inclusion (authoritative criteria in the stage's frontmatter — see the CONDITIONAL Stage Criteria list in `references/inception/workflow-planning.md`). When stories are clearly not needed, tell the user in one line and report `skipped --reason` without loading the stage file; when uncertain, treat as applicable. Perform the intelligent assessment per Step 1 in `references/inception/user-stories.md`; if Requirements Analysis executed, stories can reference and build upon those requirements.
 
 **User Stories has two parts within one stage**:
 1. **Part 1 - Planning**: Create story plan with questions (auto-answered per the Stage Question Posture — question-format-guide.md), analyze for ambiguities
@@ -198,11 +198,11 @@ Load `references/inception/workflow-planning.md` and execute its steps: scope-ma
 
 ## Application Design (CONDITIONAL)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/inception/application-design.md` and execute at appropriate depth. Briefing gate — present the completion brief, then report `completed` (Orchestration Loop), or `skipped --reason` if not applicable.
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md — load the stage file to judge if the list is not yet in context). A resolved skip is announced in one line and reported `skipped --reason` without loading the stage file; when uncertain, treat as applicable. If it applies, load `references/inception/application-design.md` and execute at appropriate depth. Briefing gate — present the completion brief, then report `completed` (Orchestration Loop).
 
 ## Units Generation (CONDITIONAL)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/inception/units-generation.md` and execute at appropriate depth. Briefing gate — present the completion brief, then report `completed` (Orchestration Loop), or `skipped --reason` if not applicable.
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md — load the stage file to judge if the list is not yet in context). A resolved skip is announced in one line and reported `skipped --reason` without loading the stage file; when uncertain, treat as applicable. If it applies, load `references/inception/units-generation.md` and execute at appropriate depth. Briefing gate — present the completion brief, then report `completed` (Orchestration Loop).
 
 ---
 
@@ -234,19 +234,19 @@ Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria
 > **Per-unit reporting rule**: the engine emits each per-unit stage ONCE for the whole unit loop (one state slot per stage). These are briefing stages: do the work per unit (informative progress messages are fine), but present the completion brief once and call `report` exactly once — after the LAST unit completes. Reporting after an early unit would mark the stage done and strand the remaining units.
 ### Functional Design (CONDITIONAL, per-unit)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/functional-design.md` and execute for this unit. Briefing gate — brief once after the last unit, then report `completed`, or `skipped --reason` if not applicable (Orchestration Loop).
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md — load the stage file to judge if the list is not yet in context; judge for the whole unit loop, not just the current unit). A resolved skip is announced in one line and reported `skipped --reason` without loading the stage file; when uncertain, treat as applicable. If it applies, load `references/construction/functional-design.md` and execute for this unit. Briefing gate — brief once after the last unit, then report `completed` (Orchestration Loop).
 
 ### NFR Requirements (CONDITIONAL, per-unit)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/nfr-requirements.md` and execute for this unit. Briefing gate — brief once after the last unit, then report `completed`, or `skipped --reason` if not applicable (Orchestration Loop).
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md — load the stage file to judge if the list is not yet in context; judge for the whole unit loop, not just the current unit). A resolved skip is announced in one line and reported `skipped --reason` without loading the stage file; when uncertain, treat as applicable. If it applies, load `references/construction/nfr-requirements.md` and execute for this unit. Briefing gate — brief once after the last unit, then report `completed` (Orchestration Loop).
 
 ### NFR Design (CONDITIONAL, per-unit)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/nfr-design.md` and execute for this unit. Briefing gate — brief once after the last unit, then report `completed`, or `skipped --reason` if not applicable (Orchestration Loop).
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md — load the stage file to judge if the list is not yet in context; judge for the whole unit loop, not just the current unit). A resolved skip is announced in one line and reported `skipped --reason` without loading the stage file; when uncertain, treat as applicable. If it applies, load `references/construction/nfr-design.md` and execute for this unit. Briefing gate — brief once after the last unit, then report `completed` (Orchestration Loop).
 
 ### Infrastructure Design (CONDITIONAL, per-unit)
 
-Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md). Load `references/construction/infrastructure-design.md` and execute for this unit. Briefing gate — brief once after the last unit, then report `completed`, or `skipped --reason` if not applicable (Orchestration Loop).
+Applicability: per this stage's frontmatter criteria (CONDITIONAL Stage Criteria list, workflow-planning.md — load the stage file to judge if the list is not yet in context; judge for the whole unit loop, not just the current unit). A resolved skip is announced in one line and reported `skipped --reason` without loading the stage file; when uncertain, treat as applicable. If it applies, load `references/construction/infrastructure-design.md` and execute for this unit. Briefing gate — brief once after the last unit, then report `completed` (Orchestration Loop).
 
 ### Code Generation (ALWAYS EXECUTE, per-unit)
 
@@ -286,7 +286,7 @@ The Operations stage will eventually include:
 
 **Current State**: All build and test activities are handled in the CONSTRUCTION phase.
 
-**Engine behavior**: Operations is a CONDITIONAL placeholder that does not execute in practice. The model reports `skipped --reason` for it, after which the engine emits the `done` directive — the workflow ends after Build and Test. There is no further stage to navigate to manually.
+**Engine behavior**: Operations is a CONDITIONAL placeholder that does not execute in practice. The model reports `skipped --reason` for it (one visible line, without loading the stage file), after which the engine emits the `done` directive — the workflow ends after Build and Test. There is no further stage to navigate to manually.
 
 ## Key Principles
 

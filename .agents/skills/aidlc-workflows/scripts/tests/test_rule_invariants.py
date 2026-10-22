@@ -331,5 +331,61 @@ class B21DialogueQualityTests(unittest.TestCase):
         self.assertIn("not the same authority", text)
 
 
+class B22LazyLoadTests(unittest.TestCase):
+    """B22 (D28): load-on-execute. Every CONDITIONAL stage block (plus the
+    Operations placeholder) carries the judge-first/no-load-on-skip wording;
+    Code Generation (ALWAYS, per-unit) must NOT carry it; the Orchestration
+    Loop rule and engine-contract §4 state the semantics in sync."""
+
+    SKILL = "SKILL.md"
+    # (block title, requires the uncertain->apply tie-break)
+    BLOCKS = (
+        ("Reverse Engineering", True),
+        ("Product Brainstorm", True),
+        ("User Stories", True),
+        ("Application Design", True),
+        ("Units Generation", True),
+        ("Functional Design", True),
+        ("NFR Requirements", True),
+        ("NFR Design", True),
+        ("Infrastructure Design", True),
+        # Operations never executes in practice — no uncertain->apply clause.
+        ("Operations", False),
+    )
+
+    @staticmethod
+    def _block(text, title):
+        match = re.search(
+            r"^#{2,3} %s\b.*?(?=^#{2,3} |\Z)" % re.escape(title),
+            text,
+            re.S | re.M,
+        )
+        return match.group(0) if match else ""
+
+    def test_conditional_blocks_carry_no_load_skip(self):
+        text = _read(self.SKILL)
+        for title, needs_tiebreak in self.BLOCKS:
+            block = self._block(text, title)
+            self.assertTrue(block, title)
+            self.assertIn("without loading the stage file", block, title)
+            if needs_tiebreak:
+                self.assertIn("when uncertain, treat", block, title)
+
+    def test_always_stage_block_excludes_skip_wording(self):
+        # CG is ALWAYS + all-scope EXECUTE; the engine rejects a skip for
+        # it, so the block must never suggest a no-load skip path.
+        block = self._block(_read(self.SKILL), "Code Generation")
+        self.assertTrue(block)
+        self.assertNotIn("without loading the stage file", block)
+
+    def test_loop_and_engine_contract_in_sync(self):
+        skill = _read(self.SKILL)
+        self.assertIn("judge applicability first", skill)
+        self.assertIn("without loading the stage file", skill)
+        contract = _read("references/common/engine-contract.md")
+        self.assertIn("without loading the stage file", contract)
+        self.assertIn("judge applicability first", contract)
+
+
 if __name__ == "__main__":
     unittest.main()

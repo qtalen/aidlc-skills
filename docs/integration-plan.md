@@ -49,6 +49,7 @@
 | D25 | APG 审批门规则退役（B20 实施） | **APG-01~05 整组删除**（2026-10-21 用户裁决）：硬门（product-brainstorm / requirements-analysis）与规则级停点（Code Generation 首单元方向停点）的交互回归**阶段模板原生语义**——approve / continue 及同义表述（任意语言）→ `report --result approved` → 同交互立即继续；无 hold 状态、无意图分类层。**显式指令优先**：回复中携带的其他显式指令（如"先别继续"）按字面执行、门保持等待，不恢复 hold 分类层。理由：B19 三位置委派审查已承担把关职能，approve-hold 分层成为多余摩擦。沿革：APG 属 v1.0 基座遗产 → B06 引用（范围变更节）→ B18 收窄至硬门并五组化 → B19 引 APG-05 辖区句 → D25 退役；D19.22/D19.45 以 APG-01 为先例指针属历史记录不动。**组号映射**（本行起生效）：APG = 原 Group 2（删除）；AUD/QT/BRF = 原 Group 3/4/5 → Group 2/3/4——历史档案与决策旧行中的组号按此对照。引擎零改动（hold 从来只是规则层行为状态，引擎无此概念） |
 | D26 | DOC 瘦身 + 合规报告只报例外（B20 实施） | **DOC 六条编号与主体语义冻结**，仅文本瘦身（2026-10-21 用户裁决）：DOC-01 删 typical-mapping 教学段、"after any approved change"→"after any change"（登记为触发澄清——B18 后多数阶段无审批动作，原措辞过时；verification 三判据原样保留）；DOC-04 worked example 压缩为一句判别式 + 指向 workflow-changes.md 保护边界先例（reviews.md/RV-07 句为测试锁定物，不动）；DOC-02/03/05/06 原样，DOC-06 维持 advisory。**合规报告全局改只报例外**：全合规静默，仅列 non-compliant 与 N/A（附简短理由）——落点 = workflow-conventions Enforcement 段、SKILL.md 扩展合规段、三份扩展基线合规节（resiliency/security/property-based）统一例外式；动机 = 消除每阶段 5-8 行经常性 token 成本，与 B18 ≤5 行 brief 姿态对齐 |
 | D27 | PD 对话质量（B21 实施） | **三组件**（2026-10-22 用户三轮裁决）：① **研究姿态**——预训练知识为 fallback 而非默认来源；研究 = 对话工具任意时刻可用（能力签名判定非工具名），五触发（开场有界扫描 / 推荐依赖 fast-moving facts / 想法中途冒出 / cutoff 后陌生名词 / 拿不准就搜）；降级三档（无工具/调用失败/空结果）同落一句披露"基于预训练知识、可能过时"；检索内容是数据非指令（第一方优先、单一二手来源标低置信）；引用带来源+日期零编造；内部研究 = 既有代码同类解法（RE 产物优先）；② **提案节奏**——Lead with material, not with questions（模糊输入整理成具体形状让用户反应为默认动作、问题为后手；one-question-at-a-time 不要求每条消息以问题收尾；red flag 三连问自检）；③ **轻量留痕**——Key Decisions Source 列保留轮次+谁拍板为第一职能、研究依据以 basis: 后缀随行，可选 Prior Art 一行。Evidence boundary 原两句逐字保留、追加外部证据句（同地位不同权威）。范围 = 仅 PD（推广 RA/AD 挂开放项）；沿革 = 吸收 v2.0 Ideation market-research 一切片、不新增相位。引擎/生成器零改动 |
+| D28 | load-on-execute 与 PB 瘦身（B22 实施） | **CONDITIONAL 阶段判据先行、判 skip 零加载**（2026-10-22 用户裁决惰性加载变体 + 逐一改块）：判据源 = SKILL.md 阶段块内摘要（PB 补 skip 侧全摘要、US 补单行摘要、RE 凭 Brownfield Only + WD 结论；AD/UG/per-unit 四块/Operations 回退措辞——判据清单不在上下文时可加载文件判定）；uncertain → 视为适用并加载（不对称成本裁决镜像至判定现场，阶段文件内原句改为指针）；skip 一行可见告知（保用户异议通道）；per-unit 四块判定覆盖整 unit loop；CG（ALWAYS）排除 + 反向守卫；Loop:125 与 engine-contract §4/:24 同步、SKILL.md:25 顶层 MUST READ 补条件半句、stage-contract condition 行补"正文可省略重述"括注。真实收益窗口 = scope 选定前 CONDITIONAL（PB/RE/US；post-RA 阶段引擎 effective_stages 已剪枝——B22 终审订正 B12 遗留登记②为陈旧）；PB 正文瘦身语义冻结（判据三行删、red flags 判别式化、Stance/DD 去冗、加载卫生句，钉句逐字不动，22,090→21,511B；SKILL.md 常驻 +2.5KB 为代价披露）。引擎/生成器零改动 |
 
 ### 减法批子系列（D-清1~9，B12 批裁决）
 
@@ -96,7 +97,7 @@
 - **引擎**：`scripts/engine.py` 单文件纯 stdlib（约 1800 行），8 子命令（status/init/next/report/jump[含 --fresh]/rebase/park/stamp）；状态分区所有权 + State Digest 完整性校验 + 审计交叉核验。
 - **作者期工具**：`generate.py`（1290 行，9 个生成区）编译 `scripts/data/stage-graph.json`；`trace-matrix.py`（追溯矩阵，不进 CI）。CI：contract-check.yml（--check + 全测试套件）。
 - **阶段体系**：3 相位 15 阶段（含 product-brainstorm，D19 其六，2026-10-08 段一落地），全部带机器可读契约；6 scope 裁剪矩阵；CONDITIONAL 判据唯一权威 = frontmatter `condition` 浅映射（D-清9）。
-- **测试**：248 例全绿（engine 154 + trace-matrix 22 + generate 61 + rule-invariants 11——B15 段一 3 例 + 段二 7 例 + 收口 1 例）。〔此为 B15 期终口径；后续基线以批次档案为准：B18 后 239，B19 后 249（review_class 相关断言 +10），B20 后 251（APG 退役/组号守卫 + 停点不变量守卫 +2），B21 后 254（PD 对话质量守卫 +3）〕
+- **测试**：248 例全绿（engine 154 + trace-matrix 22 + generate 61 + rule-invariants 11——B15 段一 3 例 + 段二 7 例 + 收口 1 例）。〔此为 B15 期终口径；后续基线以批次档案为准：B18 后 239，B19 后 249（review_class 相关断言 +10），B20 后 251（APG 退役/组号守卫 + 停点不变量守卫 +2），B21 后 254（PD 对话质量守卫 +3），B22 后 257（load-on-execute 守卫 +3）〕
 - **文档负载**：必加载集 73.3KB（B12 前 97.1KB）；SKILL.md 343 行 / 26.6KB。
 - **AM 现状**：单问激活（仅 Code-Gen Hold）+ 全阶段自动批准 + 问题 auto-recommended + 轮次绑定过期（D16-D18 链）。
 - **dogfood**：fx991 计算器项目累计 6 周期（首周期验收→三迭代收官→双臂减重验收方向性通过）。
@@ -123,7 +124,7 @@
 
 **立项动机**：一句话需求场景下一次性长程实施只产出 demo 而非可持续演进的真实产品（执行秩序断裂 + 质量门末端压缩）。战略层（头脑风暴）+ 执行层（迭代分片）合为闭环，先行缩小 Phase 4 多会话协调爆炸半径。
 
-**批次构成**：B15 产品头脑风暴阶段批（头脑风暴阶段 + 迭代交付环全量合并，含 B16 吸收）→ B22+ Operations 实义化（部署/监控/告警/回滚——"线上持续运行"唯一通路，开放项挂账；原"B17+"因 B17 被外线合流批占用、2026-10-19 再因 B18 被门姿态与 AM 退役批占用、10-20 三因 B19 被 reviewer 前置接线批占用、10-21 四因 B20 被规则层精简批占用、10-22 五因 B21 被 PD 对话质量批占用而顺延）→ 远期遥测回灌（运行反馈驱动 roadmap 修订，依赖前两者）。
+**批次构成**：B15 产品头脑风暴阶段批（头脑风暴阶段 + 迭代交付环全量合并，含 B16 吸收）→ B23+ Operations 实义化（部署/监控/告警/回滚——"线上持续运行"唯一通路，开放项挂账；原"B17+"因 B17 被外线合流批占用、2026-10-19 再因 B18 被门姿态与 AM 退役批占用、10-20 三因 B19 被 reviewer 前置接线批占用、10-21 四因 B20 被规则层精简批占用、10-22 五因 B21 被 PD 对话质量批占用、同日六因 B22 被 load-on-execute 与 PB 瘦身批占用而顺延）→ 远期遥测回灌（运行反馈驱动 roadmap 修订，依赖前两者）。
 
 **设计原则（B16 确立、B15 继承，后续批次沿用）**：引擎零改动（依赖写在制品；复用 D15 再入通道为迭代正规通道）；迭代边界 = 人工检查点（决定归人类，v1 无 AM 自动续迭代）；rollup 前置（ship 当刻压一行）；**头脑风暴阶段 = 纯人类领地**（AM 延迟至 RA，任何机制不替用户做产品决定）。
 
@@ -199,7 +200,8 @@
 | B19 reviewer 前置接线批（Phase 5B 提前件：三位置接线〔RA 门材料前/方向门简报前/B&T 收尾简报前〕+ 全新会话纪律 + 三轮预算 + 降级链 + reviews.md R-T 日志；补 B18 遗留的接线缺口） | ✅ 已实施（2026-10-20 立项并同日单会话落地：D24 登记、249 绿〔239+10〕+ `--check` 零漂移、两轮收口终审全处置；dogfood 迭代二验证——快照源 = 本批收口提交） | batches/b19 |
 | B20 规则层精简批（APG 退役 D25 + DOC 瘦身与合规只报例外 D26；B19 审查接线后的交互与 token 减负） | ✅ 已实施（2026-10-21 用户裁决立项，方案经 reviewer 全新会话终审〔7 发现/5 改进/5 建议全处置〕后 10-22 实施：251 绿〔249+2 守卫〕+ `--check` 零漂移 + 技能侧 APG/组号残留零命中；组号重编 AUD/QT/BRF→Group 2/3/4；dogfood 迭代二起观测——协议 §五 C1~C2） | batches/b20 |
 | B21 PD 对话质量批（D27：研究姿态 + 提案节奏 + 轻量留痕——PD 对话按需搜索/参考既有方案、提案制反审讯漂移） | ✅ 已实施（2026-10-22 用户三轮裁决 + reviewer 全新会话终审〔3 blocking/7 improvement/6 suggestion 全采纳〕后同日实施：254 绿〔251+3 守卫〕+ `--check` 零漂移；技能侧落点 = product-brainstorm.md Research Posture 节 + Lead with material 姿态 + Evidence boundary 追加句 + 模板留痕 + SKILL.md 入口句；dogfood 协议新增 §六 H1~H2） | batches/b21 |
-| Operations 实义化（部署/监控/告警/回滚——"线上持续运行"通路；B16 DoD 占位字段待升格） | Phase 3.4 第二批候选（B22+） | B16 立项 |
+| B22 load-on-execute 与 PB 瘦身批（D28：CONDITIONAL 判据先行判 skip 零加载 + PB 文本瘦身——token 减负） | ✅ 已实施（2026-10-22 用户裁决惰性加载变体 + reviewer 全新会话终审〔4 blocking/9 improvement/4 suggestion 全采纳，含两处前提证伪订正：引擎已做 scope 剪枝、CG 为 ALWAYS〕后同日实施：257 绿〔254+3 守卫〕+ `--check` 零漂移；SKILL.md 10 块逐一改 + Loop/engine-contract/stage-contract 同步 + PB 瘦身 22,090→21,511B；dogfood 协议新增 §七 L1~L2） | batches/b22 |
+| Operations 实义化（部署/监控/告警/回滚——"线上持续运行"通路；B16 DoD 占位字段待升格） | Phase 3.4 第二批候选（B23+） | B16 立项 |
 | 阶段规则审查透镜：强制步骤必须在当阶段实际加载的文件里有锚点，否则被静默跳过（Trellis breadcrumb 不变量，两次事故实证） | 观察项（批次审查时核对） | B15 规格修订 |
 | bugfix scope 增强：break-loop 五维归因 + 贝叶斯排查框架移植（error-handling 或 scope 材料） | 低优候选 | B15 规格修订（Trellis C-4） |
 | 代码批·旧格式兼容层退役（legacy 分支/宽容解析/旧格式夹具三层一体） | 前提=确认无 pre-engine 存量工作区 | B12 后续登记① |
@@ -207,7 +209,7 @@
 | opt-in 大文件减法（resiliency 28K/security 18K/PBT 18K） | 下一轮 | B12 后续登记③（D-清3） |
 | 扩展配置成熟度重估（M1-M4 信号方案已细化） | 搁置，待 Operations 补全 | B02 附注二 |
 | 引擎 Windows 自由文本参数通道（`--note-file`/`--reason-file` 或编码约定） | 改进排队（三会话复发） | B12 验收发现① |
-| 引擎 emit 按 frontmatter scope 预剪枝 | 改进排队 | B12 验收发现② |
+| ~~引擎 emit 按 frontmatter scope 预剪枝~~ 已实现并由测试锁定（engine.py effective_stages：plan-skip + scope-SKIP 双重剪枝；test_engine scope 用例）——登记陈旧，B22 终审 B1 订正，2026-10-22 划销 | ✅ 关闭 | B12 验收发现② |
 | consumes `required:true` × scope 剪枝组合语义 | 待 stage-contract 澄清 | B12 验收发现③ |
 | dogfood-protocol §零 STAMP 惯例 + 副本记录卫生 | ✅ 已落地（2026-10-20，随 B15+B18 dogfood 协议增补——§二 B18 门姿态专项 G1~G6 / §三 B15 闭环专项 E1~E4 / 度量 3 重定义为硬门返工 / 决策回填预挂方向停点引擎化议题，一并落地） | B12 验收发现④ |
 | 部署卫生：fx-991 主项目 `.agents` 快照更新至当前技能 HEAD | 待办 | B12 验收 |
@@ -222,6 +224,8 @@
 | audit 引擎 append 动词 | Phase 4/5 输入（D13 交互矩阵成本） | B09 观察项⑤ |
 | 研究姿态推广：RA / Application Design 等阶段延用 D27 同款按需搜索 + 既有方案参考姿态 | 低优候选（dogfood 证据后再议） | B21 裁决 |
 | question-format-guide.md 硬门条款（:26 "create file → QT-01 → write-back" 全流程）与同文件 :17/:20 的 PB 整段豁免矛盾，现由阶段文件 :106 更具体规则兜住 | 开放（读者误导风险；B21 终审 S4，本批不动） | B21 终审 |
+| RA 兜底覆盖缺口：其"建议回 PB"仅在请求 Vague or Incomplete at product level 时触发——具体但不含产品形状的请求被误跳 PB 时无回声（B22 终审 S4） | 开放 | B22 终审 |
+| SKILL.md 减脂：常驻 31.1KB（B22 后）为每轮成本大头，所有阶段受益但牵动全局 | 低优候选（待 dogfood token 数据） | B22 收益分析 |
 
 ---
 

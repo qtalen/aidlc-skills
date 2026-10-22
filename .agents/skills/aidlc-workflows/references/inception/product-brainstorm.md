@@ -26,15 +26,9 @@ scopes:
 
 # Product Brainstorm
 
-**Purpose**: Turn a vague product wish into a shared product design — through dialogue, not a questionnaire. The stage's job is the brainstorm itself: help the user think, refine, and let the product's shape emerge.
+**Purpose**: Turn a vague product wish into a shared product design — through dialogue, not a questionnaire. Assume the role of a design partner in conversation with the product owner; the stage's job is the brainstorm itself: help the user think, refine, and let the product's shape emerge.
 
-**Assume the role** of a design partner having a Platonic conversation with the product owner.
-
-**Execute when**: a product-shaped wish arrives with no usable product design (new product, new capability direction, major evolution).
-
-**Skip when**: the existing `product-design.md` roadmap already covers the request without a shape change (iteration re-entry); the user already provided a complete design; or the request changes no product feature or design.
-
-**Depth**: adaptive — a small wish may legitimately end as a one-page design (see The Artifact).
+**Depth**: adaptive — a small wish may legitimately end as a one-page design (see The Artifact). Applicability was already judged before this file loaded (stage block in SKILL.md); being here means the stage applies.
 
 ## Stance: A Conversation, Not a Questionnaire
 
@@ -44,18 +38,17 @@ This stage is a **stance, not a workflow**. The design emerges from the dialogue
 - **Offer what the user hasn't thought of**: analogies, adjacent solutions, reframings — armed by the Research Posture below. The point of inspiration is exactly what the dialogue would not generate on its own; each offering enters the dialogue and awaits the user's call — never a default that silently reaches the artifact (YAGNI below still governs).
 - **Lead with material, not with questions**: when the user's input is vague, the default move is to articulate it back as a concrete shape — a draft positioning sentence, two or three candidate shapes with their trade-offs, a reframing, an analogy, an ASCII sketch — and let the user react. A question is the fallback for when you cannot form a candidate worth reacting to; "One focused question at a time" (Dialogue Discipline below) governs the question you do ask — it does not mean every message ends in one. The opening announcement, the understanding write-back, and the impatient-user fast path are unaffected by this posture.
 - **Decisions live in the conversation**: acknowledge each decision in-line the round it is made ("Noted: X uses PostgreSQL") — the file comes later, once, at the end.
-- **Challenge assumptions**: when the user's framing contains an unexamined assumption, surface it — as a question, with your recommendation and its trade-off, never as a silent correction.
-- **Follow the answers**: let each answer open the next thread; a question worth asking is one the previous exchange made valuable.
-- **Bring the expert's eye on realization**: once a direction takes shape, think through with the user how it could actually work as a product — the product-level feasibilities and their costs. Engineering-level mechanism and approach choices stay in Requirements Analysis and the design stages (Application Design, NFR Design); this is the product-level half of the expert's job.
-- **Private scaffolding, never a template**: the six-domain lens and the first-principles scaffold below are your *inner* basis for choosing threads. They are never presented as a form, and no domain is a mandatory question.
+- **Challenge assumptions**: surface unexamined framing as a question with your recommendation and its trade-off — never a silent correction.
+- **Follow the answers**: each answer opens the next thread; a question worth asking is one the previous exchange made valuable.
+- **Bring the expert's eye on realization**: once a direction takes shape, think through the product-level feasibilities and their costs with the user; engineering-level mechanism and approach choices stay in Requirements Analysis and the design stages.
+- **Private scaffolding, never a template**: the six-domain lens and the first-principles scaffold below are your *inner* basis for choosing threads — never a form, no domain a mandatory question.
 
 ## Opening: Criteria Announcement and Graceful Exit
 
 On the first turn of this stage, announce your read of the request in one line, e.g. "This looks like a new product wish — I'd like to explore the product shape with you first; if that's not what you want, say so and I'll skip this stage." Then begin.
 
 - Intent classification is **semantic, never keyword matching**.
-- When genuinely uncertain whether this stage applies, **execute** — the cost is asymmetric (a wrong skip can only be recovered by a later suggestion to return here; a wrong execute costs one opening exchange).
-- The user holds the termination right at every moment: if they say this is not needed, exit gracefully — `engine.py report --stage product-brainstorm --result skipped --reason user-declined` — and Requirements Analysis stops suggesting a return for the rest of this session.
+- The user holds the termination right at every moment: if they say this is not needed, exit gracefully — `engine.py report --stage product-brainstorm --result skipped --reason user-declined` — and Requirements Analysis stops suggesting a return for the rest of this session. (The uncertain-applicability tie-break — execute, the cost is asymmetric — lives at the judgment site in the SKILL.md stage block.)
 
 ## Understanding Write-Back (early checkpoint)
 
@@ -65,7 +58,7 @@ After the opening exchange, **before diving deeper**, present a short note that 
 - the constraints and success criteria you heard;
 - **what you are assuming** — explicitly separated from what was actually said.
 
-Invite corrections and wait for them. A user who answers quickly is not a reason to skip this checkpoint — it is the cheapest moment to discover you understood the wish wrong.
+Invite corrections and wait for them — fast answers do not waive this checkpoint; it is the cheapest moment to discover a misunderstanding.
 
 ## Two Boundaries That Never Move
 
@@ -82,7 +75,7 @@ Before opening threads, work through this scaffold internally — it is the basi
 4. **Build bottom-up**: start from the smallest mechanism; every addition must answer "which fact requires this?".
 5. **Validate**: does this solve the original problem? Which assumptions remain unverified? What is the simplest experiment?
 
-The fact list becomes the skeleton for your conversation threads. (Deliberately narrower than its source: no anti-over-engineering dimension here — depth control lives in the artifact, not in this lens.)
+The fact list becomes the skeleton for your conversation threads. (Deliberately narrower than its source: depth control lives in the artifact, not in this lens.)
 
 **Six domains** (functional, non-functional, user scenarios, business context, technical context, quality attributes) serve the same way: the inner checklist behind your threads, not a questionnaire to administer.
 
@@ -92,20 +85,20 @@ The fact list becomes the skeleton for your conversation threads. (Deliberately 
 - **Recommend with a trade-off**: when you hold a well-founded recommendation, state it and what choosing otherwise costs.
 - **YAGNI**: fight scope the user did not ask for — every "while we're at it" addition is a question, not a default.
 - **Preference questions are never waived**: preference-driven decisions (implementation stack, deployment form, UI language, ...) remain questions even under a "non-technical user" picture or an inferred runtime shape. Evidence-First exempts only evidence-resolvable items and category facts — a persona is a lens, not a classifier, and a runtime-form inference (e.g. "zero-dependency page") constrains the recommendation, never the asking.
-- **Red flags** — check yourself against these:
+- **Red flags** — check yourself against these (each names a failure; the fix is its opposite):
   - "The wish is too small for a roadmap" — a one-page design *is* a valid roadmap.
-  - "The user answers quickly, skip the write-back" — fast answers make the checkpoint *more* valuable, not less.
-  - "This feature is obvious, cut it silently" — category defaults become questions, never silent cuts.
-  - "Let's just fill in the standard question list" — that is the retired anti-pattern; threads come from the dialogue.
-  - "The user seems impatient, skip the dialogue" — the fast path exists instead (see below); speed comes from defaults, never from delegated decisions.
-  - "Three turns in a row ended in a question" — interrogation drift; the next turn brings a shape (a draft, candidates, a sketch) for the user to react to. The shape rides along with the question that still needs asking — it never cancels it, and preference questions are still asked.
+  - "The user answers quickly, skip the write-back" — fast answers make the checkpoint *more* valuable.
+  - "This feature is obvious, cut it silently" — category defaults become questions.
+  - "Let's just fill in the standard question list" — retired anti-pattern; threads come from the dialogue.
+  - "The user seems impatient, skip the dialogue" — the fast path exists instead; speed comes from defaults, never from delegated decisions.
+  - "Three turns in a row ended in a question" — interrogation drift; the next turn brings a shape, riding along with the question that still needs asking (preference questions included).
 - **ASCII visualization**: when structure is easier seen than read (a screen layout, a stage flow, a module map), sketch it inline in ASCII. Per-diagram criterion: does the picture make the point clearer than the words would? If not, drop it. (No browser dependence — this skill is harness-neutral.)
 
 ## Tools Within the Dialogue
 
 The dialogue leads; tools serve. A decision with a **small set of fixed options** (an opt-in flag, a choice among three layouts, yes/no deployment target) may be asked via the structured question tool at any moment — that is not a failure of the dialogue, it is the right instrument for that decision.
 
-Tool calls made during this stage are **exempt from the question-file requirement** (`question-format-guide.md`): the question and its answer stay in the conversation record and are crystallized into `product-design.md` at the end, in one write. Do not create a questions file for this stage's dialogue.
+Tool calls made during this stage are **exempt from the question-file requirement** (`question-format-guide.md`): the question and its answer stay in the conversation record and are crystallized into `product-design.md` at the end, in one write. Do not create a questions file for this stage's dialogue. Common rules are already in context (loaded at workflow start); during this dialogue, do not load other stage rule files or re-read what is already in context.
 
 ## Research Posture (external and internal, throughout the dialogue)
 

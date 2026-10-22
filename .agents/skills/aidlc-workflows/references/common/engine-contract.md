@@ -21,7 +21,7 @@ The engine is the single authority for the workflow's deterministic mechanics.
 | Scope recommendation, depth adaptation, requirement clarification, gate content/options | **Model** | Remains model judgment — unchanged by the engine |
 | Approvals / "go or no-go" at a gate | **Human** | Never inferred, never auto-approved |
 
-**Condition prose never enters the engine.** Because of this, a CONDITIONAL stage is always emitted as a `run-stage` directive with `"conditional": true`. When the model judges the stage does not apply, it records that judgment with `report --stage <slug> --result skipped --reason "<why>"`. A skip without `--reason` is rejected by the engine.
+**Condition prose never enters the engine.** Because of this, a CONDITIONAL stage is always emitted as a `run-stage` directive with `"conditional": true`. When the model judges the stage does not apply, it records that judgment with `report --stage <slug> --result skipped --reason "<why>"`. A skip without `--reason` is rejected by the engine. The judgment is made without loading the stage rule file whenever the criteria are already in context (the SKILL.md stage block carries the summary; a skip is announced to the user in one line); when uncertain, the model treats the stage as applicable and loads it.
 
 ### Verb taxonomy (8 subcommands)
 
@@ -112,7 +112,7 @@ Rules:
 
 | `kind` | Required action |
 |---|---|
-| `run-stage` | Load `stage_file` and execute the stage's rules. |
+| `run-stage` | For a CONDITIONAL stage, judge applicability first (criteria carried in the SKILL.md stage block); a stage resolved to skip is announced to the user in one line and reported `skipped --reason` without loading the stage file; when uncertain, treat as applicable. Otherwise load `stage_file` and execute the stage's rules. |
 | `done` | The workflow is complete. Present the closing summary and stop. |
 | `error` | Present `message` and `hint` to the user verbatim, then stop. |
 
