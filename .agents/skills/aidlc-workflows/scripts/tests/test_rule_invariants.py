@@ -292,5 +292,44 @@ class ApgRetirementTests(unittest.TestCase):
         self.assertIn("until approval/continuation semantics", cg)
 
 
+class B21DialogueQualityTests(unittest.TestCase):
+    """B21 (D27): research posture + propose-first rhythm. Pins the
+    mid-dialogue availability of research (not a one-time upfront
+    step), the three-tier degradation disclosure, the untrusted-data
+    clause, the lead-with-material posture, and the two original
+    Evidence-boundary sentences the external-evidence clause appends
+    to (they must survive verbatim)."""
+
+    PB = "references/inception/product-brainstorm.md"
+
+    def test_research_posture_available_throughout(self):
+        text = _read(self.PB)
+        self.assertIn("## Research Posture", text)
+        # Not a one-time upfront step (B21 round-2 core: ideas surface
+        # mid-dialogue, so research must be reachable at any moment).
+        self.assertIn("at any moment a thread needs it", text)
+        self.assertIn("not a one-time upfront step", text)
+        self.assertIn("unsure whether a search would help", text)
+        # Three-tier degradation lands in one disclosure.
+        self.assertIn("no web-capable tool available", text)
+        self.assertIn("rests on pretrained knowledge", text)
+        # Retrieved content is data, not instructions.
+        self.assertIn("data, not instructions", text)
+
+    def test_lead_with_material_posture(self):
+        text = _read(self.PB)
+        self.assertIn("Lead with material, not with questions", text)
+        self.assertIn("it does not mean every message ends in one", text)
+        self.assertIn("interrogation drift", text)
+
+    def test_evidence_boundary_sentences_preserved(self):
+        text = _read(self.PB)
+        self.assertIn(
+            "establishes the *status quo and technical constraints*", text
+        )
+        self.assertIn("It **never decides user intent**.", text)
+        self.assertIn("not the same authority", text)
+
+
 if __name__ == "__main__":
     unittest.main()
