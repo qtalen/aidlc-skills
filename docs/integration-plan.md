@@ -46,6 +46,8 @@
 | D22 | AM 退役（B18 实施） | **Autonomous Mode 整体删除**（2026-10-09 用户决策"我觉得AM可以去除掉。但是三门模型里 Code Gen Hold 可以保留"，B18 于 10-19~20 落地）：目标姿态下默认即简报制+真门+事件召唤，"自主/监督"模式开关随被压制物一起消失——删除的不是自主能力，是二元开关本身。**取代 D16/D17/D18**（决策只取代不静默删除；B08/B10/B11 批次档案为历史不动）。遗产三分：① AM-11 → 常设方向门（D23）；② AM-04 → 简报阶段通用提问规则（自动选推荐项+回写 rationale；真正不可裁量的单个问题升级给人——值班模型 fork 升级通用形态；硬门阶段〔PB/RA〕问题问人），落点 question-format-guide「Stage Question Posture」；③ build-and-test"绝不自动 commit"→ 无条件纪律（commit 授权 = 显式问句，永不自动）。删除面：AM-01~10 规则（AM-11 升格为方向门，见 ①）+ 激活问题 + `## Autonomous Mode` 状态区 + 引擎 AM-10 翻转逻辑/`autonomous` 键/`autonomous_expired` ack——引擎回到**永不写模型区**的干净不变量（契约 §6 例外条款退役，架构红利）；Phase 4"AM 状态注记化"挂账项坍缩（claim 并发锁不受影响）。B17 P3"AM 中立"空位由此填充 |
 | D23 | 门姿态（B18 实施） | **四硬门 + 简报制**：PB（产品领地，D19）+ RA（契约门）+ 方向门（code-generation **规则级停点**：每轮首单元开工前 ≤10 行方向简报——单元数/顺序/设计阶段关键决策/风险/RA 漂移 + 换模型窗口；AM-11 同构、每轮至多一次、后退重做不重呈、无引擎强制〔⭐4 裁决：frontmatter `brief` + 规则文本锚定，dogfood 观察被跳过再升级引擎〕）+ 完成仪式（迭代边界人工门，D20 绝对）；**其余 11 阶段 `gate: brief`**——≤5 行完成简报（关键决策/风险/产物位置）、不等待不请求批准、报 `completed`（**审计从源头不说谎**：`approved` 只出现在真门——旧"approved vs auto-continued"开放项结构性消解）。机制：`brief` 编译映射为 `none`（GATE_VALUES 扩值 + generate.py 编译映射，引擎门判定零改动）；workflow-conventions 新增 **BRF-01~03**（简报即呈即走、含分诊/阻断/自检条款/每单元一次简报 + 异议通道非否决请求 + 回合边界是节奏非门〔P13 抢救〕）；WP 偏差升级 = fork 第一应用点（计划增删 scope 默认网格升问句，⭐3）；自检准则双向化（简报持续压不到 5 行 → 该升回硬门，frontmatter 一个字段的事）；单向安全：brief→hard 只升不降、scope 级姿态缓议。四项批内裁决（一步走/AM-11 槽位/认 WP 形态/规则级停点）与处置地图详见 B18 档案 |
 | D24 | reviewer 前置接线（B19 实施） | **三位置委派审查**（RA 门材料前 / 方向门简报前 / B&T 收尾简报前——`review_class` frontmatter 三值枚举〔requirements-consistency / design-soundness / code-quality〕，per-unit 阶段锚定轮级停点每轮至多一次；编译进 stage-graph 但无运行时消费者）+ **全新会话纪律**（任何两次真实审查永不复用/续用会话；唯一例外 = 降级链 ④ 同会话自审且必标 degraded）+ **三轮预算**（事件 = 阶段×位置×迭代〔×方向轮〕，同迭代再入不清零；第 3 轮未解决阻塞 → fork——**取代 brief §5b"预算为一"**）+ **降级链四档**（专职评审→通用+rubric→专家→自审 degraded，绝不静默当作已评审；无读取能力推模式标 pushed-rubric）+ **findings-only 契约**（门槛三元组内联：写不出实际后果的没有阻断权；不调引擎动词；术语避撞 workflow-conventions Blocking Finding）+ **reviews.md R-n/T-n 日志**（append-only：R 定格/T 追加引用、禁回填；rubric 记内容 sha256 前 12 位；非任何阶段 produces、不进加载表；DOC-04 双落点）+ **B&T 审代码**（bug/性能/架构/与制品文档匹配——锚点按位置显式给路径，代码不在 produces/consumes；执行依赖维度条件化：工具被禁则不审标 not-covered；审查修复先重跑测试更新摘要再简报，否则渲染 unreviewed-after-fix）+ **技能级零快照**（L0/L1/L2 常设；L3 全量挂账维持、两条触发条件内联技能文本两句；实践期轻量替代全域终止，触发条件②转被动发现——取代 2026-10-19 实践期轻量替代决策）。RV-01~08 全量条款见 references/common/review-delegation.md；密度护栏 = 只在声明位置审、禁每阶段挂审（openspec 教训）；零阻塞 = 成功记录；七项批内裁决 D-1~D-7（全部 2026-10-20 用户裁决，D-4~D-7 为规格 v1→v2 修订批；含密度复议：三位置集中 vs 每门一审，维持集中）详见 B19 档案 |
+| D25 | APG 审批门规则退役（B20 实施） | **APG-01~05 整组删除**（2026-10-21 用户裁决）：硬门（product-brainstorm / requirements-analysis）与规则级停点（Code Generation 首单元方向停点）的交互回归**阶段模板原生语义**——approve / continue 及同义表述（任意语言）→ `report --result approved` → 同交互立即继续；无 hold 状态、无意图分类层。**显式指令优先**：回复中携带的其他显式指令（如"先别继续"）按字面执行、门保持等待，不恢复 hold 分类层。理由：B19 三位置委派审查已承担把关职能，approve-hold 分层成为多余摩擦。沿革：APG 属 v1.0 基座遗产 → B06 引用（范围变更节）→ B18 收窄至硬门并五组化 → B19 引 APG-05 辖区句 → D25 退役；D19.22/D19.45 以 APG-01 为先例指针属历史记录不动。**组号映射**（本行起生效）：APG = 原 Group 2（删除）；AUD/QT/BRF = 原 Group 3/4/5 → Group 2/3/4——历史档案与决策旧行中的组号按此对照。引擎零改动（hold 从来只是规则层行为状态，引擎无此概念） |
+| D26 | DOC 瘦身 + 合规报告只报例外（B20 实施） | **DOC 六条编号与主体语义冻结**，仅文本瘦身（2026-10-21 用户裁决）：DOC-01 删 typical-mapping 教学段、"after any approved change"→"after any change"（登记为触发澄清——B18 后多数阶段无审批动作，原措辞过时；verification 三判据原样保留）；DOC-04 worked example 压缩为一句判别式 + 指向 workflow-changes.md 保护边界先例（reviews.md/RV-07 句为测试锁定物，不动）；DOC-02/03/05/06 原样，DOC-06 维持 advisory。**合规报告全局改只报例外**：全合规静默，仅列 non-compliant 与 N/A（附简短理由）——落点 = workflow-conventions Enforcement 段、SKILL.md 扩展合规段、三份扩展基线合规节（resiliency/security/property-based）统一例外式；动机 = 消除每阶段 5-8 行经常性 token 成本，与 B18 ≤5 行 brief 姿态对齐 |
 
 ### 减法批子系列（D-清1~9，B12 批裁决）
 
@@ -93,7 +95,7 @@
 - **引擎**：`scripts/engine.py` 单文件纯 stdlib（约 1800 行），8 子命令（status/init/next/report/jump[含 --fresh]/rebase/park/stamp）；状态分区所有权 + State Digest 完整性校验 + 审计交叉核验。
 - **作者期工具**：`generate.py`（1290 行，9 个生成区）编译 `scripts/data/stage-graph.json`；`trace-matrix.py`（追溯矩阵，不进 CI）。CI：contract-check.yml（--check + 全测试套件）。
 - **阶段体系**：3 相位 15 阶段（含 product-brainstorm，D19 其六，2026-10-08 段一落地），全部带机器可读契约；6 scope 裁剪矩阵；CONDITIONAL 判据唯一权威 = frontmatter `condition` 浅映射（D-清9）。
-- **测试**：248 例全绿（engine 154 + trace-matrix 22 + generate 61 + rule-invariants 11——B15 段一 3 例 + 段二 7 例 + 收口 1 例）。〔此为 B15 期终口径；后续基线以批次档案为准：B18 后 239，B19 后 249（review_class 相关断言 +10）〕
+- **测试**：248 例全绿（engine 154 + trace-matrix 22 + generate 61 + rule-invariants 11——B15 段一 3 例 + 段二 7 例 + 收口 1 例）。〔此为 B15 期终口径；后续基线以批次档案为准：B18 后 239，B19 后 249（review_class 相关断言 +10），B20 后 251（APG 退役/组号守卫 + 停点不变量守卫 +2）〕
 - **文档负载**：必加载集 73.3KB（B12 前 97.1KB）；SKILL.md 343 行 / 26.6KB。
 - **AM 现状**：单问激活（仅 Code-Gen Hold）+ 全阶段自动批准 + 问题 auto-recommended + 轮次绑定过期（D16-D18 链）。
 - **dogfood**：fx991 计算器项目累计 6 周期（首周期验收→三迭代收官→双臂减重验收方向性通过）。
@@ -120,7 +122,7 @@
 
 **立项动机**：一句话需求场景下一次性长程实施只产出 demo 而非可持续演进的真实产品（执行秩序断裂 + 质量门末端压缩）。战略层（头脑风暴）+ 执行层（迭代分片）合为闭环，先行缩小 Phase 4 多会话协调爆炸半径。
 
-**批次构成**：B15 产品头脑风暴阶段批（头脑风暴阶段 + 迭代交付环全量合并，含 B16 吸收）→ B20+ Operations 实义化（部署/监控/告警/回滚——"线上持续运行"唯一通路，开放项挂账；原"B17+"因 B17 被外线合流批占用、2026-10-19 再因 B18 被门姿态与 AM 退役批占用、10-20 三因 B19 被 reviewer 前置接线批占用而顺延）→ 远期遥测回灌（运行反馈驱动 roadmap 修订，依赖前两者）。
+**批次构成**：B15 产品头脑风暴阶段批（头脑风暴阶段 + 迭代交付环全量合并，含 B16 吸收）→ B21+ Operations 实义化（部署/监控/告警/回滚——"线上持续运行"唯一通路，开放项挂账；原"B17+"因 B17 被外线合流批占用、2026-10-19 再因 B18 被门姿态与 AM 退役批占用、10-20 三因 B19 被 reviewer 前置接线批占用、10-21 四因 B20 被规则层精简批占用而顺延）→ 远期遥测回灌（运行反馈驱动 roadmap 修订，依赖前两者）。
 
 **设计原则（B16 确立、B15 继承，后续批次沿用）**：引擎零改动（依赖写在制品；复用 D15 再入通道为迭代正规通道）；迭代边界 = 人工检查点（决定归人类，v1 无 AM 自动续迭代）；rollup 前置（ship 当刻压一行）；**头脑风暴阶段 = 纯人类领地**（AM 延迟至 RA，任何机制不替用户做产品决定）。
 
@@ -194,7 +196,8 @@
 | 全量去术语化：P1 机制隐身推广到既有 Type 1~10 用户话术与恢复菜单（B17 实施时既有文本不动） | 待 B17 实施后评估 | B17 计划审核 P1 处置 |
 | B18 门姿态与 AM 退役批（独立姿态批：`gate: brief` 第四门型 + 四硬门处置地图 + AM 退役遗产三分 + AM-04 升格；Phase 5B reviewer 的姿态地基） | ✅ 已实施（2026-10-19 立项裁决四项全按推荐，10-19~20 实施完成：D22/D23 登记、`--check` 零漂移、测试 253→239 精确对账〔AM 退场 -21 + brief/BRF 断言 +7 + 终审残留守卫 +1 + 门规则测试改锚 PB 硬门净 -1〕——含收口终审 5 项第一层发现 + 8 改进 + 4 建议全部处置；生效后 classic = 2 引擎阶段硬门〔PB/RA〕+ 规则级方向停点 + 仪式人工门 + 11 阶段简报；**reviewer 接线缺口由 B19 补齐**——见 batches/b19） | batches/b18 |
 | B19 reviewer 前置接线批（Phase 5B 提前件：三位置接线〔RA 门材料前/方向门简报前/B&T 收尾简报前〕+ 全新会话纪律 + 三轮预算 + 降级链 + reviews.md R-T 日志；补 B18 遗留的接线缺口） | ✅ 已实施（2026-10-20 立项并同日单会话落地：D24 登记、249 绿〔239+10〕+ `--check` 零漂移、两轮收口终审全处置；dogfood 迭代二验证——快照源 = 本批收口提交） | batches/b19 |
-| Operations 实义化（部署/监控/告警/回滚——"线上持续运行"通路；B16 DoD 占位字段待升格） | Phase 3.4 第二批候选（B20+） | B16 立项 |
+| B20 规则层精简批（APG 退役 D25 + DOC 瘦身与合规只报例外 D26；B19 审查接线后的交互与 token 减负） | ✅ 已实施（2026-10-21 用户裁决立项，方案经 reviewer 全新会话终审〔7 发现/5 改进/5 建议全处置〕后 10-22 实施：251 绿〔249+2 守卫〕+ `--check` 零漂移 + 技能侧 APG/组号残留零命中；组号重编 AUD/QT/BRF→Group 2/3/4；dogfood 迭代二起观测——协议 §五 C1~C2） | batches/b20 |
+| Operations 实义化（部署/监控/告警/回滚——"线上持续运行"通路；B16 DoD 占位字段待升格） | Phase 3.4 第二批候选（B21+） | B16 立项 |
 | 阶段规则审查透镜：强制步骤必须在当阶段实际加载的文件里有锚点，否则被静默跳过（Trellis breadcrumb 不变量，两次事故实证） | 观察项（批次审查时核对） | B15 规格修订 |
 | bugfix scope 增强：break-loop 五维归因 + 贝叶斯排查框架移植（error-handling 或 scope 材料） | 低优候选 | B15 规格修订（Trellis C-4） |
 | 代码批·旧格式兼容层退役（legacy 分支/宽容解析/旧格式夹具三层一体） | 前提=确认无 pre-engine 存量工作区 | B12 后续登记① |

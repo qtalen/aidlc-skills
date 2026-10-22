@@ -205,7 +205,7 @@ After receiving answers:
    - **ALWAYS** create `aidlc-docs/inception/requirements/requirement-verification-questions.md` unless requirements are exceptionally clear and complete
    - Ask questions about ANY missing, unclear, or ambiguous areas
    - Focus on functional requirements, non-functional requirements, user scenarios, and business context
-   - Collect answers via the structured question tool per QT-01 (workflow-conventions Group 4): invoke it in the SAME interaction as file creation — do NOT stop and ask the user to hand-edit the file
+   - Collect answers via the structured question tool per QT-01 (workflow-conventions Group 3): invoke it in the SAME interaction as file creation — do NOT stop and ask the user to hand-edit the file
    - If presenting multiple-choice options for answers:
      - Label the options as A, B, C, D etc.
      - Ensure options are mutually exclusive and don't overlap

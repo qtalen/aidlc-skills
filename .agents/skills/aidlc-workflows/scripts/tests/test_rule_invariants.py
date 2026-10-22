@@ -143,7 +143,7 @@ class BriefGatePostureTests(unittest.TestCase):
             "references/extensions/workflow/workflow-conventions/"
             "workflow-conventions.md"
         )
-        self.assertIn("Group 5: Brief Gate Semantics (BRF)", wc)
+        self.assertIn("Group 4: Brief Gate Semantics (BRF)", wc)
         self.assertIn("pacing, not a stop point", wc)
         self.assertIn("resumption trigger only", wc)
 
@@ -267,6 +267,29 @@ class ReviewWiringTests(unittest.TestCase):
         changes = _read("references/common/workflow-changes.md")
         self.assertIn("reviews.md", changes)
         self.assertIn("unreviewed-after-fix", changes)
+
+
+class ApgRetirementTests(unittest.TestCase):
+    """B20 (D25/D26): the APG approval-gate group is retired and the
+    remaining groups renumber AUD->2, QT->3, BRF->4. Guards against
+    drift-back and orphaned references. Also pins the direction-stop
+    invariant the old APG clause used to carry (B18 R1: reporting at
+    the stop strands the remaining units)."""
+
+    def test_apg_group_gone_and_groups_renumbered(self):
+        wc = _read(
+            "references/extensions/workflow/workflow-conventions/"
+            "workflow-conventions.md"
+        )
+        self.assertNotIn("APG-", wc)
+        self.assertNotIn("Group 5", wc)
+        sc = _read("references/common/stage-contract.md")
+        self.assertIn("Group 4 (BRF)", sc)
+
+    def test_direction_stop_reports_nothing(self):
+        cg = _read("references/construction/code-generation.md")
+        self.assertIn("no `report` runs at the stop", cg)
+        self.assertIn("until approval/continuation semantics", cg)
 
 
 if __name__ == "__main__":

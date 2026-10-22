@@ -509,7 +509,7 @@ I recommend skipping [Y] stages:
 > Brief-gate posture: proceeding without approval — object anytime in natural language (e.g. to add a skipped stage or drop a planned one).
 ```
 
-**Plan-deviation question (fork escalation)**: if the plan deviates from the active scope's default grid — adding or removing stages relative to the scope's EXECUTE/SKIP/CONDITIONAL baseline — that deviation is a product-level fork: ASK it via the structured question tool (present the deviation and its cost, mark the recommended option) instead of folding it silently into the brief. Wait for the answer, apply it to the plan, then proceed. This is the first application of the brief-gate escalation rule (workflow-conventions Group 5, BRF-01).
+**Plan-deviation question (fork escalation)**: if the plan deviates from the active scope's default grid — adding or removing stages relative to the scope's EXECUTE/SKIP/CONDITIONAL baseline — that deviation is a product-level fork: ASK it via the structured question tool (present the deviation and its cost, mark the recommended option) instead of folding it silently into the brief. Wait for the answer, apply it to the plan, then proceed. This is the first application of the brief-gate escalation rule (workflow-conventions Group 4, BRF-01).
 
 ## Step 10: Proceed (briefing gate)
 

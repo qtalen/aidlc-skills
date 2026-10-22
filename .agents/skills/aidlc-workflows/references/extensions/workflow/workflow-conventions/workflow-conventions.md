@@ -2,21 +2,20 @@
 
 ## Overview
 
-MANDATORY cross-cutting rules for every AI-DLC workflow execution. This file has no `.opt-in.md` — it is ALWAYS enforced and loaded at workflow start. It consolidates five rule groups:
+MANDATORY cross-cutting rules for every AI-DLC workflow execution. This file has no `.opt-in.md` — it is ALWAYS enforced and loaded at workflow start. It consolidates four rule groups:
 
 - **DOC-01~06** Documentation Consistency — keep aidlc-docs artifacts synchronized with code after every change
-- **APG-01~05** Approval Gate Semantics — how user responses at stage approval gates are classified and handled (the hard engine gates: product-brainstorm, requirements-analysis; plus rule-level approve-and-continue stops such as Code Generation's first-unit direction stop)
 - **BRF-01~03** Brief Gate Semantics (B18) — completion briefs at `gate: brief` stages: present and proceed, no waiting
 - **AUD-01~05** Audit Discipline — authorship fields and append discipline on audit.md entries
 - **QT-01~04** Question Tool Flow — after generating a question file, collect answers via the harness's structured question tool, write them back to the file, then proceed
 
-**Enforcement**: At each applicable stage/gate, and after every change request, verify compliance with the applicable rules BEFORE presenting the completion message. Include a compliance summary (compliant / non-compliant / N/A per rule, with brief rationale for N/A).
+**Enforcement**: At each applicable stage/gate, and after every change request, verify compliance with the applicable rules BEFORE presenting the completion message. Report **exceptions only**: non-compliant rules and N/A determinations, each with brief rationale — full compliance is silent.
 
 ### Blocking Finding Behavior (applies to all groups)
 
 A **blocking finding** means:
 1. List the finding in the stage completion message with rule ID and description
-2. Do NOT present the completion presentation until resolved — at a hard gate present only "Request Changes" (for APG/AUD violations, correct the handling/entry first); at a brief stage resolve the finding BEFORE the brief or escalate to the user instead of briefing past it (BRF-01)
+2. Do NOT present the completion presentation until resolved — at a hard gate present only "Request Changes" (for AUD violations, correct the entry first); at a brief stage resolve the finding BEFORE the brief or escalate to the user instead of briefing past it (BRF-01)
 3. Log the finding in `aidlc-docs/audit.md` with rule ID, description, and stage context
 
 All rules are **blocking** by default, with one exception: rules explicitly marked **Advisory** in their own entry (currently DOC-06) are listed as reminders in the completion message but never block the flow. Rules not applicable to the current stage/change are marked N/A (not a finding).
@@ -26,14 +25,12 @@ All rules are **blocking** by default, with one exception: rules explicitly mark
 ## Group 1: Documentation Consistency (DOC)
 
 ### DOC-01: Change-to-Artifact Impact Analysis
-After any approved change (new/modified requirement, UI tweak, signature/enum/value-range change), BEFORE the completion message:
+After any change (new/modified requirement, UI tweak, signature/enum/value-range change), BEFORE the completion message:
 1. List affected keywords, numeric ranges, type signatures, component names, counts
 2. Search the entire `aidlc-docs/` tree for occurrences of those terms (including superseded values)
 3. Update every artifact containing stale references, marking the change origin where the artifact format supports it
 
 Historical append-only records — `audit.md` entries and `aidlc-docs/reviews.md` entries — are **exempt** from in-place updating (DOC-04): a stale term inside them stays; the correction is an appended entry, never a rewrite.
-
-Typical mapping: functionality → requirements/stories/business rules; enums/ranges → domain entities, logic models, component methods; signatures → component methods, interaction flows; new components → inventories, structure trees, summaries; test counts → summary coverage sections.
 
 **Verification**: grep of `aidlc-docs/` shows no stale pre-change values in maintained artifacts; new concepts appear in every artifact enumerating that category; cross-reference/coverage tables include changed items.
 
@@ -52,7 +49,7 @@ Question-and-answer files, clarification sections of plan files, `audit.md` entr
 
 **Verification**: no historical Q&A answer or audit entry edited in place; superseded decisions followed by newer timestamped entries.
 
-**Worked example (protection boundary)**: within a single scope reduction, the two text classes are treated differently. Plan checklist steps and current-state artifacts (requirements/stories, design documents, the state file's model-area plan lines) are updated in place; question-and-answer history (`[Answer]:` records), clarification/decision prose inside plan files, and audit entries are append-only — corrections are recorded as appended timestamped amendment notes mapping old → new. Verified precedent: a scope reduction moved a pattern out of the iteration — the FR subsection of requirements.md was rewritten in place with one explanatory entry appended to the revision-record blockquote at the top of the file, while the Q&A in requirement-verification-questions.md and the audit.md entries were left untouched word-for-word; affected FR numbers were marked Deferred and kept, not recycled. The discriminator in one sentence: **"would a later reader be misled if this text changed?" — history that records what was asked/decided/answered is append-only; state that must reflect the current truth is updated in place, with the change origin noted where the format supports it.**
+**Protection boundary (one sentence)**: **"would a later reader be misled if this text changed?" — history that records what was asked/decided/answered is append-only; state that must reflect the current truth is updated in place, with the change origin noted where the format supports it.** Worked scope-reduction precedent: the redo-channel protection boundary in `references/common/workflow-changes.md`.
 
 ### DOC-05: Generic Artifacts, No Cross-Project Leakage
 Shared workflow rule files MUST contain no project-specific identifiers (project names, requirement/story numbering from one project). Project-specific content belongs in the project's `aidlc-docs/`, never in shared rules.
@@ -66,46 +63,7 @@ When creating or substantially updating an `aidlc-docs/` **content artifact of 3
 
 ---
 
-## Group 2: Approval Gate Semantics (APG)
-
-This group applies at the **hard gates** — stages whose frontmatter gate is `approve-continue` (product-brainstorm, requirements-analysis) — and at rule-level stops that use the same approve-and-continue interaction (Code Generation's first-unit direction stop). Completion messages at those points keep their standardized option templates unchanged; this group is an interpretation layer for the user's free-form response. All other stages are `gate: brief` — see Group 5 (BRF).
-
-### APG-01: Approval Intent Classification
-At every approval gate, classify the user's reply into exactly one intent BEFORE acting:
-
-| Intent | Trigger semantics | Examples (non-exhaustive) |
-|---|---|---|
-| Approve-and-Hold | Approval ONLY, no continuation signal | "approve", "approved", "ok", "okay", "yes", "lgtm", "同意", "批准", "好的", "可以", "没问题" |
-| Approve-and-Continue | Continuation (implies approval) | "continue", "go on", "next", "proceed", "继续", "继续吧", "下一步", "接着来", "往下走" |
-| Request Changes | Any modification/question/correction | existing behavior per stage rules |
-
-- Approval + unrelated extra instruction (e.g., "批准但不要进入下一步，只提交代码") → **Approve-and-Hold**; execute ONLY the explicit instruction, then ask about continuation.
-- Genuinely ambiguous between hold/continue → **Approve-and-Hold** (never auto-start next-stage work on ambiguity).
-
-**Verification**: every approval response logged in audit.md with classified intent; no next-stage work begins on a hold; ambiguity defaults to hold.
-
-### APG-02: Approve-and-Hold Behavior
-On Approve-and-Hold, in the SAME interaction:
-1. Record the stage transition with the engine: `python <skill>/scripts/engine.py report --stage <slug> --result approved` (fall back to `python3` if `python` is unavailable). Never hand-edit the Stage Progress / Current Status sections of `aidlc-docs/aidlc-state.md` — they are engine-owned; the "awaiting continuation" hold is a behavior state, not a hand-written status
-2. Log approval in audit.md with complete raw input and intent "approve-hold"
-3. Do NOT begin any next-stage work (no artifacts, no plans, no execution)
-4. End the reply with an explicit continuation question naming the exact next stage
-
-### APG-03: Approve-and-Continue Behavior
-On Approve-and-Continue: treat exactly as the standard "Approve & Continue" option — record the transition with the engine (`python <skill>/scripts/engine.py report --stage <slug> --result approved`), log with intent "approve-continue", immediately proceed in the same interaction.
-
-### APG-04: Resume from Hold
-- A continuation signal at a held gate proceeds to the recorded next stage WITHOUT re-approval (the approval transition was already recorded through the engine at hold time); log the resumption in `audit.md` — never hand-edit the engine-owned state region.
-- New instructions (e.g., change requests) at a held gate are handled while the gate stays held until an explicit continuation signal.
-
-**Verification**: resuming never re-asks approval; state file never shows a held gate after the next stage started; intervening requests don't lose the hold state.
-
-### APG-05: No Template Modification
-Completion message templates and the "NO EMERGENT BEHAVIOR" constraint remain exactly as defined in stage rule files. Never add a third visible option; hold/continue is expressed through the user's natural-language response.
-
----
-
-## Group 3: Audit Discipline (AUD)
+## Group 2: Audit Discipline (AUD)
 
 ### AUD-01: Authorship Fields on Every New Entry
 Every NEW entry appended to `aidlc-docs/audit.md` MUST include these two lines immediately after the `**Context**` line:
@@ -141,9 +99,9 @@ Every NEW `audit.md` entry is appended at the END of the file (after the last ex
 
 ---
 
-## Group 4: Question Tool Flow (QT)
+## Group 3: Question Tool Flow (QT)
 
-Applies to every `{phase-name}-questions.md` file (including `-clarification-questions.md` variants) created under `aidlc-docs/`. Does NOT apply to stage completion approval gates — those remain in-chat, template-bound, per APG-05.
+Applies to every `{phase-name}-questions.md` file (including `-clarification-questions.md` variants) created under `aidlc-docs/`. Does NOT apply to stage completion approval gates — those remain in-chat, template-bound, per the stage rule files' option templates.
 
 **Brief-stage question posture (B18, general rule — former AM-04 semantics)**: at stages whose gate is `brief`, question files are NOT collected from the user by default. The AI auto-answers each question with the `(Recommended)` option (best option when no recommendation exists), writes the answers back with attribution and rationale, logs one audit entry, and proceeds — QT-01's tool invocation is skipped for those files. Two exceptions restore the full QT-01 flow: (1) a genuinely undecidable single question (no defensible recommendation) is escalated to the user via the structured question tool; (2) a product-level fork question — e.g. the Workflow Planning plan-deviation question — is asked, never auto-answered. At the hard-gate stages (product-brainstorm, requirements-analysis) questions go to the user through the normal QT flow. Full rule: `references/common/question-format-guide.md`, "Stage Question Posture".
 
@@ -177,7 +135,7 @@ If no structured question tool is available (none recognized for this harness), 
 
 ---
 
-## Group 5: Brief Gate Semantics (BRF)
+## Group 4: Brief Gate Semantics (BRF)
 
 Applies to every stage whose frontmatter gate is `brief` (the standard posture since B18 — 11 stages). A brief gate is **not** a softer approval gate: nothing is requested and nothing is approved. The stage completes by informing.
 
@@ -205,7 +163,6 @@ A response turn that has to end mid-flow (length/context budget) is pacing, not 
 | Historical record handling | DOC-04 |
 | Shared rule file edits | DOC-05 |
 | Creating or substantially updating a long (300+ line) aidlc-docs content artifact | DOC-06 (advisory — narrow context; list reminder if missing, never block) |
-| Every hard gate (product-brainstorm, requirements-analysis) and rule-level approve-and-continue stop (Code Generation first-unit direction stop) | APG-01 ~ APG-05 |
 | Every `gate: brief` stage completion (11 stages) | BRF-01 ~ BRF-03 |
 | Every audit.md write | AUD-01, AUD-02, AUD-03, AUD-05 |
 | Every question file creation (requirements, stories, design, clarification) | QT-01 ~ QT-04 |

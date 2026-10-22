@@ -9,7 +9,7 @@ These security rules are MANDATORY cross-cutting constraints that apply across a
 A **blocking security finding** means:
 1. The finding MUST be listed in the stage completion message under a "Security Findings" section with the SECURITY rule ID and description
 2. The stage MUST NOT present its completion presentation (gate passage or completion brief) until all blocking findings are resolved
-3. At a hard gate, present only the "Request Changes" option with a clear explanation of what needs to change; at a brief stage, resolve the finding before the completion brief or escalate to the user (workflow-conventions Group 5, BRF-01)
+3. At a hard gate, present only the "Request Changes" option with a clear explanation of what needs to change; at a brief stage, resolve the finding before the completion brief or escalate to the user (workflow-conventions Group 4, BRF-01)
 4. The finding MUST be logged in `aidlc-docs/audit.md` with the SECURITY rule ID, description, and stage context
 
 If a SECURITY rule is not applicable to the current project (e.g., SECURITY-01 when no data stores exist), mark it as **N/A** in the compliance summary — this is not a blocking finding.
@@ -284,7 +284,7 @@ Verification items in this document are plain bullet points describing complianc
 
 These rules are cross-cutting constraints that apply to every AI-DLC stage. At each stage:
 - Evaluate all SECURITY rule verification criteria against the artifacts produced
-- Include a "Security Compliance" section in the stage completion summary listing each rule as compliant, non-compliant, or N/A
+- Include a "Security Compliance" section in the stage completion summary reporting **exceptions only**: non-compliant rules and N/A determinations, each with brief rationale — full compliance is silent
 - If any rule is non-compliant, this is a blocking security finding — follow the blocking finding behavior defined in the Overview
 - Include security rule references in design documentation and test instructions
 

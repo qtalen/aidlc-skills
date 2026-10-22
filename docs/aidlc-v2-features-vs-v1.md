@@ -17,7 +17,7 @@
 | 流程控制 | 模型自行判断 | `aidlc-orchestrate.ts` 确定性引擎 |
 | 阶段 | 3 phase / 14 stage，Operation 是占位符 | 5 phase / 33 stage，全生命周期 |
 | 输出 | `aidlc-docs/` | `aidlc/spaces/.../intents/<record>/`（多空间多意图） |
-| 治理 | 散文规则（`workflow-conventions.md` 的 DOC/APG/AUD/QT 组） | 确定性工具 + 钩子 + 传感器 |
+| 治理 | 散文规则（`workflow-conventions.md` 的 DOC/BRF/AUD/QT 组） | 确定性工具 + 钩子 + 传感器 |
 
 ---
 

@@ -366,7 +366,7 @@ Present completion message in this structure:
 
 Timing is fixed: the completion brief presents the commit plan in its body → the commit-authorization question is asked via the structured question tool in the SAME interaction (execute the commit plan / the user handles commits manually / no git writes now) → only then run `python <skill>/scripts/engine.py report --stage build-and-test --result completed` (per Step 8) → execute the commit plan per the answer. The plan is never presented after the question is answered, and no git write happens before `report completed`.
 
-- The commit authorization is a genuine human-only fork (history writes) — an escalated question under the brief-gate posture (workflow-conventions Group 5, BRF-01), never an automatic action. **Never commit automatically** (unconditional discipline, owned by the Completion Ritual): the message always lists the pending-to-commit inventory and the user decides.
+- The commit authorization is a genuine human-only fork (history writes) — an escalated question under the brief-gate posture (workflow-conventions Group 4, BRF-01), never an automatic action. **Never commit automatically** (unconditional discipline, owned by the Completion Ritual): the message always lists the pending-to-commit inventory and the user decides.
 - **"User handles commits manually" or "no git writes now" answers** → execute NO git write operations.
 
 Protocol:

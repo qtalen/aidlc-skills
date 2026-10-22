@@ -10,7 +10,7 @@ resilience best practices) and apply to workloads on any cloud provider. The rul
 A **blocking resiliency finding** means:
 1. The finding MUST be listed in the stage completion message under a "Resiliency Findings" section with the RESILIENCY rule ID and description
 2. The stage MUST NOT present its completion presentation (gate passage or completion brief) until all blocking findings are resolved
-3. At a hard gate, present only the "Request Changes" option with a clear explanation of what needs to change; at a brief stage, resolve the finding before the completion brief or escalate to the user (workflow-conventions Group 5, BRF-01)
+3. At a hard gate, present only the "Request Changes" option with a clear explanation of what needs to change; at a brief stage, resolve the finding before the completion brief or escalate to the user (workflow-conventions Group 4, BRF-01)
 4. The finding MUST be logged in `aidlc-docs/audit.md` with the RESILIENCY rule ID, description, and stage context
 
 If a RESILIENCY rule is not applicable to the current project (e.g., RESILIENCY-07 when no stateful data exists), mark it as **N/A** in the compliance summary — this is not a blocking finding.
@@ -448,7 +448,7 @@ X) Other (describe after [Answer]: tag below)
 
 These rules are cross-cutting constraints that apply to every AI-DLC stage. At each stage:
 - Evaluate all RESILIENCY rule verification criteria against the artifacts produced
-- Include a "Resiliency Compliance" section in the stage completion summary listing each rule as compliant, non-compliant, or N/A
+- Include a "Resiliency Compliance" section in the stage completion summary reporting **exceptions only**: non-compliant rules and N/A determinations, each with brief rationale — full compliance is silent
 - If any rule is non-compliant, this is a blocking resiliency finding — follow the blocking finding behavior defined in the Overview
 - Include resiliency rule references in design documentation, infrastructure templates, and test instructions
 

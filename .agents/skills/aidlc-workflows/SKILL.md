@@ -53,9 +53,9 @@ All rule detail file references below (e.g., `references/inception/workspace-det
 **Enforcement** (applies only to loaded/enabled extensions):
 - Extension rules are hard constraints, not optional guidance
 - At each stage, the model intelligently evaluates which extension rules are applicable based on the stage's purpose, the artifacts being produced, and the context of the work — enforce only those rules that are relevant
-- Rules that are not applicable to the current stage should be marked as N/A in the compliance summary (this is not a blocking finding)
+- Rules that are not applicable to the current stage are N/A — listed only when exceptions are reported, with brief rationale (this is not a blocking finding)
 - Non-compliance with any applicable enabled extension rule is a **blocking finding** — do NOT present stage completion until resolved
-- When presenting stage completion, include a summary of extension rule compliance (compliant/non-compliant/N/A per rule, with brief rationale for N/A determinations)
+- When presenting stage completion, report extension rule compliance **exceptions only**: non-compliant rules and N/A determinations, each with brief rationale — full compliance is silent
 
 **Conditional Enforcement**: Extensions may be conditionally enabled/disabled. See `references/inception/requirements-analysis.md` for the opt-in mechanism. Before enforcing any extension at ANY stage, check its `Enabled` status in `aidlc-docs/aidlc-state.md` under `## Extension Configuration`. Skip disabled extensions and log the skip in audit.md. Default to enforced if no configuration exists.
 
@@ -126,7 +126,7 @@ The full runtime contract — invocation, directives, transition semantics, stat
    - **`done`**: the workflow is complete — present the closing summary (three-branch Iteration Completion Ritual: next-iteration preview + human gate / product-level final review / standard close when no roadmap — see `references/common/workflow-changes.md`) and stop.
    - **`error`**: present `message` and `hint` to the user verbatim, then stop.
 3. Write the stage outcome through the engine's only transition entry point:
-   - No gate or `brief` gate, stage finished → `report --stage <slug> --result completed` (brief stages present the ≤5-line completion brief first — workflow-conventions Group 5)
+   - No gate or `brief` gate, stage finished → `report --stage <slug> --result completed` (brief stages present the ≤5-line completion brief first — workflow-conventions Group 4)
    - Gated stage, user approved → `report --stage <slug> --result approved`
    - Gated stage, user requested changes → `report --stage <slug> --result rejected`
    - Stage revised and re-submitted → `report --stage <slug> --result revised`
@@ -295,10 +295,10 @@ The Operations stage will eventually include:
 - **User Control**: User can request stage inclusion/exclusion
 - **Progress Tracking (two-level checkboxes)**: Stage progress is engine-owned — the engine exclusively maintains the ENGINE-STATE region of `aidlc-state.md` (stage checkboxes, Current Status, State Digest) through `report`/`jump` (transitions) and `park` (annotations); the model MUST NOT hand-edit it. Plan-level checkboxes in `aidlc-docs/` plan files are model-owned — mark a step `[x]` in the SAME interaction where the work is completed; never leave completed work untracked.
 - **State Ownership**: The model maintains only the model-owned regions of `aidlc-state.md` (Project Information, Workspace State, Code Location Rules, Extension Configuration, Execution Plan Summary — incl. the Scope/Depth/Stages lines the engine reads for routing) per template. The full ownership matrix is in `references/common/engine-contract.md`. (Since B18 retired Autonomous Mode, the engine never writes into any model-owned region — the ownership boundary is clean.)
-- **Complete Audit Trail**: Log ALL user inputs and AI responses in audit.md with timestamps — COMPLETE RAW INPUT, never summarized, every interaction (not just approvals). The full audit discipline (append-only, end-of-file anchoring, git-sourced fields, timestamp acquisition) is enforced by workflow-conventions Group 3 (AUD-01–05).
+- **Complete Audit Trail**: Log ALL user inputs and AI responses in audit.md with timestamps — COMPLETE RAW INPUT, never summarized, every interaction (not just approvals). The full audit discipline (append-only, end-of-file anchoring, git-sourced fields, timestamp acquisition) is enforced by workflow-conventions Group 2 (AUD-01–05).
 - **Quality Focus**: Complex changes get full treatment, simple changes stay efficient
 - **Content Validation**: Always validate content before file creation per content-validation.md rules
-- **NO EMERGENT BEHAVIOR**: Completion presentations are standardized — hard-gate stages use the option templates defined in their rule files; `brief` stages use the ≤5-line completion brief (workflow-conventions Group 5). DO NOT create 3-option menus or other emergent navigation patterns.
+- **NO EMERGENT BEHAVIOR**: Completion presentations are standardized — hard-gate stages use the option templates defined in their rule files; `brief` stages use the ≤5-line completion brief (workflow-conventions Group 4). DO NOT create 3-option menus or other emergent navigation patterns.
 
 ## Audit Log Entry Format
 
